@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { MapPin, Mail, Phone, Shield, Clock, Landmark, Building2, ChevronRight } from 'lucide-react';
+import { MapPin, Mail, Phone, Shield, Clock, Landmark, Building2, ChevronRight, MessageCircle, Film, Image as ImageIcon } from 'lucide-react';
 import { PrivacyModal } from './PrivacyModal';
 import { TermsModal } from './TermsModal';
 import { AccessibilityModal } from './AccessibilityModal';
@@ -35,7 +35,7 @@ export const Footer: React.FC<Props> = ({ setCurrentTab, currentLang, onOpenAdmi
   return (
     <footer className="bg-[#071F17] text-white/90 pt-16 pb-12 border-t-2 border-[#C6A15B]/70 relative z-30">
       <div className="max-w-7xl mx-auto px-4 sm:px-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-10 mb-12">
-        {/* Col 1: Representative Identity & Crest (lg:col-span-4) */}
+        {/* Col 1: Representative Identity, Crest & 4 Quick-Access Icons */}
         <div className="lg:col-span-4 space-y-4">
           <div className="flex items-center space-x-3">
             <OfficialCrest size="lg" className="shadow-md shrink-0" />
@@ -47,6 +47,47 @@ export const Footer: React.FC<Props> = ({ setCurrentTab, currentLang, onOpenAdmi
                 Danmaje Yabo
               </p>
             </div>
+          </div>
+
+          {/* Four Quick-Access Icons arranged horizontally with distinct colors: WhatsApp green, Gallery purple, Projects gold, Email blue */}
+          <div className="flex items-center gap-2 pt-1">
+            <a
+              href="https://wa.me/2348000000000?text=Hello%20Hon.%20Umar%20Yusuf%20Danmaje%20Yabo,%20I%20am%20contacting%20from%20Yabo/Shagari%20Constituency."
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="WhatsApp Contact"
+              className="w-9 h-9 rounded-xl bg-[#25D366] text-white flex items-center justify-center shadow hover:scale-110 transition-transform cursor-pointer"
+              title="WhatsApp Constituency Chat"
+            >
+              <MessageCircle className="w-4 h-4 fill-current" />
+            </a>
+
+            <button
+              onClick={() => navigateTo('gallery')}
+              aria-label="Media Gallery"
+              className="w-9 h-9 rounded-xl bg-purple-600 text-white flex items-center justify-center shadow hover:scale-110 transition-transform cursor-pointer"
+              title="Media & Gallery"
+            >
+              <Film className="w-4 h-4" />
+            </button>
+
+            <button
+              onClick={() => navigateTo('projects')}
+              aria-label="Constituency Projects"
+              className="w-9 h-9 rounded-xl bg-[#C6A15B] text-[#09291F] flex items-center justify-center shadow hover:scale-110 transition-transform cursor-pointer"
+              title="Constituency Projects"
+            >
+              <Building2 className="w-4 h-4" />
+            </button>
+
+            <a
+              href="mailto:contact@danmayeyabo.gov.ng"
+              aria-label="Email Official Desk"
+              className="w-9 h-9 rounded-xl bg-blue-600 text-white flex items-center justify-center shadow hover:scale-110 transition-transform cursor-pointer"
+              title="Email Constituency Office"
+            >
+              <Mail className="w-4 h-4" />
+            </a>
           </div>
 
           <p className="text-xs sm:text-sm text-stone-300 leading-relaxed font-light">
@@ -63,7 +104,7 @@ export const Footer: React.FC<Props> = ({ setCurrentTab, currentLang, onOpenAdmi
           </div>
         </div>
 
-        {/* Col 2: Quick Links (lg:col-span-3) */}
+        {/* Col 2: Quick Links */}
         <div className="lg:col-span-3 space-y-3">
           <h4 className="font-['Manrope'] font-bold text-white text-sm uppercase tracking-wider text-[#D4AF37] border-b border-white/10 pb-2">
             {currentLang === 'ha' ? 'Hanyoyin Yanar Gizo' : currentLang === 'ar' ? 'البوابات والخدمات' : 'Official Portals'}
@@ -114,7 +155,7 @@ export const Footer: React.FC<Props> = ({ setCurrentTab, currentLang, onOpenAdmi
           </ul>
         </div>
 
-        {/* Col 3: Parliamentary & Liaison Desks (lg:col-span-3) */}
+        {/* Col 3: Parliamentary & Liaison Desks */}
         <div className="lg:col-span-3 space-y-3">
           <h4 className="font-['Manrope'] font-bold text-white text-sm uppercase tracking-wider text-[#D4AF37] border-b border-white/10 pb-2">
             {currentLang === 'ha' ? 'Ofisoshin Sadarwa' : currentLang === 'ar' ? 'مكاتب الاتصال' : 'Offices & Liaison Desks'}
@@ -144,7 +185,7 @@ export const Footer: React.FC<Props> = ({ setCurrentTab, currentLang, onOpenAdmi
           </ul>
         </div>
 
-        {/* Col 4: Communications & Public Service Hours (lg:col-span-2) */}
+        {/* Col 4: Communications & Public Service Hours */}
         <div className="lg:col-span-2 space-y-3">
           <h4 className="font-['Manrope'] font-bold text-white text-sm uppercase tracking-wider text-[#D4AF37] border-b border-white/10 pb-2">
             {currentLang === 'ha' ? 'Lokutan Aiki' : currentLang === 'ar' ? 'ساعات العمل' : 'Communications'}

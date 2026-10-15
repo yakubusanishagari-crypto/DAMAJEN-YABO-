@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Menu, X, Globe, ChevronDown, ShieldCheck, FileText, Eye } from 'lucide-react';
+import { Menu, X, Globe, ChevronDown } from 'lucide-react';
 import { Language, t, Translations } from '../utils/i18n';
 import { OfficialCrest } from './OfficialCrest';
 
@@ -47,11 +47,11 @@ export const Navbar: React.FC<Props> = ({
     { id: 'contact', labelKey: 'contact' },
   ];
 
-  // Legal & Policy Navigation Pages (Included in navigation)
+  // Legal & Policy Navigation Pages (Clean text-only without decorative icons per user request)
   const legalNavItems = [
-    { id: 'privacy', labelKey: 'privacyPolicy', icon: ShieldCheck },
-    { id: 'terms', labelKey: 'termsOfUse', icon: FileText },
-    { id: 'accessibility', labelKey: 'accessibility', icon: Eye },
+    { id: 'privacy', labelKey: 'privacyPolicy' },
+    { id: 'terms', labelKey: 'termsOfUse' },
+    { id: 'accessibility', labelKey: 'accessibility' },
   ];
 
   const handleNavClick = (id: string) => {
@@ -72,7 +72,7 @@ export const Navbar: React.FC<Props> = ({
   return (
     <header className="sticky top-0 z-40 bg-[#103C2E] text-white shadow-xl border-b border-[#C6A15B]/30">
       <div className="max-w-7xl mx-auto px-4 sm:px-8 py-3 flex items-center justify-between">
-        {/* Logo & Representative Identity (UY circle removed, replaced with Official Crest) */}
+        {/* Logo & Representative Identity */}
         <button 
           onClick={() => handleNavClick('home')}
           className="flex items-center gap-3 text-left group focus:outline-none cursor-pointer"
@@ -107,7 +107,7 @@ export const Navbar: React.FC<Props> = ({
             );
           })}
 
-          {/* Legal / Policy Dropdown in Navigation */}
+          {/* Legal / Policy Dropdown in Navigation (Clean Text-Only) */}
           <div className="relative">
             <button
               onClick={() => setLegalDropdownOpen(!legalDropdownOpen)}
@@ -127,19 +127,17 @@ export const Navbar: React.FC<Props> = ({
                   OFFICIAL STATEMENTS & CHARTERS
                 </div>
                 {legalNavItems.map((item) => {
-                  const Icon = item.icon;
                   const active = currentTab === item.id;
                   return (
                     <button
                       key={item.id}
                       onClick={() => handleNavClick(item.id)}
-                      className={`w-full text-left px-3 py-2 text-xs font-bold tracking-wider uppercase transition flex items-center gap-2 cursor-pointer ${
+                      className={`w-full text-left px-3 py-2 text-xs font-bold tracking-wider uppercase transition cursor-pointer ${
                         active 
                           ? 'bg-[#D4AF37] text-[#09291F]' 
                           : 'text-white/90 hover:bg-white/10 hover:text-[#D4AF37]'
                       }`}
                     >
-                      <Icon className="w-3.5 h-3.5 text-[#C6A15B] shrink-0" />
                       <span>{t(item.labelKey, currentLang, translations).toUpperCase()}</span>
                     </button>
                   );
@@ -168,7 +166,6 @@ export const Navbar: React.FC<Props> = ({
             );
           })}
 
-          {/* More Menu for remaining items including legal */}
           <div className="relative">
             <button
               onClick={() => setLegalDropdownOpen(!legalDropdownOpen)}
@@ -275,7 +272,7 @@ export const Navbar: React.FC<Props> = ({
         </div>
       </div>
 
-      {/* Mobile Dropdown Menu - ALL Pages in CAPITAL LETTERS Including Privacy, Terms, Accessibility */}
+      {/* Mobile Dropdown Menu */}
       {mobileMenuOpen && (
         <div className="xl:hidden mt-1 pt-3 pb-6 px-4 border-t border-white/10 space-y-1 bg-[#09291F] animate-fadeIn max-h-[85vh] overflow-y-auto">
           <div className="text-[10px] font-extrabold uppercase tracking-widest text-[#D4AF37] px-4 py-1">
@@ -306,19 +303,17 @@ export const Navbar: React.FC<Props> = ({
           </div>
 
           {legalNavItems.map((item) => {
-            const Icon = item.icon;
             const active = currentTab === item.id;
             return (
               <button
                 key={item.id}
                 onClick={() => handleNavClick(item.id)}
-                className={`w-full text-left px-4 py-2.5 rounded-xl text-xs font-extrabold tracking-wider uppercase transition flex items-center gap-2 cursor-pointer ${
+                className={`w-full text-left px-4 py-2.5 rounded-xl text-xs font-extrabold tracking-wider uppercase transition cursor-pointer ${
                   active
                     ? 'bg-[#C6A15B] text-[#09291F]'
                     : 'text-stone-300 hover:bg-white/10 hover:text-white'
                 }`}
               >
-                <Icon className="w-4 h-4 text-[#C6A15B] shrink-0" />
                 <span>{t(item.labelKey, currentLang, translations).toUpperCase()}</span>
               </button>
             );
