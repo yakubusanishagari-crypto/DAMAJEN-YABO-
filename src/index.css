@@ -1,0 +1,24 @@
+@import "tailwindcss";
+
+@layer base {
+  body {
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    background-color: #FAF9F5;
+    color: #242824;
+  }
+  
+  h1, h2, h3, h4, h5, h6 {
+    font-family: 'Manrope', system-ui, -apple-system, sans-serif;
+  }
+}
+
+/* Custom theme colors */
+:root {
+  --color-primary-forest: #103C2E;
+  --color-dark-forest: #09291F;
+  --color-warm-white: #FAF9F5;
+  --color-gold: #C6A15B;
+  --color-gold-hover: #b28f4c;
+  --color-charcoal: #242824;
+  --color-muted: #6B716D;
+}

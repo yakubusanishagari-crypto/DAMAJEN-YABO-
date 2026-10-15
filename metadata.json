@@ -1,0 +1,6 @@
+{
+  "name": "Hon. Umar Yusuf (Danmaje Yabo) - Official Portal",
+  "description": "Official representative website and constituency portal for Hon. Umar Yusuf (Danmaje Yabo), Member, House of Representatives, National Assembly, Nigeria (Yabo/Shagari Constituency).",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
