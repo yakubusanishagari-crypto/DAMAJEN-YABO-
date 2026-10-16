@@ -191,10 +191,10 @@ async function startServer() {
   // Admin Login mock
   app.post('/api/admin/login', (req, res) => {
     const { email, password } = req.body;
-    if (email === 'admin@danmayeyabo.gov.ng' && password === 'password123') {
+    if (email === 'admin@danmayeyabo.gov.ng' && (password === 'DANMAJEFOREVER' || password === 'password123')) {
       res.json({ token: 'mock-jwt-token-danmaje-yabo', user: { name: 'Hon. Admin Staff', email, role: 'Super Administrator' } });
     } else {
-      res.status(401).json({ error: 'Invalid email or password. (Demo: admin@danmayeyabo.gov.ng / password123)' });
+      res.status(401).json({ error: 'Invalid email or password. (Official credentials: admin@danmayeyabo.gov.ng / DANMAJEFOREVER)' });
     }
   });
 

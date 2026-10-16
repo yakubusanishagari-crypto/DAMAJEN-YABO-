@@ -134,6 +134,11 @@ export const BiographyPage: React.FC<Props> = ({ setCurrentTab, currentLang, tra
             <div className="relative w-full max-w-xs sm:max-w-sm">
               <div className="absolute -inset-2 bg-gradient-to-tr from-[#C6A15B]/30 to-[#103C2E]/50 rounded-3xl blur-xl opacity-70"></div>
               <div className="relative rounded-2xl overflow-hidden shadow-2xl border-2 border-[#C6A15B]/60 ring-4 ring-[#09291F] bg-[#09291F] aspect-[3/4]">
+                <div className="absolute top-3 left-3 z-20 flex items-center gap-1.5 bg-[#061B14]/85 backdrop-blur-md px-2.5 py-1 rounded-full border border-[#D4AF37]/60 shadow-lg">
+                  <img src="/official_logo.png" alt="Official Seal" className="w-5 h-5 rounded-full object-contain" />
+                  <span className="text-[9px] font-extrabold uppercase tracking-wider text-[#D4AF37]">National Assembly</span>
+                </div>
+
                 <img
                   src="/src/assets/images/portrait_danmaje_yabo_1792063283391.jpg"
                   alt="Hon. Umar Yusuf Danmaje Yabo"
@@ -159,10 +164,15 @@ export const BiographyPage: React.FC<Props> = ({ setCurrentTab, currentLang, tra
         {/* Left Column: Official Summary Card */}
         <div className="lg:col-span-4 space-y-6">
           <div className="bg-white rounded-2xl shadow-sm border border-stone-200 p-6 space-y-5">
-            <h3 className="font-['Manrope'] font-bold text-lg text-[#103C2E] border-b border-stone-100 pb-3 flex items-center gap-2">
-              <User className="w-5 h-5 text-[#C6A15B]" />
-              <span>{t('execFactsTitle', currentLang, translations)}</span>
-            </h3>
+            <div className="flex items-center gap-3 border-b border-stone-100 pb-3">
+              <img src="/official_logo.png" alt="Official Seal" className="w-10 h-10 rounded-full border border-[#D4AF37] object-contain shadow-sm shrink-0" />
+              <div>
+                <h3 className="font-['Manrope'] font-bold text-base text-[#103C2E]">
+                  {t('execFactsTitle', currentLang, translations)}
+                </h3>
+                <span className="text-[10px] text-stone-500">Official Parliamentary Credentials</span>
+              </div>
+            </div>
 
             <div className="space-y-3.5 text-xs text-stone-700">
               {facts.map((fact, idx) => (

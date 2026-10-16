@@ -49,7 +49,15 @@ export default function App() {
 
   const [translations, setTranslations] = useState<Translations>(() => {
     const saved = localStorage.getItem('danmaje_translations');
-    return saved ? JSON.parse(saved) : DEFAULT_TRANSLATIONS;
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        return { ...DEFAULT_TRANSLATIONS, ...parsed };
+      } catch (e) {
+        return DEFAULT_TRANSLATIONS;
+      }
+    }
+    return DEFAULT_TRANSLATIONS;
   });
 
   useEffect(() => {
@@ -146,12 +154,52 @@ export default function App() {
             translations={translations}
           />
         )}
-        {currentTab === 'projects' && <ProjectsPage projects={projects} />}
-        {currentTab === 'legislative' && <LegislativePage legislative={legislative} />}
-        {currentTab === 'empowerment' && <EmpowermentPage programs={programs} />}
-        {currentTab === 'news' && <NewsPage news={news} />}
-        {currentTab === 'gallery' && <GalleryPage gallery={gallery} />}
-        {currentTab === 'contact' && <ContactPage />}
+        {currentTab === 'projects' && (
+          <ProjectsPage 
+            projects={projects} 
+            setCurrentTab={setCurrentTab}
+            currentLang={currentLang}
+            translations={translations}
+          />
+        )}
+        {currentTab === 'legislative' && (
+          <LegislativePage 
+            legislative={legislative} 
+            setCurrentTab={setCurrentTab}
+            currentLang={currentLang}
+            translations={translations}
+          />
+        )}
+        {currentTab === 'empowerment' && (
+          <EmpowermentPage 
+            programs={programs} 
+            setCurrentTab={setCurrentTab}
+            currentLang={currentLang}
+            translations={translations}
+          />
+        )}
+        {currentTab === 'news' && (
+          <NewsPage 
+            news={news} 
+            setCurrentTab={setCurrentTab}
+            currentLang={currentLang}
+            translations={translations}
+          />
+        )}
+        {currentTab === 'gallery' && (
+          <GalleryPage 
+            gallery={gallery} 
+            setCurrentTab={setCurrentTab}
+            currentLang={currentLang}
+            translations={translations}
+          />
+        )}
+        {currentTab === 'contact' && (
+          <ContactPage 
+            currentLang={currentLang}
+            translations={translations}
+          />
+        )}
         {(currentTab === 'privacy' || currentTab === 'terms' || currentTab === 'accessibility') && (
           <LegalPage
             type={currentTab as 'privacy' | 'terms' | 'accessibility'}
@@ -165,6 +213,7 @@ export default function App() {
       <Footer
         setCurrentTab={setCurrentTab}
         currentLang={currentLang}
+        translations={translations}
         onOpenAdmin={() => setAdminOpen(true)}
       />
 

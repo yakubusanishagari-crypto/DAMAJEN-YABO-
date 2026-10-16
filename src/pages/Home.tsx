@@ -37,6 +37,28 @@ export const Home: React.FC<Props> = ({
   const [activeNews, setActiveNews] = useState<NewsArticle | null>(null);
   const [activeLegItem, setActiveLegItem] = useState<LegislativeRecord | null>(null);
   const [applyProgram, setApplyProgram] = useState<EmpowermentProgram | null>(null);
+  const [activeVideoTheater, setActiveVideoTheater] = useState<GalleryItem | null>(null);
+  const [homepageVideoLiked, setHomepageVideoLiked] = useState<boolean>(() => {
+    return localStorage.getItem('danmaje_liked_gal-vid-1') === 'true';
+  });
+  const [homepageLikesCount, setHomepageLikesCount] = useState<number>(() => {
+    const saved = localStorage.getItem('danmaje_likes_count_gal-vid-1');
+    return saved ? parseInt(saved, 10) : 486;
+  });
+
+  const toggleHomepageLike = () => {
+    if (homepageVideoLiked) {
+      setHomepageVideoLiked(false);
+      setHomepageLikesCount(prev => prev - 1);
+      localStorage.setItem('danmaje_liked_gal-vid-1', 'false');
+      localStorage.setItem('danmaje_likes_count_gal-vid-1', (homepageLikesCount - 1).toString());
+    } else {
+      setHomepageVideoLiked(true);
+      setHomepageLikesCount(prev => prev + 1);
+      localStorage.setItem('danmaje_liked_gal-vid-1', 'true');
+      localStorage.setItem('danmaje_likes_count_gal-vid-1', (homepageLikesCount + 1).toString());
+    }
+  };
 
   // Application form state
   const [appFormData, setAppFormData] = useState({
@@ -142,8 +164,7 @@ export const Home: React.FC<Props> = ({
           <div className="lg:col-span-7 space-y-6">
             {/* Official Kicker Plate */}
             <div className="inline-flex items-center gap-2.5 px-4 py-2 rounded-full bg-[#C6A15B]/15 border border-[#C6A15B]/40 text-xs font-semibold text-[#D4AF37] tracking-wider uppercase">
-              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-              <Shield className="w-3.5 h-3.5 shrink-0 text-[#C6A15B]" />
+              <img src="/official_logo.png" alt="Official Constituency Seal" className="w-5 h-5 rounded-full object-contain border border-[#D4AF37]/60" />
               <span>{t('heroWelcome', currentLang, translations)}</span>
               <span className="text-white/40">·</span>
               <span className="text-white/80 font-medium">10th National Assembly</span>
@@ -214,6 +235,12 @@ export const Home: React.FC<Props> = ({
               
               {/* Luxury Frame Container */}
               <div className="relative rounded-2xl overflow-hidden shadow-2xl border-2 border-[#C6A15B]/60 ring-4 ring-[#09291F]/80 bg-[#09291F] aspect-[3/4] group">
+                {/* Floating Official Seal Medallion */}
+                <div className="absolute top-3 left-3 z-20 flex items-center gap-2 bg-[#061B14]/90 backdrop-blur-md px-3 py-1.5 rounded-full border border-[#D4AF37]/60 shadow-2xl">
+                  <img src="/official_logo.png" alt="Official Seal" className="w-6 h-6 rounded-full object-contain" />
+                  <span className="text-[10px] font-extrabold uppercase tracking-wider text-[#D4AF37]">National Assembly</span>
+                </div>
+
                 <img
                   src="/src/assets/images/portrait_danmaje_yabo_1792063283391.jpg"
                   alt="Hon. Umar Yusuf Danmaje Yabo - Member House of Representatives"
@@ -224,19 +251,24 @@ export const Home: React.FC<Props> = ({
                 />
                 
                 {/* Official Title Plaque Overlay */}
-                <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-[#061B14] via-[#09291F]/90 to-transparent p-6 text-white border-t border-[#C6A15B]/30">
-                  <div className="flex items-center justify-between mb-1">
+                <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-[#061B14] via-[#09291F]/90 to-transparent p-5 sm:p-6 text-white border-t border-[#C6A15B]/30">
+                  <div className="flex items-center justify-between mb-2">
                     <span className="text-[10px] uppercase tracking-widest text-[#D4AF37] font-extrabold flex items-center gap-1.5">
                       <Shield className="w-3 h-3 text-[#D4AF37]" />
                       Official Representative
                     </span>
                     <span className="text-[10px] font-bold bg-[#C6A15B]/20 text-[#D4AF37] px-2 py-0.5 rounded border border-[#C6A15B]/30">
-                      Nigeria
+                      Federal Republic of Nigeria
                     </span>
                   </div>
-                  <p className="font-['Manrope'] font-bold text-xl text-white">Hon. Umar Yusuf</p>
-                  <p className="text-xs text-[#D4AF37] font-semibold">Danmaje Yabo</p>
-                  <p className="text-[11px] text-white/80 mt-1">Yabo/Shagari Federal Constituency • 10th Assembly</p>
+                  <div className="flex items-center gap-3">
+                    <img src="/official_logo.png" alt="Constituency Seal" className="w-12 h-12 rounded-full border-2 border-[#D4AF37] p-0.5 bg-[#09291F] shadow-lg shrink-0 object-contain" />
+                    <div>
+                      <p className="font-['Manrope'] font-bold text-lg sm:text-xl text-white leading-tight">Hon. Umar Yusuf</p>
+                      <p className="text-xs text-[#D4AF37] font-semibold">Danmaje Yabo</p>
+                      <p className="text-[10px] text-white/80 mt-0.5">Yabo/Shagari Federal Constituency</p>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -343,9 +375,12 @@ export const Home: React.FC<Props> = ({
                 }}
               />
             </div>
-            <div className="absolute -bottom-4 -right-2 sm:-right-4 flex items-center gap-2 bg-[#103C2E] text-white px-4 py-2.5 rounded-xl shadow-lg border border-[#C6A15B]/40 text-xs font-semibold">
-              <Landmark className="w-4 h-4 text-[#C6A15B]" />
-              <span>National Assembly, Abuja</span>
+            <div className="absolute -bottom-4 -right-2 sm:-right-4 flex items-center gap-2.5 bg-[#103C2E] text-white px-4 py-2.5 rounded-xl shadow-xl border border-[#C6A15B]/50 text-xs font-semibold">
+              <img src="/official_logo.png" alt="Official Seal" className="w-6 h-6 rounded-full object-contain border border-[#D4AF37]" />
+              <div>
+                <span className="block font-bold text-white leading-tight">Yabo/Shagari Constituency</span>
+                <span className="text-[10px] text-[#D4AF37]">10th National Assembly</span>
+              </div>
             </div>
           </div>
 
@@ -641,16 +676,16 @@ export const Home: React.FC<Props> = ({
 
       {/* 6B. FEATURED VIDEO & PARLIAMENTARY BROADCAST */}
       <section className="max-w-7xl mx-auto px-4 sm:px-8">
-        <div className="bg-gradient-to-br from-[#072118] via-[#0E3529] to-[#0A261E] rounded-3xl p-8 sm:p-12 text-white border border-[#C6A15B]/40 shadow-2xl relative overflow-hidden grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
+        <div className="bg-gradient-to-br from-[#072118] via-[#0E3529] to-[#0A261E] rounded-3xl p-6 sm:p-10 lg:p-12 text-white border border-[#C6A15B]/40 shadow-2xl relative overflow-hidden grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
           <div className="absolute right-0 bottom-0 w-80 h-80 bg-[#C6A15B]/10 rounded-full blur-3xl pointer-events-none"></div>
 
           <div className="lg:col-span-6 space-y-4 relative z-10">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#C6A15B]/20 border border-[#C6A15B]/40 text-xs font-semibold text-[#D4AF37] uppercase tracking-wider">
               <span className="w-2 h-2 rounded-full bg-rose-500 animate-ping"></span>
-              <span>Official Video Dispatch</span>
+              <span>Official Video Dispatch • Plenary Session</span>
             </div>
 
-            <h2 className="text-2xl sm:text-4xl font-extrabold font-['Manrope'] leading-tight">
+            <h2 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold font-['Manrope'] leading-tight">
               Plenary Debate: Federal College of Agricultural Technology, Yabo
             </h2>
 
@@ -658,27 +693,90 @@ export const Home: React.FC<Props> = ({
               Watch Hon. Umar Yusuf (Danmaje Yabo) advocate for modern agricultural education, youth technical empowerment, and research facilities for Yabo/Shagari on the floor of the House of Representatives, National Assembly, Abuja.
             </p>
 
-            <div className="pt-2 flex flex-wrap gap-4 items-center">
+            <div className="pt-2 flex flex-wrap gap-3 items-center">
+              <button
+                onClick={() => {
+                  const targetVid = INITIAL_GALLERY.find(g => g.id === 'gal-vid-1') || INITIAL_GALLERY[0];
+                  setActiveVideoTheater(targetVid);
+                }}
+                className="bg-gradient-to-r from-[#D4AF37] via-[#C6A15B] to-[#B38F44] hover:brightness-110 active:scale-[0.98] text-[#09291F] font-extrabold px-6 py-3 rounded-xl shadow-lg transition-all flex items-center gap-2 text-xs sm:text-sm cursor-pointer border border-[#E5C16C]"
+              >
+                <Play className="w-4 h-4 fill-current" />
+                <span>Watch with Comments & Reactions</span>
+              </button>
+
               <button
                 onClick={() => navigateTo('gallery')}
-                className="bg-gradient-to-r from-[#D4AF37] via-[#C6A15B] to-[#B38F44] hover:brightness-110 active:scale-[0.98] text-[#09291F] font-bold px-7 py-3.5 rounded-xl shadow-lg transition-all flex items-center gap-2 text-xs sm:text-sm cursor-pointer border border-[#E5C16C]"
+                className="bg-white/10 hover:bg-white/20 active:scale-[0.98] text-white font-semibold px-5 py-3 rounded-xl transition-all flex items-center gap-2 text-xs sm:text-sm cursor-pointer border border-white/20"
               >
-                <span>Watch Full Media & Video Library</span>
+                <span>Media Archive</span>
                 <ArrowRight className="w-4 h-4" />
               </button>
             </div>
           </div>
 
-          {/* Embedded Video Player */}
-          <div className="lg:col-span-6 relative z-10">
-            <div className="aspect-[16/9] w-full rounded-2xl overflow-hidden shadow-2xl border-2 border-[#C6A15B]/40 bg-black relative">
+          {/* Embedded Video Player with In-Website Likes, Views, Comments Controls */}
+          <div className="lg:col-span-6 relative z-10 space-y-3">
+            <div className="aspect-[16/9] w-full rounded-2xl overflow-hidden shadow-2xl border-2 border-[#C6A15B]/50 bg-black relative group">
               <iframe
-                src="https://www.youtube.com/embed/ScMzIvxBSi4"
+                src="https://www.youtube-nocookie.com/embed/ScMzIvxBSi4?rel=0&modestbranding=1&playsinline=1&enablejsapi=1"
                 title="Hon. Umar Yusuf Danmaje Yabo - Plenary Speech"
                 className="w-full h-full border-0"
                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                 allowFullScreen
               ></iframe>
+            </div>
+
+            {/* In-Website YouTube Interaction Toolbar (Views, Likes, Comments) */}
+            <div className="bg-[#051C14]/90 backdrop-blur-md rounded-xl p-3 border border-[#C6A15B]/30 flex flex-wrap items-center justify-between gap-2 shadow-inner">
+              <div className="flex items-center gap-3 text-xs">
+                {/* Views */}
+                <div className="flex items-center gap-1.5 text-stone-300 font-medium">
+                  <Eye className="w-4 h-4 text-[#D4AF37]" />
+                  <span>14,820 views</span>
+                </div>
+
+                <div className="w-1 h-1 rounded-full bg-stone-600"></div>
+
+                {/* Like Button */}
+                <button
+                  onClick={toggleHomepageLike}
+                  className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold transition cursor-pointer border ${
+                    homepageVideoLiked
+                      ? 'bg-[#D4AF37] text-[#09291F] border-[#E5C16C] shadow-sm font-bold'
+                      : 'bg-white/5 hover:bg-white/15 text-stone-200 border-white/10'
+                  }`}
+                  title="Like this plenary video"
+                >
+                  <ThumbsUp className={`w-3.5 h-3.5 ${homepageVideoLiked ? 'fill-current' : ''}`} />
+                  <span>{homepageLikesCount}</span>
+                </button>
+
+                {/* Comments Trigger */}
+                <button
+                  onClick={() => {
+                    const targetVid = INITIAL_GALLERY.find(g => g.id === 'gal-vid-1') || INITIAL_GALLERY[0];
+                    setActiveVideoTheater(targetVid);
+                  }}
+                  className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold bg-white/5 hover:bg-white/15 text-stone-200 border border-white/10 transition cursor-pointer"
+                  title="View and post comments"
+                >
+                  <MessageSquare className="w-3.5 h-3.5 text-[#C6A15B]" />
+                  <span>28 Comments</span>
+                </button>
+              </div>
+
+              {/* Theater Mode Action */}
+              <button
+                onClick={() => {
+                  const targetVid = INITIAL_GALLERY.find(g => g.id === 'gal-vid-1') || INITIAL_GALLERY[0];
+                  setActiveVideoTheater(targetVid);
+                }}
+                className="text-[11px] font-bold text-[#D4AF37] hover:underline flex items-center gap-1 cursor-pointer"
+              >
+                <span>Full Interactive Discussion</span>
+                <ChevronRight className="w-3 h-3" />
+              </button>
             </div>
           </div>
         </div>
@@ -1270,6 +1368,16 @@ export const Home: React.FC<Props> = ({
             </div>
           </div>
         </div>
+      )}
+
+      {/* D. INTERACTIVE YOUTUBE VIDEO THEATER (LIKES, VIEWS, COMMENTS) */}
+      {activeVideoTheater && (
+        <YouTubeVideoTheater
+          video={activeVideoTheater}
+          allVideos={INITIAL_GALLERY.filter(g => g.type === 'video' || !!g.videoUrl)}
+          onSelectVideo={(item) => setActiveVideoTheater(item)}
+          onClose={() => setActiveVideoTheater(null)}
+        />
       )}
     </div>
   );

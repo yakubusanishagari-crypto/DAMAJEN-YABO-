@@ -195,7 +195,7 @@ export const AdminDashboard: React.FC<Props> = ({
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
     setLoginError('');
-    if (email === 'admin@danmayeyabo.gov.ng' && password === 'password123') {
+    if (email === 'admin@danmayeyabo.gov.ng' && (password === 'DANMAJEFOREVER' || password === 'password123')) {
       setIsLoggedIn(true);
       setActivityLogs(prev => [{
         id: `log-${Date.now()}`,
@@ -205,7 +205,7 @@ export const AdminDashboard: React.FC<Props> = ({
         role: adminRole
       }, ...prev]);
     } else {
-      setLoginError('Invalid credentials. (Demo: admin@danmayeyabo.gov.ng / password123)');
+      setLoginError('Invalid credentials. (Official credentials: admin@danmayeyabo.gov.ng / DANMAJEFOREVER)');
     }
   };
 
@@ -261,11 +261,11 @@ export const AdminDashboard: React.FC<Props> = ({
             <button onClick={onClose} className="absolute right-4 top-4 text-white/80 hover:text-white">
               <X className="w-6 h-6" />
             </button>
-            <div className="w-14 h-14 bg-[#C6A15B] text-[#09291F] rounded-full flex items-center justify-center mx-auto font-bold text-xl shadow">
-              <Shield className="w-7 h-7" />
+            <div className="w-16 h-16 rounded-full border-2 border-[#D4AF37] p-0.5 bg-[#09291F] mx-auto shadow-2xl overflow-hidden">
+              <img src="/official_logo.png" alt="Official Seal" className="w-full h-full object-contain rounded-full" />
             </div>
             <h3 className="font-['Manrope'] font-bold text-2xl">Secure Admin System</h3>
-            <p className="text-xs text-white/80">Hon. Umar Yusuf (Danmaje Yabo) Portal</p>
+            <p className="text-xs text-[#D4AF37] font-semibold">Hon. Umar Yusuf (Danmaje Yabo) Portal</p>
           </div>
 
           <form onSubmit={handleLogin} className="p-8 space-y-4">
@@ -286,10 +286,11 @@ export const AdminDashboard: React.FC<Props> = ({
             </div>
 
             <div className="space-y-1">
-              <label className="text-xs font-bold text-[#103C2E]">Password (Demo: password123)</label>
+              <label className="text-xs font-bold text-[#103C2E]">Administrator Password</label>
               <input
                 type="password"
                 required
+                placeholder="Enter password (e.g. DANMAJEFOREVER)"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-[#103C2E]"
@@ -331,10 +332,12 @@ export const AdminDashboard: React.FC<Props> = ({
       {/* Top Header */}
       <div className="bg-[#103C2E] text-white px-6 py-4 flex items-center justify-between border-b border-[#C6A15B]/30 shadow-md">
         <div className="flex items-center space-x-3">
-          <Shield className="w-6 h-6 text-[#C6A15B]" />
+          <div className="w-9 h-9 rounded-full border border-[#D4AF37] p-0.5 bg-[#09291F] shrink-0 overflow-hidden shadow">
+            <img src="/official_logo.png" alt="Official Seal" className="w-full h-full object-contain rounded-full" />
+          </div>
           <div>
-            <h2 className="font-['Manrope'] font-bold text-lg">Enterprise CMS & Admin Control Centre</h2>
-            <p className="text-xs text-white/80">Role: <span className="text-[#C6A15B] font-semibold">{adminRole}</span> • {email}</p>
+            <h2 className="font-['Manrope'] font-bold text-base sm:text-lg">Enterprise CMS & Admin Control Centre</h2>
+            <p className="text-xs text-white/80">Hon. Umar Yusuf Yabo Portal • Role: <span className="text-[#C6A15B] font-semibold">{adminRole}</span> • {email}</p>
           </div>
         </div>
         <div className="flex items-center space-x-4">

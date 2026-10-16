@@ -77,12 +77,15 @@ export const Navbar: React.FC<Props> = ({
           onClick={() => handleNavClick('home')}
           className="flex items-center gap-3 text-left group focus:outline-none cursor-pointer"
         >
-          <OfficialCrest size="md" className="group-hover:scale-105 transition shadow-md shrink-0" />
+          <div className="relative shrink-0">
+            <OfficialCrest size="lg" className="group-hover:scale-105 transition-transform duration-300 shadow-xl border-2 border-[#D4AF37] ring-2 ring-[#D4AF37]/30" />
+            <div className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full bg-emerald-500 border-2 border-[#103C2E]" title="Verified Official Representation"></div>
+          </div>
           <div>
             <h1 className="font-['Manrope'] font-extrabold text-base sm:text-lg text-white leading-tight group-hover:text-[#C6A15B] transition">
               HON. UMAR YUSUF <span className="text-[#C6A15B] font-semibold">(DANMAJE YABO)</span>
             </h1>
-            <p className="text-[10px] sm:text-[11px] text-white/80 tracking-wider uppercase font-medium">
+            <p className="text-[10px] sm:text-[11px] text-white/85 tracking-wider uppercase font-semibold">
               {t('constituencyTitle', currentLang, translations)}
             </p>
           </div>

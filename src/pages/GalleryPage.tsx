@@ -2,15 +2,24 @@ import React, { useState } from 'react';
 import { GalleryItem } from '../types';
 import { 
   Image as ImageIcon, Video, Calendar, X, ZoomIn, Play, 
-  ExternalLink, Shield, Film, Filter, Share2
+  ExternalLink, Shield, Film, Filter, Share2 
 } from 'lucide-react';
 import { YouTubeVideoTheater } from '../components/YouTubeVideoTheater';
+import { Language, t, Translations } from '../utils/i18n';
 
 interface Props {
   gallery: GalleryItem[];
+  setCurrentTab?: (tab: string) => void;
+  currentLang?: Language;
+  translations?: Translations;
 }
 
-export const GalleryPage: React.FC<Props> = ({ gallery }) => {
+export const GalleryPage: React.FC<Props> = ({ 
+  gallery, 
+  setCurrentTab,
+  currentLang = 'en', 
+  translations 
+}) => {
   const [mediaTypeFilter, setMediaTypeFilter] = useState<'all' | 'video' | 'photo'>('all');
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
   
@@ -29,24 +38,45 @@ export const GalleryPage: React.FC<Props> = ({ gallery }) => {
     return matchesType && matchesCategory;
   });
 
+  const getCategoryLabel = (cat: string) => {
+    if (cat === 'All') return t('allCategories', currentLang, translations);
+    if (currentLang === 'ha') {
+      if (cat === 'National Assembly') return 'Majalisar Tarayya';
+      if (cat === 'Projects') return 'Ayyukan Raya Kasa';
+      if (cat === 'Constituency Visits') return 'Ziyarar Mazaba';
+      if (cat === 'Town Halls') return 'Ganawa da Jama\'a';
+      if (cat === 'Empowerment') return 'Karfafa Al\'umma';
+    }
+    if (currentLang === 'ar') {
+      if (cat === 'National Assembly') return 'الجمعية الوطنية';
+      if (cat === 'Projects') return 'مشاريع الدائرة';
+      if (cat === 'Constituency Visits') return 'الجولات الميدانية';
+      if (cat === 'Town Halls') return 'اللقاءات الشعبية';
+      if (cat === 'Empowerment') return 'برامج التمكين';
+    }
+    return cat;
+  };
+
   const videoCount = gallery.filter(g => g.type === 'video' || !!g.videoUrl).length;
   const photoCount = gallery.filter(g => g.type !== 'video' && !g.videoUrl).length;
 
+  const isRtl = currentLang === 'ar';
+
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-8 py-12 space-y-12">
+    <div className={`max-w-7xl mx-auto px-4 sm:px-8 py-12 space-y-12 ${isRtl ? 'rtl text-right' : ''}`}>
       {/* Header Banner */}
       <div className="bg-gradient-to-br from-[#072118] via-[#0E3529] to-[#0A261E] text-white rounded-3xl p-8 sm:p-14 shadow-2xl relative overflow-hidden border border-[#C6A15B]/40">
         <div className="absolute right-0 top-0 w-96 h-96 bg-[#C6A15B]/15 rounded-full blur-3xl pointer-events-none"></div>
         <div className="relative z-10 max-w-3xl space-y-4">
-          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#C6A15B]/20 border border-[#C6A15B]/40 text-xs font-semibold text-[#D4AF37] tracking-wider uppercase">
-            <Film className="w-3.5 h-3.5 text-[#C6A15B]" />
-            <span>Official Media & Visual Archive</span>
+          <div className="inline-flex items-center gap-2.5 px-3.5 py-1.5 rounded-full bg-[#C6A15B]/20 border border-[#C6A15B]/40 text-xs font-semibold text-[#D4AF37] tracking-wider uppercase">
+            <img src="/official_logo.png" alt="Official Seal" className="w-5 h-5 rounded-full object-contain shrink-0" />
+            <span>{t('galleryPageBadge', currentLang, translations)}</span>
           </div>
           <h1 className="text-3xl sm:text-5xl font-extrabold font-['Manrope']">
-            Video & Photographic Gallery
+            {t('galleryPageTitle', currentLang, translations)}
           </h1>
           <p className="text-stone-300 text-sm sm:text-base leading-relaxed font-light">
-            Watch official speeches and parliamentary debates from the Green Chamber, and view verified photographic documentation of constituency projects and empowerment flag-offs.
+            {t('galleryPageDesc', currentLang, translations)}
           </p>
         </div>
       </div>
@@ -63,7 +93,7 @@ export const GalleryPage: React.FC<Props> = ({ gallery }) => {
                 : 'text-stone-600 hover:text-[#103C2E]'
             }`}
           >
-            <span>All Media</span>
+            <span>{t('allMediaLabel', currentLang, translations)}</span>
             <span className="text-[11px] opacity-80">({gallery.length})</span>
           </button>
 
@@ -76,7 +106,7 @@ export const GalleryPage: React.FC<Props> = ({ gallery }) => {
             }`}
           >
             <Video className="w-4 h-4 text-[#C6A15B]" />
-            <span>Videos & Speeches</span>
+            <span>{t('videosOnlyLabel', currentLang, translations)}</span>
             <span className="text-[11px] opacity-80">({videoCount})</span>
           </button>
 
@@ -89,7 +119,7 @@ export const GalleryPage: React.FC<Props> = ({ gallery }) => {
             }`}
           >
             <ImageIcon className="w-4 h-4 text-[#C6A15B]" />
-            <span>Photographs</span>
+            <span>{t('photosOnlyLabel', currentLang, translations)}</span>
             <span className="text-[11px] opacity-80">({photoCount})</span>
           </button>
         </div>
@@ -106,7 +136,7 @@ export const GalleryPage: React.FC<Props> = ({ gallery }) => {
                   : 'bg-stone-50 text-stone-600 hover:bg-stone-100 border border-stone-200'
               }`}
             >
-              {cat}
+              {getCategoryLabel(cat)}
             </button>
           ))}
         </div>
@@ -117,8 +147,8 @@ export const GalleryPage: React.FC<Props> = ({ gallery }) => {
         {filteredMedia.length === 0 ? (
           <div className="col-span-full py-16 text-center text-stone-500 bg-white rounded-3xl border border-stone-200 space-y-2">
             <Film className="w-10 h-10 text-stone-300 mx-auto" />
-            <p className="text-base font-semibold text-[#103C2E]">No media records match your filter.</p>
-            <p className="text-xs text-stone-400">Try switching between videos and photographs, or reset category filters.</p>
+            <p className="text-base font-semibold text-[#103C2E]">{t('noProjectsFound', currentLang, translations)}</p>
+            <p className="text-xs text-stone-400">{t('noProjectsFoundSub', currentLang, translations)}</p>
           </div>
         ) : (
           filteredMedia.map((item) => {
@@ -153,9 +183,9 @@ export const GalleryPage: React.FC<Props> = ({ gallery }) => {
                       <div className="w-14 h-14 rounded-full bg-[#D4AF37] text-[#09291F] flex items-center justify-center shadow-xl group-hover:scale-110 transition-transform">
                         <Play className="w-6 h-6 fill-current ml-0.5" />
                       </div>
-                      <div className="absolute bottom-3 right-3 bg-black/70 text-white px-2 py-0.5 rounded text-[10px] font-bold tracking-wider uppercase flex items-center gap-1">
+                      <div className={`absolute bottom-3 ${isRtl ? 'left-3' : 'right-3'} bg-black/70 text-white px-2 py-0.5 rounded text-[10px] font-bold tracking-wider uppercase flex items-center gap-1`}>
                         <Video className="w-3 h-3 text-[#D4AF37]" />
-                        <span>Watch Video</span>
+                        <span>{t('clickToPlayVideo', currentLang, translations)}</span>
                       </div>
                     </div>
                   ) : (
@@ -167,9 +197,9 @@ export const GalleryPage: React.FC<Props> = ({ gallery }) => {
                   )}
 
                   {/* Category Chip */}
-                  <div className="absolute top-3 left-3">
+                  <div className={`absolute top-3 ${isRtl ? 'right-3' : 'left-3'}`}>
                     <span className="bg-[#103C2E]/90 text-white px-2.5 py-1 rounded text-[11px] font-bold shadow backdrop-blur-sm">
-                      {item.category}
+                      {getCategoryLabel(item.category)}
                     </span>
                   </div>
                 </div>
@@ -185,13 +215,13 @@ export const GalleryPage: React.FC<Props> = ({ gallery }) => {
                     </h3>
                   </div>
 
-                  <p className="text-xs text-stone-600 line-clamp-2 leading-relaxed">
+                  <p className="text-xs text-stone-600 line-clamp-2 leading-relaxed font-light">
                     {item.description}
                   </p>
 
                   <div className="pt-2 border-t border-stone-100 flex items-center justify-between text-xs font-bold text-[#103C2E]">
-                    <span>{isVideo ? 'Click to Play Video' : 'View High-Res Photo'}</span>
-                    <span className="text-[#C6A15B]">→</span>
+                    <span>{isVideo ? t('clickToPlayVideo', currentLang, translations) : t('viewHighResPhoto', currentLang, translations)}</span>
+                    <span className="text-[#C6A15B]">{isRtl ? '←' : '→'}</span>
                   </div>
                 </div>
               </div>
@@ -200,7 +230,7 @@ export const GalleryPage: React.FC<Props> = ({ gallery }) => {
         )}
       </div>
 
-      {/* A. VIDEO PLAYBACK THEATER MODAL */}
+      {/* A. VIDEO PLAYBACK THEATER MODAL (Plays ONLY inside the website with views, likes, comments) */}
       {activeVideo && (
         <YouTubeVideoTheater
           video={activeVideo}
@@ -213,11 +243,11 @@ export const GalleryPage: React.FC<Props> = ({ gallery }) => {
       {/* B. PHOTOGRAPH LIGHTBOX MODAL */}
       {activePhoto && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md animate-fadeIn">
-          <div className="bg-[#FAF9F5] w-full max-w-4xl rounded-3xl shadow-2xl overflow-hidden border border-[#C6A15B]/40 max-h-[90vh] flex flex-col">
+          <div className="bg-[#FAF9F5] w-full max-w-4xl rounded-3xl shadow-2xl overflow-hidden border border-[#C6A15B]/40 max-h-[90vh] flex flex-col my-auto">
             <div className="bg-[#103C2E] text-white p-4 sm:p-5 flex items-center justify-between">
               <div>
                 <span className="bg-[#C6A15B] text-[#09291F] text-[10px] uppercase font-extrabold px-2.5 py-0.5 rounded">
-                  {activePhoto.category}
+                  {getCategoryLabel(activePhoto.category)}
                 </span>
                 <h3 className="text-sm sm:text-base font-bold font-['Manrope'] mt-1 truncate max-w-lg">
                   {activePhoto.title}
@@ -241,11 +271,11 @@ export const GalleryPage: React.FC<Props> = ({ gallery }) => {
                 />
               </div>
 
-              <div className="w-full text-left space-y-1 bg-white p-4 rounded-xl border border-stone-200">
+              <div className="w-full text-left rtl:text-right space-y-1 bg-white p-4 rounded-xl border border-stone-200">
                 <div className="text-xs text-stone-500 font-semibold">
-                  Record Date: {activePhoto.date}
+                  {t('startDate', currentLang, translations)}: {activePhoto.date}
                 </div>
-                <p className="text-xs sm:text-sm text-stone-700 leading-relaxed">
+                <p className="text-xs sm:text-sm text-stone-700 leading-relaxed font-light">
                   {activePhoto.description}
                 </p>
               </div>
@@ -256,7 +286,7 @@ export const GalleryPage: React.FC<Props> = ({ gallery }) => {
                 onClick={() => setActivePhoto(null)}
                 className="bg-[#103C2E] hover:bg-[#09291F] text-white px-5 py-2 rounded-xl text-xs font-bold cursor-pointer"
               >
-                Close Photo
+                {t('closeBtn', currentLang, translations)}
               </button>
             </div>
           </div>
