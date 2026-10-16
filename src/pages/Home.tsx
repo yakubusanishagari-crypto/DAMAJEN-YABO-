@@ -84,7 +84,7 @@ export const Home: React.FC<Props> = ({
     return p.category === projectSectorFilter;
   }).slice(0, 3);
 
-  const latestNews = news.slice(0, 3);
+  const latestNews = news.filter(n => n.showOnHomepage !== false).slice(0, 3);
   const featuredLegislative = legislative.slice(0, 2);
   const featuredPrograms = programs.slice(0, 2);
 
@@ -196,23 +196,23 @@ export const Home: React.FC<Props> = ({
                 onClick={() => navigateTo('projects')}
                 className="bg-gradient-to-r from-[#D4AF37] via-[#C6A15B] to-[#B38F44] hover:brightness-110 active:scale-[0.98] text-[#09291F] font-bold px-8 py-4 rounded-xl shadow-xl transition-all duration-200 transform hover:-translate-y-0.5 flex items-center gap-2.5 text-sm sm:text-base border border-[#E5C16C] cursor-pointer"
               >
-                <span>{t('exploreProjects', currentLang, translations)}</span>
+                <span>{t('exploreProjects', currentLang, translations).toUpperCase()}</span>
                 <ArrowRight className="w-4 h-4 shrink-0 text-[#09291F]" />
               </button>
 
               <button
                 onClick={() => navigateTo('contact')}
-                className="bg-white/10 hover:bg-white/20 active:scale-[0.98] text-white border border-white/30 font-bold px-7 py-4 rounded-xl transition-all duration-200 transform hover:-translate-y-0.5 flex items-center gap-2 text-sm sm:text-base backdrop-blur-md cursor-pointer"
+                className="bg-emerald-600 hover:bg-emerald-500 active:scale-[0.98] text-white border border-emerald-400/60 font-bold px-7 py-4 rounded-xl transition-all duration-200 transform hover:-translate-y-0.5 flex items-center gap-2 text-sm sm:text-base shadow-xl cursor-pointer"
               >
-                <span>{t('contactOffice', currentLang, translations)}</span>
+                <span>{t('contactOffice', currentLang, translations).toUpperCase()}</span>
               </button>
 
               <button
                 onClick={() => navigateTo('about')}
-                className="text-white/90 hover:text-[#D4AF37] font-semibold text-xs sm:text-sm transition-colors py-2 px-3 flex items-center gap-1.5 cursor-pointer underline-offset-4 hover:underline"
+                className="bg-emerald-700/90 hover:bg-emerald-600 active:scale-[0.98] text-white border border-emerald-500/60 font-bold px-7 py-4 rounded-xl transition-all duration-200 transform hover:-translate-y-0.5 flex items-center gap-2 text-sm sm:text-base shadow-xl cursor-pointer"
               >
-                <span>{t('readFullBio', currentLang, translations)}</span>
-                <ChevronRight className="w-4 h-4 shrink-0 text-[#C6A15B]" />
+                <span>{t('readFullBio', currentLang, translations).toUpperCase()}</span>
+                <ChevronRight className="w-4 h-4 shrink-0 text-emerald-200" />
               </button>
             </div>
 
@@ -895,6 +895,13 @@ export const Home: React.FC<Props> = ({
                       {article.category}
                     </span>
                   </div>
+                  {article.videoUrl && (
+                    <div className="absolute inset-0 bg-black/30 group-hover:bg-black/20 transition-colors flex items-center justify-center">
+                      <div className="w-12 h-12 rounded-full bg-[#C6A15B] text-[#09291F] flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
+                        <Play className="w-5 h-5 fill-current ml-0.5" />
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 <div className="p-6 space-y-2.5">

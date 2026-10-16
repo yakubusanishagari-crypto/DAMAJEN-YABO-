@@ -62,6 +62,8 @@ export interface NewsArticle {
   category: 'Press Release' | 'Constituency News' | 'Legislative Update' | 'Speech' | 'Event';
   date: string;
   imageUrl: string;
+  videoUrl?: string;
+  showOnHomepage?: boolean;
   author: string;
   isFeatured?: boolean;
   tags: string[];

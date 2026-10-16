@@ -209,12 +209,36 @@ export const AdminDashboard: React.FC<Props> = ({
     excerpt: '',
     content: '',
     imageUrl: 'https://images.unsplash.com/photo-1541888946425-d0fbb18f764c?auto=format&fit=crop&q=80&w=1000',
+    videoUrl: '',
+    showOnHomepage: true,
     tagsString: 'Yabo, Shagari, Constituency'
   });
+  const [newsImagePreview, setNewsImagePreview] = useState<string>('');
   const [editingNews, setEditingNews] = useState<NewsArticle | null>(null);
+
+  const handleNewsImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 8 * 1024 * 1024) return;
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const result = reader.result as string;
+        setNewsImagePreview(result);
+        setNewNews(prev => ({ ...prev, imageUrl: result }));
+      };
+      reader.readAsDataURL(file);
+    }
+  };
 
   const handleCreateNews = (e: React.FormEvent) => {
     e.preventDefault();
+    let finalImageUrl = newNews.imageUrl;
+    if (newNews.videoUrl) {
+      const match = newNews.videoUrl.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|shorts\/))([\w-]{11})/);
+      if (match) {
+        finalImageUrl = `https://img.youtube.com/vi/${match[1]}/hqdefault.jpg`;
+      }
+    }
     const created: NewsArticle = {
       id: `news-${Date.now()}`,
       title: newNews.title,
@@ -223,7 +247,9 @@ export const AdminDashboard: React.FC<Props> = ({
       author: newNews.author,
       excerpt: newNews.excerpt,
       content: newNews.content,
-      imageUrl: newNews.imageUrl,
+      imageUrl: finalImageUrl,
+      videoUrl: newNews.videoUrl,
+      showOnHomepage: newNews.showOnHomepage,
       isFeatured: false,
       tags: newNews.tagsString.split(',').map(t => t.trim())
     };
@@ -231,7 +257,8 @@ export const AdminDashboard: React.FC<Props> = ({
     setNews(updated);
     try { localStorage.setItem('danmaje_news', JSON.stringify(updated)); } catch {}
     setShowAddNews(false);
-    setNewNews({ title: '', category: 'Constituency News', author: 'Office of the Media Assistant', excerpt: '', content: '', imageUrl: 'https://images.unsplash.com/photo-1541888946425-d0fbb18f764c?auto=format&fit=crop&q=80&w=1000', tagsString: 'Yabo, Shagari' });
+    setNewsImagePreview('');
+    setNewNews({ title: '', category: 'Constituency News', author: 'Office of the Media Assistant', excerpt: '', content: '', imageUrl: 'https://images.unsplash.com/photo-1541888946425-d0fbb18f764c?auto=format&fit=crop&q=80&w=1000', videoUrl: '', showOnHomepage: true, tagsString: 'Yabo, Shagari' });
     setActivityLogs(prev => [{
       id: `log-${Date.now()}`,
       user: email,
@@ -1032,7 +1059,7 @@ export const AdminDashboard: React.FC<Props> = ({
                   {showAddNews && (
                     <form onSubmit={handleCreateNews} className="bg-white p-6 rounded-2xl shadow-md border border-gray-200 space-y-4">
                       <h4 className="font-bold text-[#103C2E] text-base">Publish News / Press Release</h4>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                         <input
                           type="text"
                           required
@@ -1049,7 +1076,19 @@ export const AdminDashboard: React.FC<Props> = ({
                           onChange={(e) => setNewNews({...newNews, author: e.target.value})}
                           className="px-4 py-2.5 bg-[#FAF9F5] border border-gray-200 rounded-xl text-sm"
                         />
+                        <select
+                          value={newNews.category}
+                          onChange={(e) => setNewNews({...newNews, category: e.target.value as any})}
+                          className="px-4 py-2.5 bg-[#FAF9F5] border border-gray-200 rounded-xl text-sm"
+                        >
+                          <option value="Constituency News">Constituency News</option>
+                          <option value="Press Release">Press Release</option>
+                          <option value="Legislative Update">Legislative Update</option>
+                          <option value="Speech">Speech</option>
+                          <option value="Event">Event</option>
+                        </select>
                       </div>
+
                       <input
                         type="text"
                         required
@@ -1058,6 +1097,7 @@ export const AdminDashboard: React.FC<Props> = ({
                         onChange={(e) => setNewNews({...newNews, excerpt: e.target.value})}
                         className="w-full px-4 py-2.5 bg-[#FAF9F5] border border-gray-200 rounded-xl text-sm"
                       />
+
                       <textarea
                         rows={4}
                         required
@@ -1066,22 +1106,58 @@ export const AdminDashboard: React.FC<Props> = ({
                         onChange={(e) => setNewNews({...newNews, content: e.target.value})}
                         className="w-full px-4 py-2.5 bg-[#FAF9F5] border border-gray-200 rounded-xl text-sm"
                       ></textarea>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <input
-                          type="url"
-                          placeholder="Image URL"
-                          value={newNews.imageUrl}
-                          onChange={(e) => setNewNews({...newNews, imageUrl: e.target.value})}
-                          className="px-4 py-2.5 bg-[#FAF9F5] border border-gray-200 rounded-xl text-sm"
-                        />
-                        <input
-                          type="text"
-                          placeholder="Tags (comma separated)"
-                          value={newNews.tagsString}
-                          onChange={(e) => setNewNews({...newNews, tagsString: e.target.value})}
-                          className="px-4 py-2.5 bg-[#FAF9F5] border border-gray-200 rounded-xl text-sm"
-                        />
+
+                      {/* Photo upload / URL & Video URL */}
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 bg-[#FAF9F5] p-4 rounded-xl border border-stone-200">
+                        <div className="space-y-2">
+                          <label className="text-xs font-bold text-[#103C2E] block">Article Image (Direct Upload or URL)</label>
+                          <div className="flex items-center gap-3">
+                            <label className="cursor-pointer bg-[#103C2E] hover:bg-[#09291F] text-white px-3 py-2 rounded-lg text-xs font-bold flex items-center gap-1.5 shadow transition">
+                              <Upload className="w-3.5 h-3.5 text-[#C6A15B]" />
+                              <span>Upload Photo</span>
+                              <input type="file" accept="image/*" onChange={handleNewsImageUpload} className="hidden" />
+                            </label>
+                            <span className="text-[11px] text-stone-500">Max 8MB</span>
+                          </div>
+                          <input
+                            type="url"
+                            placeholder="Or paste Image URL"
+                            value={newNews.imageUrl}
+                            onChange={(e) => {
+                              setNewNews({...newNews, imageUrl: e.target.value});
+                              setNewsImagePreview(e.target.value);
+                            }}
+                            className="w-full px-3 py-2 bg-white border border-stone-200 rounded-xl text-xs"
+                          />
+                        </div>
+
+                        <div className="space-y-2">
+                          <label className="text-xs font-bold text-[#103C2E] block">YouTube Video Link (Optional - auto generates thumbnail & play badge)</label>
+                          <input
+                            type="url"
+                            placeholder="https://www.youtube.com/watch?v=..."
+                            value={newNews.videoUrl}
+                            onChange={(e) => setNewNews({...newNews, videoUrl: e.target.value})}
+                            className="w-full px-3 py-2.5 bg-white border border-stone-200 rounded-xl text-xs"
+                          />
+                          <p className="text-[11px] text-stone-500">When added, visitors see a play icon overlay on the news preview.</p>
+                        </div>
                       </div>
+
+                      {/* Homepage publishing toggle */}
+                      <div className="flex items-center gap-3 bg-stone-50 p-4 rounded-xl border border-stone-200">
+                        <input
+                          type="checkbox"
+                          id="showOnHomepage"
+                          checked={newNews.showOnHomepage}
+                          onChange={(e) => setNewNews({...newNews, showOnHomepage: e.target.checked})}
+                          className="w-4 h-4 text-[#103C2E] rounded border-stone-300 focus:ring-[#103C2E]"
+                        />
+                        <label htmlFor="showOnHomepage" className="text-xs font-bold text-[#103C2E] cursor-pointer">
+                          Display this article on the Homepage news section (Uncheck to keep it in the News Hub only)
+                        </label>
+                      </div>
+
                       <div className="flex justify-end gap-3">
                         <button type="button" onClick={() => setShowAddNews(false)} className="px-4 py-2 bg-gray-200 rounded-xl text-xs font-bold cursor-pointer">Cancel</button>
                         <button type="submit" className="px-5 py-2 bg-[#103C2E] text-white rounded-xl text-xs font-bold cursor-pointer">Publish Article</button>
