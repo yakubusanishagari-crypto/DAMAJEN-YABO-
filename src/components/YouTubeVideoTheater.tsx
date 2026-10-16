@@ -27,11 +27,16 @@ export const YouTubeVideoTheater: React.FC<Props> = ({
   onSelectVideo, 
   onClose 
 }) => {
-  // Extract YouTube ID if possible
+  // Extract YouTube ID robustly supporting watch, youtu.be, embed, shorts, and raw IDs
   const getYouTubeId = (url?: string): string => {
     if (!url) return 'ScMzIvxBSi4'; // Default parliamentary debate ID
-    const match = url.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=))([\w-]{11})/);
-    return match ? match[1] : 'ScMzIvxBSi4';
+    const trimmed = url.trim();
+    if (/^[\w-]{11}$/.test(trimmed)) {
+      return trimmed;
+    }
+    const regExp = /^.*(youtu\.be\/|v\/|u\/\w\/|embed\/|watch\?v=|shorts\/|\&v=)([^#\&\?]*).*/;
+    const match = trimmed.match(regExp);
+    return (match && match[2].length === 11) ? match[2] : 'ScMzIvxBSi4';
   };
 
   const youtubeId = getYouTubeId(video.videoUrl);

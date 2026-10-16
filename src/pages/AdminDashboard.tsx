@@ -54,6 +54,66 @@ export const AdminDashboard: React.FC<Props> = ({
   const [editableStats, setEditableStats] = useState<ConstituencyStats>(stats);
   const [statsSavedMsg, setStatsSavedMsg] = useState(false);
 
+  interface AdminUserItem {
+    id: string;
+    email: string;
+    role: 'Chief Administrator' | 'News Editor' | 'Projects Manager' | 'Content Manager' | 'Translation Manager';
+    status: 'Active' | 'Inactive';
+    permissions: string;
+  }
+
+  const [adminUsers, setAdminUsers] = useState<AdminUserItem[]>(() => {
+    const saved = localStorage.getItem('danmaje_admin_users');
+    if (saved) {
+      try { return JSON.parse(saved); } catch {}
+    }
+    return [
+      { id: 'usr-1', email: 'admin@danmayeyabo.gov.ng', role: 'Chief Administrator', status: 'Active', permissions: 'Full Access (All Modules)' },
+      { id: 'usr-2', email: 'media@danmayeyabo.gov.ng', role: 'News Editor', status: 'Active', permissions: 'News & Gallery CMS' },
+      { id: 'usr-3', email: 'projects@danmayeyabo.gov.ng', role: 'Projects Manager', status: 'Active', permissions: 'Projects & Empowerment CMS' }
+    ];
+  });
+
+  const [showAddAdminModal, setShowAddAdminModal] = useState(false);
+  const [newAdminEmail, setNewAdminEmail] = useState('');
+  const [newAdminRole, setNewAdminRole] = useState<AdminUserItem['role']>('News Editor');
+
+  const handleCreateAdmin = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newAdminEmail.trim()) return;
+    const newUsr: AdminUserItem = {
+      id: `usr-${Date.now()}`,
+      email: newAdminEmail.trim(),
+      role: newAdminRole,
+      status: 'Active',
+      permissions: newAdminRole === 'Chief Administrator' ? 'Full Access (All Modules)' : `${newAdminRole} Access`
+    };
+    const updated = [newUsr, ...adminUsers];
+    setAdminUsers(updated);
+    try { localStorage.setItem('danmaje_admin_users', JSON.stringify(updated)); } catch {}
+    setNewAdminEmail('');
+    setShowAddAdminModal(false);
+    setActivityLogs(prev => [{
+      id: `log-${Date.now()}`,
+      user: email,
+      action: `Created new admin account: ${newUsr.email} (${newUsr.role})`,
+      timestamp: new Date().toISOString().replace('T', ' ').substring(0, 16),
+      role: adminRole
+    }, ...prev]);
+  };
+
+  const handleToggleAdminStatus = (id: string) => {
+    const updated = adminUsers.map(u => u.id === id ? { ...u, status: u.status === 'Active' ? 'Inactive' as const : 'Active' as const } : u);
+    setAdminUsers(updated);
+    try { localStorage.setItem('danmaje_admin_users', JSON.stringify(updated)); } catch {}
+  };
+
+  const handleDeleteAdmin = (id: string) => {
+    const updated = adminUsers.filter(u => u.id !== id);
+    setAdminUsers(updated);
+    try { localStorage.setItem('danmaje_admin_users', JSON.stringify(updated)); } catch {}
+  };
+
   React.useEffect(() => {
     setEditableStats(stats);
   }, [stats]);
@@ -333,13 +393,17 @@ export const AdminDashboard: React.FC<Props> = ({
 
   const formatVideoUrl = (url: string) => {
     if (!url) return '';
-    if (url.includes('youtube.com/embed/')) return url;
-    const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
-    const match = url.match(regExp);
-    if (match && match[2].length === 11) {
-      return `https://www.youtube.com/embed/${match[2]}`;
+    const trimmed = url.trim();
+    if (trimmed.includes('youtube.com/embed/')) return trimmed;
+    if (/^[\w-]{11}$/.test(trimmed)) {
+      return `https://www.youtube-nocookie.com/embed/${trimmed}?autoplay=1&rel=0&modestbranding=1&playsinline=1`;
     }
-    return url;
+    const regExp = /^.*(youtu\.be\/|v\/|u\/\w\/|embed\/|watch\?v=|shorts\/|\&v=)([^#\&\?]*).*/;
+    const match = trimmed.match(regExp);
+    if (match && match[2].length === 11) {
+      return `https://www.youtube-nocookie.com/embed/${match[2]}?autoplay=1&rel=0&modestbranding=1&playsinline=1`;
+    }
+    return trimmed;
   };
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -431,7 +495,11 @@ export const AdminDashboard: React.FC<Props> = ({
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
     setLoginError('');
-    if (email === 'admin@danmayeyabo.gov.ng' && (password === 'DANMAJEFOREVER' || password === 'password123')) {
+    const matchedUser = adminUsers.find(u => u.email.toLowerCase() === email.trim().toLowerCase() && u.status === 'Active');
+    if ((email.trim() === 'admin@danmayeyabo.gov.ng' && (password === 'DANMAJEFOREVER' || password === 'password123')) || (matchedUser && password.length >= 6)) {
+      if (matchedUser) {
+        setAdminRole(matchedUser.role);
+      }
       setIsLoggedIn(true);
       setActivityLogs(prev => [{
         id: `log-${Date.now()}`,
@@ -1642,10 +1710,60 @@ export const AdminDashboard: React.FC<Props> = ({
           {/* TAB 5: USERS & PERMISSIONS */}
           {activeTab === 'users' && (
             <div className="space-y-8">
-              <div>
-                <h3 className="font-['Manrope'] font-bold text-2xl text-[#103C2E]">Administrator Users & Least-Privilege Roles</h3>
-                <p className="text-xs text-[#6B716D]">Manage authorized constituency staff and permission levels.</p>
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div>
+                  <h3 className="font-['Manrope'] font-bold text-2xl text-[#103C2E]">Administrator Users & Least-Privilege Roles</h3>
+                  <p className="text-xs text-[#6B716D]">Manage authorized constituency staff, create new admin credentials, and control access permissions.</p>
+                </div>
+                <button
+                  onClick={() => setShowAddAdminModal(!showAddAdminModal)}
+                  className="bg-[#103C2E] hover:bg-[#09291F] text-white px-4 py-2.5 rounded-xl font-bold text-xs flex items-center gap-2 shadow transition cursor-pointer"
+                >
+                  <Plus className="w-4 h-4 text-[#C6A15B]" />
+                  <span>{showAddAdminModal ? 'Close Form' : 'Create Admin Account'}</span>
+                </button>
               </div>
+
+              {showAddAdminModal && (
+                <form onSubmit={handleCreateAdmin} className="bg-white p-6 rounded-2xl shadow-md border border-gray-200 space-y-4 animate-fadeIn">
+                  <h4 className="font-bold text-[#103C2E] text-sm">Add New Administrator Account</h4>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="space-y-1">
+                      <label className="text-xs font-bold text-[#103C2E]">Administrator Email *</label>
+                      <input
+                        type="email"
+                        required
+                        placeholder="e.g. staff@danmayeyabo.gov.ng"
+                        value={newAdminEmail}
+                        onChange={(e) => setNewAdminEmail(e.target.value)}
+                        className="w-full px-4 py-2.5 bg-[#FAF9F5] border border-gray-200 rounded-xl text-xs"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-xs font-bold text-[#103C2E]">Assigned Role *</label>
+                      <select
+                        value={newAdminRole}
+                        onChange={(e) => setNewAdminRole(e.target.value as any)}
+                        className="w-full px-4 py-2.5 bg-[#FAF9F5] border border-gray-200 rounded-xl text-xs"
+                      >
+                        <option value="Chief Administrator">Chief Administrator</option>
+                        <option value="News Editor">News Editor</option>
+                        <option value="Projects Manager">Projects Manager</option>
+                        <option value="Content Manager">Content Manager</option>
+                        <option value="Translation Manager">Translation Manager</option>
+                      </select>
+                    </div>
+                  </div>
+                  <div className="flex justify-end pt-2">
+                    <button
+                      type="submit"
+                      className="bg-[#C6A15B] text-[#09291F] hover:bg-[#b08d4a] px-5 py-2.5 rounded-xl font-bold text-xs shadow transition cursor-pointer"
+                    >
+                      Save Admin Account
+                    </button>
+                  </div>
+                </form>
+              )}
 
               <div className="bg-white rounded-2xl shadow-md border border-gray-200 overflow-hidden">
                 <table className="w-full text-left border-collapse text-xs sm:text-sm">
@@ -1654,28 +1772,41 @@ export const AdminDashboard: React.FC<Props> = ({
                       <th className="p-4">Staff Email</th>
                       <th className="p-4">Assigned Role</th>
                       <th className="p-4">Status</th>
-                      <th className="p-4 text-right">Permissions</th>
+                      <th className="p-4">Permissions</th>
+                      <th className="p-4 text-right">Actions</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-200">
-                    <tr>
-                      <td className="p-4 font-bold text-[#103C2E]">admin@danmayeyabo.gov.ng</td>
-                      <td className="p-4 text-gray-700">Chief Administrator</td>
-                      <td className="p-4"><span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800">Active</span></td>
-                      <td className="p-4 text-right font-medium text-gray-600">Full Access (All Modules)</td>
-                    </tr>
-                    <tr>
-                      <td className="p-4 font-bold text-[#103C2E]">media@danmayeyabo.gov.ng</td>
-                      <td className="p-4 text-gray-700">News Editor</td>
-                      <td className="p-4"><span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800">Active</span></td>
-                      <td className="p-4 text-right font-medium text-gray-600">News & Gallery CMS</td>
-                    </tr>
-                    <tr>
-                      <td className="p-4 font-bold text-[#103C2E]">projects@danmayeyabo.gov.ng</td>
-                      <td className="p-4 text-gray-700">Projects Manager</td>
-                      <td className="p-4"><span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800">Active</span></td>
-                      <td className="p-4 text-right font-medium text-gray-600">Projects & Empowerment CMS</td>
-                    </tr>
+                    {adminUsers.map((usr) => (
+                      <tr key={usr.id} className="hover:bg-stone-50">
+                        <td className="p-4 font-bold text-[#103C2E]">{usr.email}</td>
+                        <td className="p-4 text-gray-700 font-medium">{usr.role}</td>
+                        <td className="p-4">
+                          <button
+                            onClick={() => handleToggleAdminStatus(usr.id)}
+                            className={`px-2.5 py-1 rounded-full text-[11px] font-bold cursor-pointer transition ${
+                              usr.status === 'Active' 
+                                ? 'bg-emerald-100 text-emerald-800 hover:bg-emerald-200' 
+                                : 'bg-rose-100 text-rose-800 hover:bg-rose-200'
+                            }`}
+                          >
+                            {usr.status} (Click to toggle)
+                          </button>
+                        </td>
+                        <td className="p-4 text-gray-600 font-light">{usr.permissions}</td>
+                        <td className="p-4 text-right space-x-2">
+                          {usr.email !== 'admin@danmayeyabo.gov.ng' && (
+                            <button
+                              onClick={() => handleDeleteAdmin(usr.id)}
+                              className="p-1.5 bg-rose-50 text-rose-600 hover:bg-rose-100 rounded-lg transition cursor-pointer"
+                              title="Revoke / Delete Admin"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
                   </tbody>
                 </table>
               </div>
