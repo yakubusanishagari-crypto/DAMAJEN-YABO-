@@ -13,7 +13,7 @@ export const INITIAL_PROJECTS: Project[] = [
     budgetNotes: 'Constituency Development Allocation 2024/2025',
     contractor: 'HydraTech Engineering Ltd.',
     images: [
-      '/src/assets/images/solar_water_project_1792063316637.jpg',
+      '/solar_water_project_1792063316637.jpg',
       'https://images.unsplash.com/photo-1541888946425-d0fbb18f764c?auto=format&fit=crop&q=80&w=1000'
     ],
     updates: [
@@ -34,7 +34,7 @@ export const INITIAL_PROJECTS: Project[] = [
     budgetNotes: 'Federal Capital Constituency Project',
     contractor: 'BuildCraft Consults Nigeria',
     images: [
-      '/src/assets/images/science_lab_renovation_1792063333276.jpg',
+      '/science_lab_renovation_1792063333276.jpg',
       'https://images.unsplash.com/photo-1581092335397-9583fe92d232?auto=format&fit=crop&q=80&w=1000'
     ],
     updates: [
@@ -193,7 +193,7 @@ export const INITIAL_NEWS: NewsArticle[] = [
     content: `Abuja & Yabo — In fulfillment of his campaign promises and constituency service mandate, Hon. Umar Yusuf (Danmaje Yabo), Member representing Yabo/Shagari Federal Constituency, embarked on a comprehensive inspection tour of ongoing water and infrastructural projects across the constituency.\n\nDuring the tour, Hon. Danmaje inspected the newly completed solar-powered water schemes in Yabo Central, Kuchi, and Shagari urban wards. While interacting with community leaders and residents, the lawmaker emphasized that water is life and priority must be given to basic human needs.\n\n"Our people deserve the best. We will continue to collaborate with relevant federal agencies and development partners to attract projects that directly touch the lives of our constituents," Danmaje stated during a town hall meeting with elders and youth representatives.\n\nCommunity leaders expressed immense gratitude for the prompt execution of the projects, noting that perennial water scarcity in the area has been drastically alleviated.`,
     category: 'Constituency News',
     date: '2025-09-14',
-    imageUrl: '/src/assets/images/solar_water_project_1792063316637.jpg',
+    imageUrl: '/solar_water_project_1792063316637.jpg',
     author: 'Office of the Media Assistant',
     isFeatured: true,
     tags: ['Water Project', 'Yabo', 'Shagari', 'Constituency Tour']
@@ -205,7 +205,7 @@ export const INITIAL_NEWS: NewsArticle[] = [
     content: `Abuja — A major legislative milestone was achieved yesterday as the bill sponsored by Hon. Umar Yusuf (Danmaje Yabo) seeking to establish the Federal College of Agricultural Technology, Yabo, successfully passed its second reading on the floor of the House of Representatives.\n\nLeading the debate, Hon. Danmaje highlighted the immense agricultural potential of Yabo/Shagari and the wider Sokoto region. He noted that the institution will serve as a hub for agricultural research, youth skill development, and mechanized farming innovation.\n\n"Agriculture remains the mainstay of our economy in Northern Nigeria. By establishing this college, we are equipping our youth with modern scientific knowledge to transform subsistence farming into a lucrative commercial enterprise," Danmaje argued before the plenary.\n\nThe Speaker commended the sponsor for the thoughtful legislative initiative, referring the bill to the relevant committee for further legislative action and public hearing.`,
     category: 'Legislative Update',
     date: '2025-07-19',
-    imageUrl: '/src/assets/images/national_assembly_chamber_1792063300782.jpg',
+    imageUrl: '/national_assembly_chamber_1792063300782.jpg',
     author: 'Legislative Desk, National Assembly',
     isFeatured: true,
     tags: ['Agriculture', 'Bills', 'National Assembly', 'Education']
@@ -230,7 +230,7 @@ export const INITIAL_GALLERY: GalleryItem[] = [
     title: 'Plenary Debate: Federal College of Agricultural Technology Yabo Bill',
     type: 'video',
     category: 'National Assembly',
-    imageUrl: '/src/assets/images/national_assembly_chamber_1792063300782.jpg',
+    imageUrl: '/national_assembly_chamber_1792063300782.jpg',
     videoUrl: 'https://www.youtube.com/embed/ScMzIvxBSi4',
     date: '2025-07-19',
     description: 'Hon. Umar Yusuf Danmaje leading the debate during plenary session at the Green Chamber, advocating for agricultural education and research for Sokoto State.'
@@ -240,7 +240,7 @@ export const INITIAL_GALLERY: GalleryItem[] = [
     title: 'Constituency Documentary: Solar Water Project Inspection in Yabo',
     type: 'video',
     category: 'Projects',
-    imageUrl: '/src/assets/images/solar_water_project_1792063316637.jpg',
+    imageUrl: '/solar_water_project_1792063316637.jpg',
     videoUrl: 'https://www.youtube.com/embed/ScMzIvxBSi4',
     date: '2025-08-20',
     description: 'Field report showing the completed motorized solar-powered water schemes serving rural communities in Yabo and Shagari.'
@@ -250,7 +250,7 @@ export const INITIAL_GALLERY: GalleryItem[] = [
     title: 'Hon. Umar Yusuf Danmaje addressing the House of Representatives Plenary',
     type: 'photo',
     category: 'National Assembly',
-    imageUrl: '/src/assets/images/national_assembly_chamber_1792063300782.jpg',
+    imageUrl: '/national_assembly_chamber_1792063300782.jpg',
     date: '2025-07-19',
     description: 'Presenting the debate for the establishment of the Federal College of Agricultural Technology, Yabo.'
   },
@@ -259,7 +259,7 @@ export const INITIAL_GALLERY: GalleryItem[] = [
     title: 'Commissioning of Solar Water Project in Yabo Central',
     type: 'photo',
     category: 'Projects',
-    imageUrl: '/src/assets/images/solar_water_project_1792063316637.jpg',
+    imageUrl: '/solar_water_project_1792063316637.jpg',
     date: '2025-08-20',
     description: 'Unveiling the motorized solar borehole facility with community elders and youth leaders.'
   },
@@ -286,7 +286,7 @@ export const INITIAL_GALLERY: GalleryItem[] = [
     title: 'Inspection of GSS Shagari Science Laboratory Renovation',
     type: 'photo',
     category: 'Constituency Visits',
-    imageUrl: '/src/assets/images/science_lab_renovation_1792063333276.jpg',
+    imageUrl: '/science_lab_renovation_1792063333276.jpg',
     date: '2025-07-10',
     description: 'Inspecting construction quality and science laboratory equipment installation for secondary students.'
   }

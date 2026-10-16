@@ -242,7 +242,7 @@ export const Home: React.FC<Props> = ({
                 </div>
 
                 <img
-                  src="/src/assets/images/portrait_danmaje_yabo_1792063283391.jpg"
+                  src="/portrait_danmaje_yabo_1792063283391.jpg"
                   alt="Hon. Umar Yusuf Danmaje Yabo - Member House of Representatives"
                   className="w-full h-full object-cover object-top transition duration-700 group-hover:scale-105"
                   onError={(e) => {
@@ -367,7 +367,7 @@ export const Home: React.FC<Props> = ({
           <div className="lg:col-span-5 relative">
             <div className="aspect-[4/3] rounded-2xl overflow-hidden bg-stone-100 shadow-md border border-stone-200">
               <img
-                src="/src/assets/images/national_assembly_chamber_1792063300782.jpg"
+                src="/national_assembly_chamber_1792063300782.jpg"
                 alt="National Assembly Representation"
                 className="w-full h-full object-cover transition-transform duration-500 hover:scale-105"
                 onError={(e) => {

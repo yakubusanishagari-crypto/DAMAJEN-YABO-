@@ -33,6 +33,13 @@ export default function App() {
   const [currentLang, setCurrentLang] = useState<Language>('en');
   const [adminOpen, setAdminOpen] = useState(false);
 
+  useEffect(() => {
+    if (window.location.pathname.includes('admin')) {
+      setAdminOpen(true);
+      window.history.replaceState({}, '', '/');
+    }
+  }, []);
+
   const [stats, setStats] = useState<ConstituencyStats>(() => {
     const saved = localStorage.getItem('danmaje_stats');
     return saved ? JSON.parse(saved) : {

@@ -140,7 +140,7 @@ export const BiographyPage: React.FC<Props> = ({ setCurrentTab, currentLang, tra
                 </div>
 
                 <img
-                  src="/src/assets/images/portrait_danmaje_yabo_1792063283391.jpg"
+                  src="/portrait_danmaje_yabo_1792063283391.jpg"
                   alt="Hon. Umar Yusuf Danmaje Yabo"
                   className="w-full h-full object-cover object-top"
                   onError={(e) => {

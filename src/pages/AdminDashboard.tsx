@@ -136,7 +136,7 @@ export const AdminDashboard: React.FC<Props> = ({
       title: newMedia.title,
       type: newMedia.type,
       category: newMedia.category,
-      imageUrl: newMedia.imageUrl || (newMedia.type === 'video' ? '/src/assets/images/national_assembly_chamber_1792063300782.jpg' : 'https://images.unsplash.com/photo-1541872703-74c5e44368f9?auto=format&fit=crop&q=80&w=1000'),
+      imageUrl: newMedia.imageUrl || (newMedia.type === 'video' ? '/national_assembly_chamber_1792063300782.jpg' : 'https://images.unsplash.com/photo-1541872703-74c5e44368f9?auto=format&fit=crop&q=80&w=1000'),
       videoUrl: newMedia.type === 'video' ? newMedia.videoUrl : undefined,
       date: new Date().toISOString().split('T')[0],
       description: newMedia.description

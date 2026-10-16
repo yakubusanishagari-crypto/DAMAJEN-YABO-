@@ -126,7 +126,7 @@ export function getLocalizedProgram(pr: EmpowermentProgram, lang: Language): { t
       return {
         title: 'Shirin Horar da Matasa Fasahar Zamani da Kayan Aiki (ICT & Solar)',
         description: 'Horon makonni 8 kan gyaran na\'urorin hasken rana, kera wayoyi, da fasahar kwamfuta, tare da ba wa kowane dalibi kwamfuta da kayan aiki bayan kammalawa.',
-        eligibility: 'Matasa 'yan asalin Yabo/Shagari masu shekaru 18 zuwa 35 masu sha\'awar koyon sana\'a.'
+        eligibility: 'Matasa \'yan asalin Yabo/Shagari masu shekaru 18 zuwa 35 masu sha\'awar koyon sana\'a.'
       };
     }
     if (pr.id === 'prog-3') {

@@ -137,7 +137,7 @@ export const ProjectsPage: React.FC<Props> = ({
               <div>
                 <div className="relative aspect-[16/10] overflow-hidden bg-stone-200">
                   <img
-                    src={project.images[0] || '/src/assets/images/solar_water_project_1792063316637.jpg'}
+                    src={project.images[0] || '/solar_water_project_1792063316637.jpg'}
                     alt={project.title}
                     className="w-full h-full object-cover group-hover:scale-105 transition duration-500"
                     onError={(e) => {
