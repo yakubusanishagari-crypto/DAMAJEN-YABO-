@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
 import { Project, LegislativeRecord, EmpowermentProgram, NewsArticle, GalleryItem, ContactSubmission } from '../types';
-import { Language, Translations, DEFAULT_TRANSLATIONS } from '../utils/i18n';
+import { Language, Translations } from '../utils/i18n';
 import { ConstituencyStats } from '../App';
 import { 
   Shield, Lock, Mail, Plus, Trash2, Edit, CheckCircle, X, LogOut, 
   FileText, Award, Image as ImageIcon, Users, BarChart3, Globe, Settings, 
   Activity, ArrowUpRight, TrendingUp, Download, Eye, AlertCircle, Save,
-  Upload, Video, Film, Play
+  Upload, Video, Film, Play, Check
 } from 'lucide-react';
 
 interface Props {
@@ -44,7 +44,7 @@ export const AdminDashboard: React.FC<Props> = ({
 }) => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [email, setEmail] = useState('admin@danmayeyabo.gov.ng');
-  const [password, setPassword] = useState('password123');
+  const [password, setPassword] = useState('DANMAJEFOREVER');
   const [loginError, setLoginError] = useState('');
   const [adminRole, setAdminRole] = useState<'Chief Administrator' | 'Content Manager' | 'News Editor' | 'Projects Manager' | 'Translation Manager' | 'Analytics Viewer'>('Chief Administrator');
 
@@ -65,7 +65,7 @@ export const AdminDashboard: React.FC<Props> = ({
   ]);
 
   // Analytics real metrics state
-  const [analyticsData, setAnalyticsData] = useState({
+  const [analyticsData] = useState({
     pageViews: 14280,
     sessions: 3840,
     uniqueVisitors: 2950,
@@ -82,10 +82,234 @@ export const AdminDashboard: React.FC<Props> = ({
     languages: { english: '84%', hausa: '12%', arabic: '4%' }
   });
 
+  // Projects CRUD state
   const [showAddProj, setShowAddProj] = useState(false);
   const [newProj, setNewProj] = useState({
     title: '', category: 'Water & Sanitation' as const, location: '', status: 'Ongoing' as const, description: '', images: ['https://images.unsplash.com/photo-1541888946425-d0fbb18f764c?auto=format&fit=crop&q=80&w=1000'], updates: []
   });
+  const [editingProject, setEditingProject] = useState<Project | null>(null);
+
+  const handleCreateProject = (e: React.FormEvent) => {
+    e.preventDefault();
+    const created: Project = {
+      id: `proj-${Date.now()}`,
+      ...newProj,
+      startDate: new Date().toISOString().split('T')[0],
+      date: new Date().toISOString().split('T')[0]
+    };
+    const updated = [created, ...projects];
+    setProjects(updated);
+    try { localStorage.setItem('danmaje_projects', JSON.stringify(updated)); } catch {}
+    setShowAddProj(false);
+    setNewProj({ title: '', category: 'Water & Sanitation', location: '', status: 'Ongoing', description: '', images: ['https://images.unsplash.com/photo-1541888946425-d0fbb18f764c?auto=format&fit=crop&q=80&w=1000'], updates: [] });
+    setActivityLogs(prev => [{
+      id: `log-${Date.now()}`,
+      user: email,
+      action: `Created new project: ${created.title}`,
+      timestamp: new Date().toISOString().replace('T', ' ').substring(0, 16),
+      role: adminRole
+    }, ...prev]);
+  };
+
+  const handleUpdateProject = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingProject) return;
+    const updated = projects.map(p => p.id === editingProject.id ? editingProject : p);
+    setProjects(updated);
+    try { localStorage.setItem('danmaje_projects', JSON.stringify(updated)); } catch {}
+    setEditingProject(null);
+    setActivityLogs(prev => [{
+      id: `log-${Date.now()}`,
+      user: email,
+      action: `Updated project: ${editingProject.title}`,
+      timestamp: new Date().toISOString().replace('T', ' ').substring(0, 16),
+      role: adminRole
+    }, ...prev]);
+  };
+
+  const handleDeleteProject = (id: string) => {
+    const updated = projects.filter(p => p.id !== id);
+    setProjects(updated);
+    try { localStorage.setItem('danmaje_projects', JSON.stringify(updated)); } catch {}
+    setActivityLogs(prev => [{
+      id: `log-${Date.now()}`,
+      user: email,
+      action: `Deleted project #${id}`,
+      timestamp: new Date().toISOString().replace('T', ' ').substring(0, 16),
+      role: adminRole
+    }, ...prev]);
+  };
+
+  // News CRUD state
+  const [showAddNews, setShowAddNews] = useState(false);
+  const [newNews, setNewNews] = useState({
+    title: '',
+    category: 'Constituency News' as NewsArticle['category'],
+    author: 'Office of the Media Assistant',
+    excerpt: '',
+    content: '',
+    imageUrl: 'https://images.unsplash.com/photo-1541888946425-d0fbb18f764c?auto=format&fit=crop&q=80&w=1000',
+    tagsString: 'Yabo, Shagari, Constituency'
+  });
+  const [editingNews, setEditingNews] = useState<NewsArticle | null>(null);
+
+  const handleCreateNews = (e: React.FormEvent) => {
+    e.preventDefault();
+    const created: NewsArticle = {
+      id: `news-${Date.now()}`,
+      title: newNews.title,
+      category: newNews.category,
+      date: new Date().toISOString().split('T')[0],
+      author: newNews.author,
+      excerpt: newNews.excerpt,
+      content: newNews.content,
+      imageUrl: newNews.imageUrl,
+      isFeatured: false,
+      tags: newNews.tagsString.split(',').map(t => t.trim())
+    };
+    const updated = [created, ...news];
+    setNews(updated);
+    try { localStorage.setItem('danmaje_news', JSON.stringify(updated)); } catch {}
+    setShowAddNews(false);
+    setNewNews({ title: '', category: 'Constituency News', author: 'Office of the Media Assistant', excerpt: '', content: '', imageUrl: 'https://images.unsplash.com/photo-1541888946425-d0fbb18f764c?auto=format&fit=crop&q=80&w=1000', tagsString: 'Yabo, Shagari' });
+    setActivityLogs(prev => [{
+      id: `log-${Date.now()}`,
+      user: email,
+      action: `Published news article: ${created.title}`,
+      timestamp: new Date().toISOString().replace('T', ' ').substring(0, 16),
+      role: adminRole
+    }, ...prev]);
+  };
+
+  const handleUpdateNews = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingNews) return;
+    const updated = news.map(n => n.id === editingNews.id ? editingNews : n);
+    setNews(updated);
+    try { localStorage.setItem('danmaje_news', JSON.stringify(updated)); } catch {}
+    setEditingNews(null);
+    setActivityLogs(prev => [{
+      id: `log-${Date.now()}`,
+      user: email,
+      action: `Updated news article: ${editingNews.title}`,
+      timestamp: new Date().toISOString().replace('T', ' ').substring(0, 16),
+      role: adminRole
+    }, ...prev]);
+  };
+
+  const handleDeleteNews = (id: string) => {
+    const updated = news.filter(n => n.id !== id);
+    setNews(updated);
+    try { localStorage.setItem('danmaje_news', JSON.stringify(updated)); } catch {}
+    setActivityLogs(prev => [{
+      id: `log-${Date.now()}`,
+      user: email,
+      action: `Deleted news article #${id}`,
+      timestamp: new Date().toISOString().replace('T', ' ').substring(0, 16),
+      role: adminRole
+    }, ...prev]);
+  };
+
+  // Legislative CRUD state
+  const [showAddLeg, setShowAddLeg] = useState(false);
+  const [newLeg, setNewLeg] = useState({
+    title: '',
+    category: 'Bill' as LegislativeRecord['category'],
+    status: 'Passed' as LegislativeRecord['status'],
+    date: new Date().toISOString().split('T')[0],
+    description: '',
+    coSponsors: ['Hon. Umar Yusuf Danmaje']
+  });
+
+  const handleCreateLegislative = (e: React.FormEvent) => {
+    e.preventDefault();
+    const created: LegislativeRecord = {
+      id: `leg-${Date.now()}`,
+      ...newLeg
+    };
+    const updated = [created, ...legislative];
+    setLegislative(updated);
+    try { localStorage.setItem('danmaje_legislative', JSON.stringify(updated)); } catch {}
+    setShowAddLeg(false);
+    setNewLeg({ title: '', category: 'Bill', status: 'Passed', date: new Date().toISOString().split('T')[0], description: '', coSponsors: ['Hon. Umar Yusuf Danmaje'] });
+    setActivityLogs(prev => [{
+      id: `log-${Date.now()}`,
+      user: email,
+      action: `Added legislative record: ${created.title}`,
+      timestamp: new Date().toISOString().replace('T', ' ').substring(0, 16),
+      role: adminRole
+    }, ...prev]);
+  };
+
+  const handleDeleteLegislative = (id: string) => {
+    const updated = legislative.filter(l => l.id !== id);
+    setLegislative(updated);
+    try { localStorage.setItem('danmaje_legislative', JSON.stringify(updated)); } catch {}
+    setActivityLogs(prev => [{
+      id: `log-${Date.now()}`,
+      user: email,
+      action: `Deleted legislative record #${id}`,
+      timestamp: new Date().toISOString().replace('T', ' ').substring(0, 16),
+      role: adminRole
+    }, ...prev]);
+  };
+
+  // Empowerment Programs CRUD state
+  const [showAddProg, setShowAddProg] = useState(false);
+  const [newProg, setNewProg] = useState({
+    title: '',
+    category: 'Youth Development' as EmpowermentProgram['category'],
+    description: '',
+    targetBeneficiaries: '500 Youth',
+    status: 'Active' as EmpowermentProgram['status'],
+    eligibility: 'Yabo and Shagari Indigenes',
+    startDate: new Date().toISOString().split('T')[0],
+    deadline: '2026-12-31',
+    requirements: ['National ID / Voter Card', 'Constituency Resident']
+  });
+
+  const handleCreateProgram = (e: React.FormEvent) => {
+    e.preventDefault();
+    const created: EmpowermentProgram = {
+      id: `prog-${Date.now()}`,
+      ...newProg
+    };
+    const updated = [created, ...programs];
+    setPrograms(updated);
+    try { localStorage.setItem('danmaje_programs', JSON.stringify(updated)); } catch {}
+    setShowAddProg(false);
+    setNewProg({
+      title: '',
+      category: 'Youth Development' as EmpowermentProgram['category'],
+      description: '',
+      targetBeneficiaries: '500 Youth',
+      status: 'Active',
+      eligibility: 'Yabo and Shagari Indigenes',
+      startDate: new Date().toISOString().split('T')[0],
+      deadline: '2026-12-31',
+      requirements: ['National ID / Voter Card', 'Constituency Resident']
+    });
+    setActivityLogs(prev => [{
+      id: `log-${Date.now()}`,
+      user: email,
+      action: `Created empowerment programme: ${created.title}`,
+      timestamp: new Date().toISOString().replace('T', ' ').substring(0, 16),
+      role: adminRole
+    }, ...prev]);
+  };
+
+  const handleDeleteProgram = (id: string) => {
+    const updated = programs.filter(p => p.id !== id);
+    setPrograms(updated);
+    try { localStorage.setItem('danmaje_programs', JSON.stringify(updated)); } catch {}
+    setActivityLogs(prev => [{
+      id: `log-${Date.now()}`,
+      user: email,
+      action: `Deleted empowerment programme #${id}`,
+      timestamp: new Date().toISOString().replace('T', ' ').substring(0, 16),
+      role: adminRole
+    }, ...prev]);
+  };
 
   // Media / Gallery & Video Management State
   const [showAddMedia, setShowAddMedia] = useState(false);
@@ -106,6 +330,17 @@ export const AdminDashboard: React.FC<Props> = ({
   });
   const [uploadedImagePreview, setUploadedImagePreview] = useState<string>('');
   const [uploadError, setUploadError] = useState<string>('');
+
+  const formatVideoUrl = (url: string) => {
+    if (!url) return '';
+    if (url.includes('youtube.com/embed/')) return url;
+    const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
+    const match = url.match(regExp);
+    if (match && match[2].length === 11) {
+      return `https://www.youtube.com/embed/${match[2]}`;
+    }
+    return url;
+  };
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     setUploadError('');
@@ -131,13 +366,14 @@ export const AdminDashboard: React.FC<Props> = ({
       setUploadError('Please select a photograph to upload or provide an image link.');
       return;
     }
+    const finalVideoUrl = newMedia.type === 'video' ? formatVideoUrl(newMedia.videoUrl) : undefined;
     const createdItem: GalleryItem = {
       id: `gal-${Date.now()}`,
       title: newMedia.title,
       type: newMedia.type,
       category: newMedia.category,
       imageUrl: newMedia.imageUrl || (newMedia.type === 'video' ? '/national_assembly_chamber_1792063300782.jpg' : 'https://images.unsplash.com/photo-1541872703-74c5e44368f9?auto=format&fit=crop&q=80&w=1000'),
-      videoUrl: newMedia.type === 'video' ? newMedia.videoUrl : undefined,
+      videoUrl: finalVideoUrl,
       date: new Date().toISOString().split('T')[0],
       description: newMedia.description
     };
@@ -209,26 +445,6 @@ export const AdminDashboard: React.FC<Props> = ({
     }
   };
 
-  const handleCreateProject = (e: React.FormEvent) => {
-    e.preventDefault();
-    const created: Project = {
-      id: `proj-${Date.now()}`,
-      ...newProj,
-      startDate: new Date().toISOString().split('T')[0],
-      date: new Date().toISOString().split('T')[0]
-    };
-    setProjects([created, ...projects]);
-    setShowAddProj(false);
-    setNewProj({ title: '', category: 'Water & Sanitation', location: '', status: 'Ongoing', description: '', images: ['https://images.unsplash.com/photo-1541888946425-d0fbb18f764c?auto=format&fit=crop&q=80&w=1000'], updates: [] });
-    setActivityLogs(prev => [{
-      id: `log-${Date.now()}`,
-      user: email,
-      action: `Created new project: ${created.title}`,
-      timestamp: new Date().toISOString().replace('T', ' ').substring(0, 16),
-      role: adminRole
-    }, ...prev]);
-  };
-
   const handleSaveStats = async (e: React.FormEvent) => {
     e.preventDefault();
     setStats(editableStats);
@@ -247,7 +463,7 @@ export const AdminDashboard: React.FC<Props> = ({
     setActivityLogs(prev => [{
       id: `log-${Date.now()}`,
       user: email,
-      action: `Updated homepage statistics (Projects: ${editableStats.projectsCount}, Bills: ${editableStats.billsCount}, Citizens: ${editableStats.citizensCount}, Wards: ${editableStats.wardsCount})`,
+      action: `Updated homepage statistics`,
       timestamp: new Date().toISOString().replace('T', ' ').substring(0, 16),
       role: adminRole
     }, ...prev]);
@@ -258,13 +474,13 @@ export const AdminDashboard: React.FC<Props> = ({
       <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm">
         <div className="bg-[#FAF9F5] w-full max-w-md rounded-3xl shadow-2xl overflow-hidden border border-[#C6A15B]/40">
           <div className="bg-[#103C2E] text-white p-8 text-center space-y-2 relative">
-            <button onClick={onClose} className="absolute right-4 top-4 text-white/80 hover:text-white">
+            <button onClick={onClose} className="absolute right-4 top-4 text-white/80 hover:text-white cursor-pointer">
               <X className="w-6 h-6" />
             </button>
             <div className="w-16 h-16 rounded-full border-2 border-[#D4AF37] p-0.5 bg-[#09291F] mx-auto shadow-2xl overflow-hidden">
               <img src="/official_logo.png" alt="Official Seal" className="w-full h-full object-contain rounded-full" />
             </div>
-            <h3 className="font-['Manrope'] font-bold text-2xl">Secure Admin System</h3>
+            <h3 className="font-['Manrope'] font-bold text-2xl">ADMINISTRATOR LOGIN</h3>
             <p className="text-xs text-[#D4AF37] font-semibold">Hon. Umar Yusuf (Danmaje Yabo) Portal</p>
           </div>
 
@@ -316,9 +532,9 @@ export const AdminDashboard: React.FC<Props> = ({
             <div className="pt-2">
               <button
                 type="submit"
-                className="w-full bg-[#103C2E] hover:bg-[#09291F] text-white py-3.5 rounded-xl font-bold text-sm shadow transition"
+                className="w-full bg-[#103C2E] hover:bg-[#09291F] text-white py-3.5 rounded-xl font-bold text-sm shadow transition cursor-pointer"
               >
-                Authenticate & Access Dashboard
+                AUTHENTICATE & ACCESS DASHBOARD
               </button>
             </div>
           </form>
@@ -343,11 +559,11 @@ export const AdminDashboard: React.FC<Props> = ({
         <div className="flex items-center space-x-4">
           <button
             onClick={() => setIsLoggedIn(false)}
-            className="flex items-center gap-1 bg-rose-600/20 hover:bg-rose-600/30 text-rose-300 px-4 py-2 rounded-xl text-xs font-bold border border-rose-500/30 transition"
+            className="flex items-center gap-1 bg-rose-600/20 hover:bg-rose-600/30 text-rose-300 px-4 py-2 rounded-xl text-xs font-bold border border-rose-500/30 transition cursor-pointer"
           >
-            <LogOut className="w-4 h-4" /> Secure Logout
+            <LogOut className="w-4 h-4" /> LOG OUT
           </button>
-          <button onClick={onClose} className="text-white/80 hover:text-white p-2" title="Close Admin">
+          <button onClick={onClose} className="text-white/80 hover:text-white p-2 cursor-pointer" title="Close Admin">
             <X className="w-6 h-6" />
           </button>
         </div>
@@ -359,56 +575,56 @@ export const AdminDashboard: React.FC<Props> = ({
         <div className="w-64 bg-white border-r border-gray-200 p-4 space-y-1.5 hidden md:block overflow-y-auto">
           <button
             onClick={() => setActiveTab('overview')}
-            className={`w-full text-left px-4 py-3 rounded-xl font-bold text-sm flex items-center gap-3 transition ${
+            className={`w-full text-left px-4 py-3 rounded-xl font-bold text-sm flex items-center gap-3 transition cursor-pointer ${
               activeTab === 'overview' ? 'bg-[#103C2E] text-white shadow' : 'text-[#6B716D] hover:bg-gray-100'
             }`}
           >
-            <Activity className="w-4 h-4 text-[#C6A15B]" /> System Overview
+            <Activity className="w-4 h-4 text-[#C6A15B]" /> SYSTEM OVERVIEW
           </button>
 
           <button
             onClick={() => setActiveTab('analytics')}
-            className={`w-full text-left px-4 py-3 rounded-xl font-bold text-sm flex items-center gap-3 transition ${
+            className={`w-full text-left px-4 py-3 rounded-xl font-bold text-sm flex items-center gap-3 transition cursor-pointer ${
               activeTab === 'analytics' ? 'bg-[#103C2E] text-white shadow' : 'text-[#6B716D] hover:bg-gray-100'
             }`}
           >
-            <BarChart3 className="w-4 h-4 text-[#C6A15B]" /> Visitor Analytics
+            <BarChart3 className="w-4 h-4 text-[#C6A15B]" /> VISITOR ANALYTICS
           </button>
 
           <button
             onClick={() => setActiveTab('cms')}
-            className={`w-full text-left px-4 py-3 rounded-xl font-bold text-sm flex items-center gap-3 transition ${
+            className={`w-full text-left px-4 py-3 rounded-xl font-bold text-sm flex items-center gap-3 transition cursor-pointer ${
               activeTab === 'cms' ? 'bg-[#103C2E] text-white shadow' : 'text-[#6B716D] hover:bg-gray-100'
             }`}
           >
-            <FileText className="w-4 h-4 text-[#C6A15B]" /> Content Management
+            <FileText className="w-4 h-4 text-[#C6A15B]" /> CONTENT MANAGEMENT
           </button>
 
           <button
             onClick={() => setActiveTab('multilingual')}
-            className={`w-full text-left px-4 py-3 rounded-xl font-bold text-sm flex items-center gap-3 transition ${
+            className={`w-full text-left px-4 py-3 rounded-xl font-bold text-sm flex items-center gap-3 transition cursor-pointer ${
               activeTab === 'multilingual' ? 'bg-[#103C2E] text-white shadow' : 'text-[#6B716D] hover:bg-gray-100'
             }`}
           >
-            <Globe className="w-4 h-4 text-[#C6A15B]" /> Multilingual Manager
+            <Globe className="w-4 h-4 text-[#C6A15B]" /> MULTILINGUAL MANAGER
           </button>
 
           <button
             onClick={() => setActiveTab('users')}
-            className={`w-full text-left px-4 py-3 rounded-xl font-bold text-sm flex items-center gap-3 transition ${
+            className={`w-full text-left px-4 py-3 rounded-xl font-bold text-sm flex items-center gap-3 transition cursor-pointer ${
               activeTab === 'users' ? 'bg-[#103C2E] text-white shadow' : 'text-[#6B716D] hover:bg-gray-100'
             }`}
           >
-            <Users className="w-4 h-4 text-[#C6A15B]" /> Users & Permissions
+            <Users className="w-4 h-4 text-[#C6A15B]" /> USERS & PERMISSIONS
           </button>
 
           <button
             onClick={() => setActiveTab('settings')}
-            className={`w-full text-left px-4 py-3 rounded-xl font-bold text-sm flex items-center gap-3 transition ${
+            className={`w-full text-left px-4 py-3 rounded-xl font-bold text-sm flex items-center gap-3 transition cursor-pointer ${
               activeTab === 'settings' ? 'bg-[#103C2E] text-white shadow' : 'text-[#6B716D] hover:bg-gray-100'
             }`}
           >
-            <Settings className="w-4 h-4 text-[#C6A15B]" /> System Settings
+            <Settings className="w-4 h-4 text-[#C6A15B]" /> SYSTEM SETTINGS
           </button>
         </div>
 
@@ -558,42 +774,55 @@ export const AdminDashboard: React.FC<Props> = ({
               <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                 <div>
                   <h3 className="font-['Manrope'] font-bold text-2xl text-[#103C2E]">Content Management System</h3>
-                  <p className="text-xs text-[#6B716D]">Create, edit, publish, and manage constituency records.</p>
+                  <p className="text-xs text-[#6B716D]">Full control: create, edit, upload, delete, and publish constituency records.</p>
                 </div>
                 <div className="flex flex-wrap gap-2">
                   <button
                     onClick={() => setCmsSubTab('projects')}
-                    className={`px-4 py-2 rounded-xl text-xs font-bold transition ${cmsSubTab === 'projects' ? 'bg-[#103C2E] text-white' : 'bg-white text-gray-700 border'}`}
+                    className={`px-4 py-2 rounded-xl text-xs font-bold transition cursor-pointer ${cmsSubTab === 'projects' ? 'bg-[#103C2E] text-white' : 'bg-white text-gray-700 border'}`}
                   >
                     Projects ({projects.length})
                   </button>
                   <button
+                    onClick={() => setCmsSubTab('news')}
+                    className={`px-4 py-2 rounded-xl text-xs font-bold transition cursor-pointer ${cmsSubTab === 'news' ? 'bg-[#103C2E] text-white' : 'bg-white text-gray-700 border'}`}
+                  >
+                    News & Press ({news.length})
+                  </button>
+                  <button
+                    onClick={() => setCmsSubTab('legislative')}
+                    className={`px-4 py-2 rounded-xl text-xs font-bold transition cursor-pointer ${cmsSubTab === 'legislative' ? 'bg-[#103C2E] text-white' : 'bg-white text-gray-700 border'}`}
+                  >
+                    Legislative ({legislative.length})
+                  </button>
+                  <button
+                    onClick={() => setCmsSubTab('programs')}
+                    className={`px-4 py-2 rounded-xl text-xs font-bold transition cursor-pointer ${cmsSubTab === 'programs' ? 'bg-[#103C2E] text-white' : 'bg-white text-gray-700 border'}`}
+                  >
+                    Empowerment ({programs.length})
+                  </button>
+                  <button
                     onClick={() => setCmsSubTab('gallery')}
-                    className={`px-4 py-2 rounded-xl text-xs font-bold transition ${cmsSubTab === 'gallery' ? 'bg-[#103C2E] text-white' : 'bg-white text-gray-700 border'}`}
+                    className={`px-4 py-2 rounded-xl text-xs font-bold transition cursor-pointer ${cmsSubTab === 'gallery' ? 'bg-[#103C2E] text-white' : 'bg-white text-gray-700 border'}`}
                   >
                     Photos & Videos ({gallery.length})
                   </button>
                   <button
-                    onClick={() => setCmsSubTab('news')}
-                    className={`px-4 py-2 rounded-xl text-xs font-bold transition ${cmsSubTab === 'news' ? 'bg-[#103C2E] text-white' : 'bg-white text-gray-700 border'}`}
-                  >
-                    News ({news.length})
-                  </button>
-                  <button
                     onClick={() => setCmsSubTab('contacts')}
-                    className={`px-4 py-2 rounded-xl text-xs font-bold transition ${cmsSubTab === 'contacts' ? 'bg-[#103C2E] text-white' : 'bg-white text-gray-700 border'}`}
+                    className={`px-4 py-2 rounded-xl text-xs font-bold transition cursor-pointer ${cmsSubTab === 'contacts' ? 'bg-[#103C2E] text-white' : 'bg-white text-gray-700 border'}`}
                   >
                     Enquiries ({contacts.length})
                   </button>
                 </div>
               </div>
 
+              {/* PROJECTS SUB-TAB */}
               {cmsSubTab === 'projects' && (
                 <div className="space-y-4">
                   <div className="flex justify-end">
                     <button
                       onClick={() => setShowAddProj(true)}
-                      className="bg-[#103C2E] text-white px-4 py-2.5 rounded-xl font-bold text-xs flex items-center gap-2 shadow"
+                      className="bg-[#103C2E] hover:bg-[#09291F] text-white px-4 py-2.5 rounded-xl font-bold text-xs flex items-center gap-2 shadow cursor-pointer transition"
                     >
                       <Plus className="w-4 h-4 text-[#C6A15B]" /> Add New Project
                     </button>
@@ -602,7 +831,7 @@ export const AdminDashboard: React.FC<Props> = ({
                   {showAddProj && (
                     <form onSubmit={handleCreateProject} className="bg-white p-6 rounded-2xl shadow-md border border-gray-200 space-y-4">
                       <h4 className="font-bold text-[#103C2E] text-base">New Constituency Project</h4>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                         <input
                           type="text"
                           required
@@ -619,6 +848,15 @@ export const AdminDashboard: React.FC<Props> = ({
                           onChange={(e) => setNewProj({...newProj, location: e.target.value})}
                           className="px-4 py-2.5 bg-[#FAF9F5] border border-gray-200 rounded-xl text-sm"
                         />
+                        <select
+                          value={newProj.status}
+                          onChange={(e) => setNewProj({...newProj, status: e.target.value as any})}
+                          className="px-4 py-2.5 bg-[#FAF9F5] border border-gray-200 rounded-xl text-sm"
+                        >
+                          <option value="Ongoing">Ongoing</option>
+                          <option value="Completed">Completed</option>
+                          <option value="Proposed">Proposed</option>
+                        </select>
                       </div>
                       <textarea
                         rows={3}
@@ -629,8 +867,50 @@ export const AdminDashboard: React.FC<Props> = ({
                         className="w-full px-4 py-2.5 bg-[#FAF9F5] border border-gray-200 rounded-xl text-sm"
                       ></textarea>
                       <div className="flex justify-end gap-3">
-                        <button type="button" onClick={() => setShowAddProj(false)} className="px-4 py-2 bg-gray-200 rounded-xl text-xs font-bold">Cancel</button>
-                        <button type="submit" className="px-5 py-2 bg-[#103C2E] text-white rounded-xl text-xs font-bold">Save Project</button>
+                        <button type="button" onClick={() => setShowAddProj(false)} className="px-4 py-2 bg-gray-200 rounded-xl text-xs font-bold cursor-pointer">Cancel</button>
+                        <button type="submit" className="px-5 py-2 bg-[#103C2E] text-white rounded-xl text-xs font-bold cursor-pointer">Save Project</button>
+                      </div>
+                    </form>
+                  )}
+
+                  {editingProject && (
+                    <form onSubmit={handleUpdateProject} className="bg-emerald-50 p-6 rounded-2xl shadow-md border border-emerald-200 space-y-4">
+                      <h4 className="font-bold text-[#103C2E] text-base">Edit Project: {editingProject.title}</h4>
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                        <input
+                          type="text"
+                          required
+                          value={editingProject.title}
+                          onChange={(e) => setEditingProject({...editingProject, title: e.target.value})}
+                          className="px-4 py-2.5 bg-white border border-gray-200 rounded-xl text-sm"
+                        />
+                        <input
+                          type="text"
+                          required
+                          value={editingProject.location}
+                          onChange={(e) => setEditingProject({...editingProject, location: e.target.value})}
+                          className="px-4 py-2.5 bg-white border border-gray-200 rounded-xl text-sm"
+                        />
+                        <select
+                          value={editingProject.status}
+                          onChange={(e) => setEditingProject({...editingProject, status: e.target.value as any})}
+                          className="px-4 py-2.5 bg-white border border-gray-200 rounded-xl text-sm"
+                        >
+                          <option value="Ongoing">Ongoing</option>
+                          <option value="Completed">Completed</option>
+                          <option value="Proposed">Proposed</option>
+                        </select>
+                      </div>
+                      <textarea
+                        rows={3}
+                        required
+                        value={editingProject.description}
+                        onChange={(e) => setEditingProject({...editingProject, description: e.target.value})}
+                        className="w-full px-4 py-2.5 bg-white border border-gray-200 rounded-xl text-sm"
+                      ></textarea>
+                      <div className="flex justify-end gap-3">
+                        <button type="button" onClick={() => setEditingProject(null)} className="px-4 py-2 bg-gray-200 rounded-xl text-xs font-bold cursor-pointer">Cancel</button>
+                        <button type="submit" className="px-5 py-2 bg-[#103C2E] text-white rounded-xl text-xs font-bold cursor-pointer">Update Project</button>
                       </div>
                     </form>
                   )}
@@ -653,8 +933,11 @@ export const AdminDashboard: React.FC<Props> = ({
                             <td className="p-4 text-gray-600">{p.category}</td>
                             <td className="p-4 text-gray-600">{p.location}</td>
                             <td className="p-4"><span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800">{p.status}</span></td>
-                            <td className="p-4 text-right">
-                              <button onClick={() => setProjects(projects.filter(item => item.id !== p.id))} className="text-rose-600 hover:text-rose-800 p-1">
+                            <td className="p-4 text-right space-x-2">
+                              <button onClick={() => setEditingProject(p)} className="text-emerald-700 hover:text-emerald-900 p-1.5 rounded-lg hover:bg-emerald-50 cursor-pointer transition" title="Edit">
+                                <Edit className="w-4 h-4" />
+                              </button>
+                              <button onClick={() => handleDeleteProject(p.id)} className="text-rose-600 hover:text-rose-800 p-1.5 rounded-lg hover:bg-rose-50 cursor-pointer transition" title="Delete">
                                 <Trash2 className="w-4 h-4" />
                               </button>
                             </td>
@@ -666,12 +949,352 @@ export const AdminDashboard: React.FC<Props> = ({
                 </div>
               )}
 
+              {/* NEWS SUB-TAB */}
+              {cmsSubTab === 'news' && (
+                <div className="space-y-4">
+                  <div className="flex justify-end">
+                    <button
+                      onClick={() => setShowAddNews(true)}
+                      className="bg-[#103C2E] hover:bg-[#09291F] text-white px-4 py-2.5 rounded-xl font-bold text-xs flex items-center gap-2 shadow cursor-pointer transition"
+                    >
+                      <Plus className="w-4 h-4 text-[#C6A15B]" /> Publish New Article
+                    </button>
+                  </div>
+
+                  {showAddNews && (
+                    <form onSubmit={handleCreateNews} className="bg-white p-6 rounded-2xl shadow-md border border-gray-200 space-y-4">
+                      <h4 className="font-bold text-[#103C2E] text-base">Publish News / Press Release</h4>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <input
+                          type="text"
+                          required
+                          placeholder="News Headline"
+                          value={newNews.title}
+                          onChange={(e) => setNewNews({...newNews, title: e.target.value})}
+                          className="px-4 py-2.5 bg-[#FAF9F5] border border-gray-200 rounded-xl text-sm"
+                        />
+                        <input
+                          type="text"
+                          required
+                          placeholder="Author / Office"
+                          value={newNews.author}
+                          onChange={(e) => setNewNews({...newNews, author: e.target.value})}
+                          className="px-4 py-2.5 bg-[#FAF9F5] border border-gray-200 rounded-xl text-sm"
+                        />
+                      </div>
+                      <input
+                        type="text"
+                        required
+                        placeholder="Short Excerpt / Subtitle"
+                        value={newNews.excerpt}
+                        onChange={(e) => setNewNews({...newNews, excerpt: e.target.value})}
+                        className="w-full px-4 py-2.5 bg-[#FAF9F5] border border-gray-200 rounded-xl text-sm"
+                      />
+                      <textarea
+                        rows={4}
+                        required
+                        placeholder="Full Article Content"
+                        value={newNews.content}
+                        onChange={(e) => setNewNews({...newNews, content: e.target.value})}
+                        className="w-full px-4 py-2.5 bg-[#FAF9F5] border border-gray-200 rounded-xl text-sm"
+                      ></textarea>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <input
+                          type="url"
+                          placeholder="Image URL"
+                          value={newNews.imageUrl}
+                          onChange={(e) => setNewNews({...newNews, imageUrl: e.target.value})}
+                          className="px-4 py-2.5 bg-[#FAF9F5] border border-gray-200 rounded-xl text-sm"
+                        />
+                        <input
+                          type="text"
+                          placeholder="Tags (comma separated)"
+                          value={newNews.tagsString}
+                          onChange={(e) => setNewNews({...newNews, tagsString: e.target.value})}
+                          className="px-4 py-2.5 bg-[#FAF9F5] border border-gray-200 rounded-xl text-sm"
+                        />
+                      </div>
+                      <div className="flex justify-end gap-3">
+                        <button type="button" onClick={() => setShowAddNews(false)} className="px-4 py-2 bg-gray-200 rounded-xl text-xs font-bold cursor-pointer">Cancel</button>
+                        <button type="submit" className="px-5 py-2 bg-[#103C2E] text-white rounded-xl text-xs font-bold cursor-pointer">Publish Article</button>
+                      </div>
+                    </form>
+                  )}
+
+                  {editingNews && (
+                    <form onSubmit={handleUpdateNews} className="bg-emerald-50 p-6 rounded-2xl shadow-md border border-emerald-200 space-y-4">
+                      <h4 className="font-bold text-[#103C2E] text-base">Edit Article: {editingNews.title}</h4>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <input
+                          type="text"
+                          required
+                          value={editingNews.title}
+                          onChange={(e) => setEditingNews({...editingNews, title: e.target.value})}
+                          className="px-4 py-2.5 bg-white border border-gray-200 rounded-xl text-sm"
+                        />
+                        <input
+                          type="text"
+                          required
+                          value={editingNews.author}
+                          onChange={(e) => setEditingNews({...editingNews, author: e.target.value})}
+                          className="px-4 py-2.5 bg-white border border-gray-200 rounded-xl text-sm"
+                        />
+                      </div>
+                      <input
+                        type="text"
+                        required
+                        value={editingNews.excerpt}
+                        onChange={(e) => setEditingNews({...editingNews, excerpt: e.target.value})}
+                        className="w-full px-4 py-2.5 bg-white border border-gray-200 rounded-xl text-sm"
+                      />
+                      <textarea
+                        rows={4}
+                        required
+                        value={editingNews.content}
+                        onChange={(e) => setEditingNews({...editingNews, content: e.target.value})}
+                        className="w-full px-4 py-2.5 bg-white border border-gray-200 rounded-xl text-sm"
+                      ></textarea>
+                      <div className="flex justify-end gap-3">
+                        <button type="button" onClick={() => setEditingNews(null)} className="px-4 py-2 bg-gray-200 rounded-xl text-xs font-bold cursor-pointer">Cancel</button>
+                        <button type="submit" className="px-5 py-2 bg-[#103C2E] text-white rounded-xl text-xs font-bold cursor-pointer">Save Changes</button>
+                      </div>
+                    </form>
+                  )}
+
+                  <div className="bg-white rounded-2xl shadow-md border border-gray-200 overflow-hidden">
+                    <table className="w-full text-left border-collapse text-xs sm:text-sm">
+                      <thead>
+                        <tr className="bg-[#103C2E] text-white">
+                          <th className="p-4">Headline</th>
+                          <th className="p-4">Category</th>
+                          <th className="p-4">Author</th>
+                          <th className="p-4">Date</th>
+                          <th className="p-4 text-right">Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-200">
+                        {news.map(n => (
+                          <tr key={n.id} className="hover:bg-gray-50">
+                            <td className="p-4 font-bold text-[#103C2E]">{n.title}</td>
+                            <td className="p-4 text-gray-600">{n.category}</td>
+                            <td className="p-4 text-gray-600">{n.author}</td>
+                            <td className="p-4 text-gray-600">{n.date}</td>
+                            <td className="p-4 text-right space-x-2">
+                              <button onClick={() => setEditingNews(n)} className="text-emerald-700 hover:text-emerald-900 p-1.5 rounded-lg hover:bg-emerald-50 cursor-pointer transition" title="Edit">
+                                <Edit className="w-4 h-4" />
+                              </button>
+                              <button onClick={() => handleDeleteNews(n.id)} className="text-rose-600 hover:text-rose-800 p-1.5 rounded-lg hover:bg-rose-50 cursor-pointer transition" title="Delete">
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+
+              {/* LEGISLATIVE SUB-TAB */}
+              {cmsSubTab === 'legislative' && (
+                <div className="space-y-4">
+                  <div className="flex justify-end">
+                    <button
+                      onClick={() => setShowAddLeg(true)}
+                      className="bg-[#103C2E] hover:bg-[#09291F] text-white px-4 py-2.5 rounded-xl font-bold text-xs flex items-center gap-2 shadow cursor-pointer transition"
+                    >
+                      <Plus className="w-4 h-4 text-[#C6A15B]" /> Add Legislative Record
+                    </button>
+                  </div>
+
+                  {showAddLeg && (
+                    <form onSubmit={handleCreateLegislative} className="bg-white p-6 rounded-2xl shadow-md border border-gray-200 space-y-4">
+                      <h4 className="font-bold text-[#103C2E] text-base">New Bill / Motion Record</h4>
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                        <input
+                          type="text"
+                          required
+                          placeholder="Record Title"
+                          value={newLeg.title}
+                          onChange={(e) => setNewLeg({...newLeg, title: e.target.value})}
+                          className="px-4 py-2.5 bg-[#FAF9F5] border border-gray-200 rounded-xl text-sm"
+                        />
+                        <select
+                          value={newLeg.category}
+                          onChange={(e) => setNewLeg({...newLeg, category: e.target.value as any})}
+                          className="px-4 py-2.5 bg-[#FAF9F5] border border-gray-200 rounded-xl text-sm"
+                        >
+                          <option value="Bill">Bill</option>
+                          <option value="Motion">Motion</option>
+                          <option value="Committee">Committee</option>
+                          <option value="Parliamentary Question">Parliamentary Question</option>
+                          <option value="Petition">Petition</option>
+                        </select>
+                        <select
+                          value={newLeg.status}
+                          onChange={(e) => setNewLeg({...newLeg, status: e.target.value as any})}
+                          className="px-4 py-2.5 bg-[#FAF9F5] border border-gray-200 rounded-xl text-sm"
+                        >
+                          <option value="Passed">Passed</option>
+                          <option value="Introduced">Introduced</option>
+                          <option value="Pending">Pending</option>
+                          <option value="Assented">Assented</option>
+                        </select>
+                      </div>
+                      <textarea
+                        rows={3}
+                        required
+                        placeholder="Description"
+                        value={newLeg.description}
+                        onChange={(e) => setNewLeg({...newLeg, description: e.target.value})}
+                        className="w-full px-4 py-2.5 bg-[#FAF9F5] border border-gray-200 rounded-xl text-sm"
+                      ></textarea>
+                      <div className="flex justify-end gap-3">
+                        <button type="button" onClick={() => setShowAddLeg(false)} className="px-4 py-2 bg-gray-200 rounded-xl text-xs font-bold cursor-pointer">Cancel</button>
+                        <button type="submit" className="px-5 py-2 bg-[#103C2E] text-white rounded-xl text-xs font-bold cursor-pointer">Save Record</button>
+                      </div>
+                    </form>
+                  )}
+
+                  <div className="bg-white rounded-2xl shadow-md border border-gray-200 overflow-hidden">
+                    <table className="w-full text-left border-collapse text-xs sm:text-sm">
+                      <thead>
+                        <tr className="bg-[#103C2E] text-white">
+                          <th className="p-4">Title</th>
+                          <th className="p-4">Category</th>
+                          <th className="p-4">Status</th>
+                          <th className="p-4">Date</th>
+                          <th className="p-4 text-right">Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-200">
+                        {legislative.map(l => (
+                          <tr key={l.id} className="hover:bg-gray-50">
+                            <td className="p-4 font-bold text-[#103C2E]">{l.title}</td>
+                            <td className="p-4 text-gray-600">{l.category}</td>
+                            <td className="p-4"><span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800">{l.status}</span></td>
+                            <td className="p-4 text-gray-600">{l.date}</td>
+                            <td className="p-4 text-right">
+                              <button onClick={() => handleDeleteLegislative(l.id)} className="text-rose-600 hover:text-rose-800 p-1 cursor-pointer">
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+
+              {/* PROGRAMS SUB-TAB */}
+              {cmsSubTab === 'programs' && (
+                <div className="space-y-4">
+                  <div className="flex justify-end">
+                    <button
+                      onClick={() => setShowAddProg(true)}
+                      className="bg-[#103C2E] hover:bg-[#09291F] text-white px-4 py-2.5 rounded-xl font-bold text-xs flex items-center gap-2 shadow cursor-pointer transition"
+                    >
+                      <Plus className="w-4 h-4 text-[#C6A15B]" /> Add Empowerment Programme
+                    </button>
+                  </div>
+
+                  {showAddProg && (
+                    <form onSubmit={handleCreateProgram} className="bg-white p-6 rounded-2xl shadow-md border border-gray-200 space-y-4">
+                      <h4 className="font-bold text-[#103C2E] text-base">New Empowerment Scheme</h4>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <input
+                          type="text"
+                          required
+                          placeholder="Programme Title"
+                          value={newProg.title}
+                          onChange={(e) => setNewProg({...newProg, title: e.target.value})}
+                          className="px-4 py-2.5 bg-[#FAF9F5] border border-gray-200 rounded-xl text-sm"
+                        />
+                        <select
+                          value={newProg.category}
+                          onChange={(e) => setNewProg({...newProg, category: e.target.value as any})}
+                          className="px-4 py-2.5 bg-[#FAF9F5] border border-gray-200 rounded-xl text-sm"
+                        >
+                          <option value="Youth Development">Youth Development</option>
+                          <option value="Skills Acquisition">Skills Acquisition</option>
+                          <option value="Women Empowerment">Women Empowerment</option>
+                          <option value="Educational Support">Educational Support</option>
+                          <option value="Small Business Grant">Small Business Grant</option>
+                          <option value="Agricultural Support">Agricultural Support</option>
+                        </select>
+                      </div>
+                      <textarea
+                        rows={3}
+                        required
+                        placeholder="Description"
+                        value={newProg.description}
+                        onChange={(e) => setNewProg({...newProg, description: e.target.value})}
+                        className="w-full px-4 py-2.5 bg-[#FAF9F5] border border-gray-200 rounded-xl text-sm"
+                      ></textarea>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <input
+                          type="text"
+                          required
+                          placeholder="Target Beneficiaries (e.g. 500 Youth)"
+                          value={newProg.targetBeneficiaries}
+                          onChange={(e) => setNewProg({...newProg, targetBeneficiaries: e.target.value})}
+                          className="px-4 py-2.5 bg-[#FAF9F5] border border-gray-200 rounded-xl text-sm"
+                        />
+                        <input
+                          type="text"
+                          required
+                          placeholder="Eligibility Criteria"
+                          value={newProg.eligibility}
+                          onChange={(e) => setNewProg({...newProg, eligibility: e.target.value})}
+                          className="px-4 py-2.5 bg-[#FAF9F5] border border-gray-200 rounded-xl text-sm"
+                        />
+                      </div>
+                      <div className="flex justify-end gap-3">
+                        <button type="button" onClick={() => setShowAddProg(false)} className="px-4 py-2 bg-gray-200 rounded-xl text-xs font-bold cursor-pointer">Cancel</button>
+                        <button type="submit" className="px-5 py-2 bg-[#103C2E] text-white rounded-xl text-xs font-bold cursor-pointer">Save Programme</button>
+                      </div>
+                    </form>
+                  )}
+
+                  <div className="bg-white rounded-2xl shadow-md border border-gray-200 overflow-hidden">
+                    <table className="w-full text-left border-collapse text-xs sm:text-sm">
+                      <thead>
+                        <tr className="bg-[#103C2E] text-white">
+                          <th className="p-4">Title</th>
+                          <th className="p-4">Category</th>
+                          <th className="p-4">Beneficiaries</th>
+                          <th className="p-4">Status</th>
+                          <th className="p-4 text-right">Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-200">
+                        {programs.map(pr => (
+                          <tr key={pr.id} className="hover:bg-gray-50">
+                            <td className="p-4 font-bold text-[#103C2E]">{pr.title}</td>
+                            <td className="p-4 text-gray-600">{pr.category}</td>
+                            <td className="p-4 text-gray-600">{pr.targetBeneficiaries}</td>
+                            <td className="p-4"><span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800">{pr.status}</span></td>
+                            <td className="p-4 text-right">
+                              <button onClick={() => handleDeleteProgram(pr.id)} className="text-rose-600 hover:text-rose-800 p-1 cursor-pointer">
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+
+              {/* GALLERY / PHOTOS & VIDEOS SUB-TAB */}
               {cmsSubTab === 'gallery' && (
                 <div className="space-y-4">
                   <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
                     <div>
                       <h4 className="font-bold text-[#103C2E] text-base">Photographs & Embedded Videos ({gallery.length})</h4>
-                      <p className="text-xs text-stone-500">Upload photos directly from your device or embed parliamentary and documentary video URLs.</p>
+                      <p className="text-xs text-stone-500">Upload photos directly or embed YouTube and MP4 video URLs normally.</p>
                     </div>
                     <button
                       onClick={() => setShowAddMedia(!showAddMedia)}
@@ -798,46 +1421,19 @@ export const AdminDashboard: React.FC<Props> = ({
                         <div className="space-y-3 bg-[#FAF9F5] p-4 rounded-xl border border-stone-200">
                           <div className="space-y-1">
                             <label className="text-xs font-bold text-[#103C2E]">
-                              Embedded Video URL (YouTube embed or MP4 video URL) *
+                              Embedded Video URL (YouTube watch/embed link or MP4) *
                             </label>
                             <input
                               type="url"
                               required
-                              placeholder="e.g. https://www.youtube.com/embed/ScMzIvxBSi4"
+                              placeholder="e.g. https://www.youtube.com/watch?v=ScMzIvxBSi4 or https://www.youtube.com/embed/ScMzIvxBSi4"
                               value={newMedia.videoUrl}
                               onChange={(e) => setNewMedia({ ...newMedia, videoUrl: e.target.value })}
                               className="w-full px-4 py-2.5 bg-white border border-stone-200 rounded-xl text-xs sm:text-sm focus:outline-none focus:border-[#103C2E]"
                             />
                             <p className="text-[11px] text-stone-500">
-                              Tip: For YouTube videos, use the embed link format: <code>https://www.youtube.com/embed/VIDEO_ID</code>
+                              Tip: You can paste standard YouTube video links or embed links normally.
                             </p>
-                          </div>
-
-                          {/* Optional Thumbnail Upload */}
-                          <div className="pt-2 space-y-1">
-                            <label className="text-xs font-bold text-[#103C2E]">Video Cover Thumbnail (Optional)</label>
-                            <div className="flex items-center gap-3">
-                              <label className="cursor-pointer bg-stone-200 hover:bg-stone-300 text-stone-800 px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition">
-                                <Upload className="w-3.5 h-3.5" />
-                                <span>Upload Poster</span>
-                                <input
-                                  type="file"
-                                  accept="image/*"
-                                  onChange={handleFileUpload}
-                                  className="hidden"
-                                />
-                              </label>
-                              <input
-                                type="url"
-                                placeholder="Or paste thumbnail image URL"
-                                value={newMedia.imageUrl}
-                                onChange={(e) => {
-                                  setNewMedia({ ...newMedia, imageUrl: e.target.value });
-                                  setUploadedImagePreview(e.target.value);
-                                }}
-                                className="flex-1 px-3 py-1.5 bg-white border border-stone-200 rounded-lg text-xs"
-                              />
-                            </div>
                           </div>
 
                           {/* Live Video Preview if URL provided */}
@@ -846,7 +1442,7 @@ export const AdminDashboard: React.FC<Props> = ({
                               <span className="text-[11px] font-bold text-stone-600 block mb-1">Live Video Player Preview:</span>
                               <div className="aspect-[16/9] max-w-sm rounded-xl overflow-hidden border border-stone-300 shadow-sm bg-black">
                                 <iframe
-                                  src={newMedia.videoUrl}
+                                  src={formatVideoUrl(newMedia.videoUrl)}
                                   title="Video preview"
                                   className="w-full h-full"
                                   allowFullScreen
@@ -957,37 +1553,10 @@ export const AdminDashboard: React.FC<Props> = ({
                 </div>
               )}
 
-              {cmsSubTab === 'news' && (
-                <div className="bg-white rounded-2xl shadow-md border border-gray-200 overflow-hidden">
-                  <table className="w-full text-left border-collapse text-xs sm:text-sm">
-                    <thead>
-                      <tr className="bg-[#103C2E] text-white">
-                        <th className="p-4">Headline</th>
-                        <th className="p-4">Category</th>
-                        <th className="p-4">Date</th>
-                        <th className="p-4 text-right">Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-200">
-                      {news.map(n => (
-                        <tr key={n.id} className="hover:bg-gray-50">
-                          <td className="p-4 font-bold text-[#103C2E]">{n.title}</td>
-                          <td className="p-4 text-gray-600">{n.category}</td>
-                          <td className="p-4 text-gray-600">{n.date}</td>
-                          <td className="p-4 text-right">
-                            <button onClick={() => setNews(news.filter(item => item.id !== n.id))} className="text-rose-600 hover:text-rose-800 p-1">
-                              <Trash2 className="w-4 h-4" />
-                            </button>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-
+              {/* CONTACTS SUB-TAB */}
               {cmsSubTab === 'contacts' && (
                 <div className="space-y-4">
+                  <h4 className="font-bold text-[#103C2E] text-base">Constituency Enquiries & Messages ({contacts.length})</h4>
                   {contacts.map(c => (
                     <div key={c.id} className="bg-white p-6 rounded-2xl shadow-md border border-gray-200 space-y-2">
                       <div className="flex justify-between items-center">
@@ -998,6 +1567,9 @@ export const AdminDashboard: React.FC<Props> = ({
                       <p className="text-sm bg-[#FAF9F5] p-3 rounded-xl border">{c.message}</p>
                     </div>
                   ))}
+                  {contacts.length === 0 && (
+                    <p className="text-xs text-stone-500 bg-white p-6 rounded-xl text-center">No contact enquiries received yet.</p>
+                  )}
                 </div>
               )}
             </div>
@@ -1102,7 +1674,7 @@ export const AdminDashboard: React.FC<Props> = ({
                       <td className="p-4 font-bold text-[#103C2E]">projects@danmayeyabo.gov.ng</td>
                       <td className="p-4 text-gray-700">Projects Manager</td>
                       <td className="p-4"><span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800">Active</span></td>
-                      <td className="p-4 text-right font-medium text-gray-600">Projects Portal Only</td>
+                      <td className="p-4 text-right font-medium text-gray-600">Projects & Empowerment CMS</td>
                     </tr>
                   </tbody>
                 </table>
@@ -1110,142 +1682,76 @@ export const AdminDashboard: React.FC<Props> = ({
             </div>
           )}
 
-          {/* TAB 6: SYSTEM SETTINGS (INCLUDING HOMEPAGE STATS CONFIGURATION) */}
+          {/* TAB 6: SYSTEM SETTINGS */}
           {activeTab === 'settings' && (
             <div className="space-y-8">
               <div>
-                <h3 className="font-['Manrope'] font-bold text-2xl text-[#103C2E]">Website Settings & Constituency Statistics</h3>
-                <p className="text-xs text-[#6B716D]">Configure homepage metrics, official branding, SEO metadata, and database backups.</p>
+                <h3 className="font-['Manrope'] font-bold text-2xl text-[#103C2E]">System Settings & Constituency Statistics</h3>
+                <p className="text-xs text-[#6B716D]">Configure public headline counters and portal parameters.</p>
               </div>
 
-              {/* Homepage Statistics Configuration Card */}
-              <div className="bg-white rounded-2xl shadow-md border border-gray-200 p-6 space-y-6">
-                <div className="flex justify-between items-center border-b pb-4">
-                  <div>
-                    <h4 className="font-bold text-base text-[#103C2E]">Homepage Statistics & Key Metrics</h4>
-                    <p className="text-xs text-gray-500">Update the counter numbers displayed prominently on the homepage (e.g. 24+, 12+, 4500+, 22+).</p>
+              <form onSubmit={handleSaveStats} className="bg-white rounded-2xl shadow-md border border-gray-200 p-6 space-y-6">
+                <h4 className="font-bold text-[#103C2E] text-base">Homepage Headline Statistics</h4>
+
+                {statsSavedMsg && (
+                  <div className="bg-emerald-50 border border-emerald-200 text-emerald-700 p-3 rounded-xl text-xs flex items-center gap-2">
+                    <Check className="w-4 h-4 text-emerald-600" />
+                    <span>Statistics successfully updated and saved across the website!</span>
                   </div>
-                  {statsSavedMsg && (
-                    <span className="bg-emerald-100 text-emerald-800 px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1 animate-fadeIn">
-                      <CheckCircle className="w-3.5 h-3.5 text-emerald-600" /> Stats Saved Successfully!
-                    </span>
-                  )}
+                )}
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                  <div className="space-y-1">
+                    <label className="text-xs font-bold text-[#103C2E]">Total Projects Count</label>
+                    <input
+                      type="text"
+                      required
+                      value={editableStats.projectsCount}
+                      onChange={(e) => setEditableStats({...editableStats, projectsCount: e.target.value})}
+                      className="w-full px-4 py-2.5 bg-[#FAF9F5] border border-gray-200 rounded-xl text-sm"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-xs font-bold text-[#103C2E]">Bills & Motions Count</label>
+                    <input
+                      type="text"
+                      required
+                      value={editableStats.billsCount}
+                      onChange={(e) => setEditableStats({...editableStats, billsCount: e.target.value})}
+                      className="w-full px-4 py-2.5 bg-[#FAF9F5] border border-gray-200 rounded-xl text-sm"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-xs font-bold text-[#103C2E]">Empowered Citizens</label>
+                    <input
+                      type="text"
+                      required
+                      value={editableStats.citizensCount}
+                      onChange={(e) => setEditableStats({...editableStats, citizensCount: e.target.value})}
+                      className="w-full px-4 py-2.5 bg-[#FAF9F5] border border-gray-200 rounded-xl text-sm"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-xs font-bold text-[#103C2E]">Constituency Wards</label>
+                    <input
+                      type="text"
+                      required
+                      value={editableStats.wardsCount}
+                      onChange={(e) => setEditableStats({...editableStats, wardsCount: e.target.value})}
+                      className="w-full px-4 py-2.5 bg-[#FAF9F5] border border-gray-200 rounded-xl text-sm"
+                    />
+                  </div>
                 </div>
 
-                <form onSubmit={handleSaveStats} className="space-y-4">
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                    <div className="space-y-1">
-                      <label className="text-xs font-bold text-[#103C2E]">Constituency Projects</label>
-                      <input
-                        type="text"
-                        required
-                        value={editableStats.projectsCount}
-                        onChange={(e) => setEditableStats({...editableStats, projectsCount: e.target.value})}
-                        className="w-full px-4 py-2.5 bg-[#FAF9F5] border border-gray-200 rounded-xl text-sm font-bold text-[#103C2E]"
-                        placeholder="e.g. 24+"
-                      />
-                    </div>
-
-                    <div className="space-y-1">
-                      <label className="text-xs font-bold text-[#103C2E]">Bills & Motions Sponsored</label>
-                      <input
-                        type="text"
-                        required
-                        value={editableStats.billsCount}
-                        onChange={(e) => setEditableStats({...editableStats, billsCount: e.target.value})}
-                        className="w-full px-4 py-2.5 bg-[#FAF9F5] border border-gray-200 rounded-xl text-sm font-bold text-[#103C2E]"
-                        placeholder="e.g. 12+"
-                      />
-                    </div>
-
-                    <div className="space-y-1">
-                      <label className="text-xs font-bold text-[#103C2E]">Empowered Citizens & Farmers</label>
-                      <input
-                        type="text"
-                        required
-                        value={editableStats.citizensCount}
-                        onChange={(e) => setEditableStats({...editableStats, citizensCount: e.target.value})}
-                        className="w-full px-4 py-2.5 bg-[#FAF9F5] border border-gray-200 rounded-xl text-sm font-bold text-[#103C2E]"
-                        placeholder="e.g. 4,500+"
-                      />
-                    </div>
-
-                    <div className="space-y-1">
-                      <label className="text-xs font-bold text-[#103C2E]">Wards Represented</label>
-                      <input
-                        type="text"
-                        required
-                        value={editableStats.wardsCount}
-                        onChange={(e) => setEditableStats({...editableStats, wardsCount: e.target.value})}
-                        className="w-full px-4 py-2.5 bg-[#FAF9F5] border border-gray-200 rounded-xl text-sm font-bold text-[#103C2E]"
-                        placeholder="e.g. 22"
-                      />
-                    </div>
-                  </div>
-
-                  {/* Real-time Preview Cards */}
-                  <div className="bg-[#FAF9F5] p-4 rounded-xl border border-stone-200 space-y-2">
-                    <span className="text-[11px] font-bold uppercase tracking-wider text-stone-500 block">
-                      Live Homepage Counter Preview:
-                    </span>
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-center">
-                      <div className="bg-white p-3 rounded-lg border border-stone-200">
-                        <div className="text-xl sm:text-2xl font-extrabold text-[#103C2E] font-['Manrope']">
-                          {editableStats.projectsCount || '—'}
-                        </div>
-                        <p className="text-[10px] text-stone-500 font-bold mt-0.5">Projects</p>
-                      </div>
-                      <div className="bg-white p-3 rounded-lg border border-stone-200">
-                        <div className="text-xl sm:text-2xl font-extrabold text-[#103C2E] font-['Manrope']">
-                          {editableStats.billsCount || '—'}
-                        </div>
-                        <p className="text-[10px] text-stone-500 font-bold mt-0.5">Bills & Motions</p>
-                      </div>
-                      <div className="bg-white p-3 rounded-lg border border-stone-200">
-                        <div className="text-xl sm:text-2xl font-extrabold text-[#103C2E] font-['Manrope']">
-                          {editableStats.citizensCount || '—'}
-                        </div>
-                        <p className="text-[10px] text-stone-500 font-bold mt-0.5">Citizens</p>
-                      </div>
-                      <div className="bg-white p-3 rounded-lg border border-stone-200">
-                        <div className="text-xl sm:text-2xl font-extrabold text-[#103C2E] font-['Manrope']">
-                          {editableStats.wardsCount || '—'}
-                        </div>
-                        <p className="text-[10px] text-stone-500 font-bold mt-0.5">Wards</p>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="flex justify-end pt-2">
-                    <button
-                      type="submit"
-                      className="bg-[#103C2E] hover:bg-[#09291F] text-white px-7 py-3.5 rounded-xl font-bold text-xs shadow flex items-center gap-2 transition cursor-pointer"
-                    >
-                      <Save className="w-4 h-4 text-[#C6A15B]" /> Save & Update Homepage Statistics
-                    </button>
-                  </div>
-                </form>
-              </div>
-
-              {/* Database Backup & Export Card */}
-              <div className="bg-white rounded-2xl shadow-md border border-gray-200 p-6 space-y-4">
-                <h4 className="font-bold text-base text-[#103C2E]">Database Backup & Export</h4>
-                <p className="text-xs text-gray-600">Download a verified JSON backup of all constituency projects, news articles, statistics, and submissions.</p>
-                <button
-                  onClick={() => {
-                    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify({ projects, news, contacts, programs, stats }, null, 2));
-                    const downloadAnchor = document.createElement('a');
-                    downloadAnchor.setAttribute("href", dataStr);
-                    downloadAnchor.setAttribute("download", `danmaje_yabo_backup_${new Date().toISOString().split('T')[0]}.json`);
-                    document.body.appendChild(downloadAnchor);
-                    downloadAnchor.click();
-                    downloadAnchor.remove();
-                  }}
-                  className="bg-[#103C2E] hover:bg-[#09291F] text-white px-5 py-2.5 rounded-xl font-bold text-xs flex items-center gap-2 shadow"
-                >
-                  <Download className="w-4 h-4 text-[#C6A15B]" /> Download Verified Database Backup
-                </button>
-              </div>
+                <div className="flex justify-end pt-4">
+                  <button
+                    type="submit"
+                    className="bg-[#103C2E] hover:bg-[#09291F] text-white px-6 py-3 rounded-xl font-bold text-xs flex items-center gap-2 shadow cursor-pointer transition"
+                  >
+                    <Save className="w-4 h-4 text-[#C6A15B]" /> Save Statistics
+                  </button>
+                </div>
+              </form>
             </div>
           )}
         </div>
