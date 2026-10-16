@@ -145,20 +145,7 @@ export const Home: React.FC<Props> = ({
   return (
     <div className="space-y-20 pb-20 overflow-x-hidden">
       {/* 1. PROFESSIONAL HERO SECTION */}
-      <section className="relative bg-gradient-to-br from-[#072118] via-[#0D3327] to-[#0A261E] text-white">
-        {/* Subtle royal geometric pattern overlay */}
-        <div 
-          className="absolute inset-0 opacity-15 pointer-events-none"
-          style={{
-            backgroundImage: `radial-gradient(circle at 25px 25px, #C6A15B 1.5%, transparent 0%), radial-gradient(circle at 75px 75px, #C6A15B 1.5%, transparent 0%)`,
-            backgroundSize: '100px 100px'
-          }}
-        />
-        
-        {/* Ambient warm lighting accents */}
-        <div className="absolute top-0 right-1/4 w-96 h-96 bg-[#C6A15B]/10 rounded-full blur-3xl pointer-events-none"></div>
-        <div className="absolute bottom-0 left-10 w-80 h-80 bg-emerald-600/10 rounded-full blur-3xl pointer-events-none"></div>
-
+      <section className="relative bg-[#0A3D2E] text-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-8 py-16 sm:py-24 relative z-10 grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
           
           <div className="lg:col-span-7 space-y-6">
