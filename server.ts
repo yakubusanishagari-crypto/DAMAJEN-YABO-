@@ -172,10 +172,10 @@ async function startServer() {
   });
   app.post('/api/applications', (req, res) => {
     const appItem: ProgramApplication = {
+      id: req.body.id || `app-${Date.now()}`,
       ...req.body,
-      id: `app-${Date.now()}`,
-      date: new Date().toISOString().split('T')[0],
-      status: 'Pending'
+      date: req.body.date || new Date().toISOString().split('T')[0],
+      status: req.body.status || 'SUBMITTED'
     };
     store.applications.unshift(appItem);
     res.status(201).json(appItem);

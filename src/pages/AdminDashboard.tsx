@@ -1,13 +1,15 @@
 import React, { useState } from 'react';
-import { Project, LegislativeRecord, EmpowermentProgram, NewsArticle, GalleryItem, ContactSubmission } from '../types';
+import { Project, LegislativeRecord, EmpowermentProgram, NewsArticle, GalleryItem, ContactSubmission, ProjectStatus, ProgramApplication, ApplicationStatus } from '../types';
 import { Language, Translations } from '../utils/i18n';
 import { ConstituencyStats } from '../App';
 import { 
   Shield, Lock, Mail, Plus, Trash2, Edit, CheckCircle, X, LogOut, 
   FileText, Award, Image as ImageIcon, Users, BarChart3, Globe, Settings, 
   Activity, ArrowUpRight, TrendingUp, Download, Eye, AlertCircle, Save,
-  Upload, Video, Film, Play, Check
+  Upload, Video, Film, Play, Check, Search, Filter, ChevronRight, CheckCircle2,
+  Clock, Printer, ExternalLink, FileCheck
 } from 'lucide-react';
+import { ApplicationSlipModal } from '../components/ApplicationSlipModal';
 
 interface Props {
   projects: Project[];
@@ -49,7 +51,171 @@ export const AdminDashboard: React.FC<Props> = ({
   const [adminRole, setAdminRole] = useState<'Chief Administrator' | 'Content Manager' | 'News Editor' | 'Projects Manager' | 'Translation Manager' | 'Analytics Viewer'>('Chief Administrator');
 
   const [activeTab, setActiveTab] = useState<'overview' | 'analytics' | 'cms' | 'multilingual' | 'users' | 'settings'>('overview');
-  const [cmsSubTab, setCmsSubTab] = useState<'projects' | 'news' | 'legislative' | 'programs' | 'gallery' | 'contacts'>('projects');
+  const [cmsSubTab, setCmsSubTab] = useState<'projects' | 'news' | 'legislative' | 'programs' | 'gallery' | 'contacts' | 'applications'>('projects');
+
+  const [applications, setApplications] = useState<ProgramApplication[]>(() => {
+    const saved = localStorage.getItem('danmaje_applications');
+    if (saved) {
+      try { return JSON.parse(saved); } catch {}
+    }
+    return [
+      {
+        id: 'app-1',
+        referenceNumber: 'DAN-EMP-2026-88192',
+        programId: 'prog-1',
+        programTitle: 'Constituency Solar Water & Agricultural Support',
+        applicantName: 'Malam Ibrahim Bello',
+        email: 'ibrahimbello@gmail.com',
+        phone: '+234 803 123 4567',
+        wardOrTown: 'Yabo Central Ward',
+        qualifications: 'OND Agriculture, 3 Years Farming',
+        statement: 'Seeking modern agricultural equipment and fertilizer support.',
+        date: '2026-10-14',
+        status: 'SUBMITTED',
+        notes: 'Initial verification pending'
+      }
+    ];
+  });
+
+  React.useEffect(() => {
+    localStorage.setItem('danmaje_applications', JSON.stringify(applications));
+  }, [applications]);
+
+  // Application Review & Filter States
+  const [selectedAppForReview, setSelectedAppForReview] = useState<ProgramApplication | null>(null);
+  const [slipModalApp, setSlipModalApp] = useState<ProgramApplication | null>(null);
+  const [appSearchQuery, setAppSearchQuery] = useState('');
+  const [appStatusFilter, setAppStatusFilter] = useState('ALL');
+  const [appProgramFilter, setAppProgramFilter] = useState('ALL');
+  const [reviewStatusInput, setReviewStatusInput] = useState<ApplicationStatus>('SUBMITTED');
+  const [reviewInternalNote, setReviewInternalNote] = useState('');
+  const [reviewPublicFeedback, setReviewPublicFeedback] = useState('');
+
+  const handleUpdateAppStatus = (appId: string, newStatus: ApplicationStatus, notes?: string) => {
+    const updated = applications.map(a => a.id === appId ? { ...a, status: newStatus, notes: notes !== undefined ? notes : a.notes } : a);
+    setApplications(updated);
+  };
+
+  const handleAdvanceApplicationStage = (appId: string, newStage: ApplicationStatus, internalNote: string, publicFeedback: string) => {
+    const now = new Date();
+    const timeStr = `${now.toISOString().split('T')[0]} ${now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+    const updated = applications.map(a => {
+      if (a.id === appId) {
+        const oldTimeline = a.timeline || [
+          {
+            stage: 'SUBMITTED',
+            timestamp: `${a.date} 09:00 AM`,
+            title: 'Application Received',
+            note: 'Application logged into constituency portal database',
+            actor: 'Citizen Portal'
+          }
+        ];
+        const newEvent = {
+          stage: newStage,
+          timestamp: timeStr,
+          title: `Stage transitioned to ${newStage}`,
+          note: publicFeedback || internalNote || `Stage updated by ${adminRole || 'Administrator'}`,
+          actor: adminRole || 'Administrator'
+        };
+        return {
+          ...a,
+          status: newStage,
+          currentStage: newStage,
+          notes: internalNote !== undefined ? internalNote : a.notes,
+          publicFeedback: publicFeedback !== undefined ? publicFeedback : a.publicFeedback,
+          timeline: [...oldTimeline, newEvent]
+        };
+      }
+      return a;
+    });
+    setApplications(updated);
+    if (selectedAppForReview && selectedAppForReview.id === appId) {
+      setSelectedAppForReview(updated.find(a => a.id === appId) || null);
+    }
+    setActivityLogs(prev => [{
+      id: `log-${Date.now()}`,
+      user: email,
+      action: `Updated application stage for #${appId} to ${newStage}`,
+      timestamp: new Date().toISOString().replace('T', ' ').substring(0, 16),
+      role: adminRole
+    }, ...prev]);
+  };
+
+  const handleDeleteApp = (appId: string) => {
+    const updated = applications.filter(a => a.id !== appId);
+    setApplications(updated);
+    if (selectedAppForReview && selectedAppForReview.id === appId) {
+      setSelectedAppForReview(null);
+    }
+  };
+
+  const handleExportCSV = () => {
+    const headers = ['Reference Number', 'Applicant Name', 'Email', 'Phone', 'LGA', 'Ward/Town', 'Programme Title', 'Category', 'Status', 'Date Submitted', 'Qualifications', 'Statement', 'Public Feedback', 'Internal Notes'];
+    const rows = applications.map(a => [
+      `"${a.referenceNumber}"`,
+      `"${a.applicantName}"`,
+      `"${a.email || ''}"`,
+      `"${a.phone}"`,
+      `"${a.lga || 'Yabo/Shagari'}"`,
+      `"${a.wardOrTown}"`,
+      `"${a.programTitle}"`,
+      `"${a.programCategory || ''}"`,
+      `"${a.status}"`,
+      `"${a.date}"`,
+      `"${(a.qualifications || '').replace(/"/g, '""')}"`,
+      `"${(a.statement || '').replace(/"/g, '""')}"`,
+      `"${(a.publicFeedback || '').replace(/"/g, '""')}"`,
+      `"${(a.notes || '').replace(/"/g, '""')}"`
+    ]);
+    const csvContent = "data:text/csv;charset=utf-8," + [headers.join(','), ...rows.map(e => e.join(','))].join('\n');
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement('a');
+    link.setAttribute('href', encodedUri);
+    link.setAttribute('download', `danmaje_empowerment_applications_${new Date().toISOString().split('T')[0]}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const handleExportJSON = () => {
+    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(applications, null, 2));
+    const downloadAnchor = document.createElement('a');
+    downloadAnchor.setAttribute("href", dataStr);
+    downloadAnchor.setAttribute("download", `danmaje_applications_${new Date().toISOString().split('T')[0]}.json`);
+    document.body.appendChild(downloadAnchor);
+    downloadAnchor.click();
+    downloadAnchor.remove();
+  };
+
+  // Programme editing state
+  const [editingProg, setEditingProg] = useState<EmpowermentProgram | null>(null);
+
+  const handleUpdateProgram = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingProg) return;
+    const updated = programs.map(p => p.id === editingProg.id ? editingProg : p);
+    setPrograms(updated);
+    try { localStorage.setItem('danmaje_programs', JSON.stringify(updated)); } catch {}
+    setEditingProg(null);
+  };
+
+  const handleToggleProgPublish = (id: string) => {
+    const updated = programs.map(p => p.id === id ? { ...p, isPublished: p.isPublished === false ? true : false } : p);
+    setPrograms(updated);
+    try { localStorage.setItem('danmaje_programs', JSON.stringify(updated)); } catch {}
+  };
+
+  const handleToggleProgStatus = (id: string) => {
+    const updated = programs.map(p => {
+      if (p.id === id) {
+        const nextStatus = p.status === 'Active' ? 'Closed' : 'Active';
+        return { ...p, status: nextStatus as any };
+      }
+      return p;
+    });
+    setPrograms(updated);
+    try { localStorage.setItem('danmaje_programs', JSON.stringify(updated)); } catch {}
+  };
 
   const [editableStats, setEditableStats] = useState<ConstituencyStats>(stats);
   const [statsSavedMsg, setStatsSavedMsg] = useState(false);
@@ -145,7 +311,18 @@ export const AdminDashboard: React.FC<Props> = ({
   // Projects CRUD state
   const [showAddProj, setShowAddProj] = useState(false);
   const [newProj, setNewProj] = useState({
-    title: '', category: 'Water & Sanitation' as const, location: '', status: 'Ongoing' as const, description: '', images: ['https://images.unsplash.com/photo-1541888946425-d0fbb18f764c?auto=format&fit=crop&q=80&w=1000'], updates: []
+    title: '',
+    category: 'Water & Sanitation' as Project['category'],
+    location: '',
+    status: 'Ongoing' as ProjectStatus,
+    year: '2026',
+    startDate: new Date().toISOString().split('T')[0],
+    completionDate: '2026-12-31',
+    expenditure: '',
+    currency: '₦',
+    description: '',
+    images: ['https://images.unsplash.com/photo-1541888946425-d0fbb18f764c?auto=format&fit=crop&q=80&w=1000'],
+    updates: []
   });
   const [editingProject, setEditingProject] = useState<Project | null>(null);
 
@@ -187,7 +364,20 @@ export const AdminDashboard: React.FC<Props> = ({
     setProjects(updated);
     try { localStorage.setItem('danmaje_projects', JSON.stringify(updated)); } catch {}
     setShowAddProj(false);
-    setNewProj({ title: '', category: 'Water & Sanitation', location: '', status: 'Ongoing', description: '', images: ['https://images.unsplash.com/photo-1541888946425-d0fbb18f764c?auto=format&fit=crop&q=80&w=1000'], updates: [] });
+    setNewProj({
+      title: '',
+      category: 'Water & Sanitation',
+      location: '',
+      status: 'Ongoing',
+      year: '2026',
+      startDate: new Date().toISOString().split('T')[0],
+      completionDate: '2026-12-31',
+      expenditure: '',
+      currency: '₦',
+      description: '',
+      images: ['https://images.unsplash.com/photo-1541888946425-d0fbb18f764c?auto=format&fit=crop&q=80&w=1000'],
+      updates: []
+    });
     setActivityLogs(prev => [{
       id: `log-${Date.now()}`,
       user: email,
@@ -373,12 +563,15 @@ export const AdminDashboard: React.FC<Props> = ({
     title: '',
     category: 'Youth Development' as EmpowermentProgram['category'],
     description: '',
-    targetBeneficiaries: '500 Youth',
+    targetBeneficiaries: '500 Beneficiaries',
+    slotsAvailable: 500,
     status: 'Active' as EmpowermentProgram['status'],
     eligibility: 'Yabo and Shagari Indigenes',
     startDate: new Date().toISOString().split('T')[0],
     deadline: '2026-12-31',
-    requirements: ['National ID / Voter Card', 'Constituency Resident']
+    isPublished: true,
+    requirements: ['National ID / Voter Card', 'Indigene of Yabo or Shagari LGA', 'Committed to training / vocation'],
+    requiredDocs: ['National Identity Card (NIN)', 'LGA Indigene Certificate', 'Educational / Trade Credential']
   });
 
   const handleCreateProgram = (e: React.FormEvent) => {
@@ -393,14 +586,17 @@ export const AdminDashboard: React.FC<Props> = ({
     setShowAddProg(false);
     setNewProg({
       title: '',
-      category: 'Youth Development' as EmpowermentProgram['category'],
+      category: 'Youth Development',
       description: '',
-      targetBeneficiaries: '500 Youth',
+      targetBeneficiaries: '500 Beneficiaries',
+      slotsAvailable: 500,
       status: 'Active',
       eligibility: 'Yabo and Shagari Indigenes',
       startDate: new Date().toISOString().split('T')[0],
       deadline: '2026-12-31',
-      requirements: ['National ID / Voter Card', 'Constituency Resident']
+      isPublished: true,
+      requirements: ['National ID / Voter Card', 'Indigene of Yabo or Shagari LGA', 'Committed to training / vocation'],
+      requiredDocs: ['National Identity Card (NIN)', 'LGA Indigene Certificate', 'Educational / Trade Credential']
     });
     setActivityLogs(prev => [{
       id: `log-${Date.now()}`,
@@ -793,6 +989,18 @@ export const AdminDashboard: React.FC<Props> = ({
                   <span className="text-[11px] text-emerald-600 font-semibold">Active beneficiary schemes</span>
                 </div>
 
+                <div 
+                  onClick={() => { setActiveTab('cms'); setCmsSubTab('applications'); }}
+                  className="bg-white p-6 rounded-2xl shadow-md border border-gray-200 space-y-2 cursor-pointer hover:border-[#103C2E] transition"
+                >
+                  <div className="flex justify-between items-center">
+                    <span className="text-xs font-bold text-[#6B716D]">Applications Received</span>
+                    <FileText className="w-5 h-5 text-[#C6A15B]" />
+                  </div>
+                  <div className="text-3xl font-extrabold font-['Manrope'] text-[#103C2E]">{applications.length}</div>
+                  <span className="text-[11px] text-emerald-600 font-semibold">{applications.filter(a => a.status === 'APPROVED').length} approved • click to review</span>
+                </div>
+
                 <div className="bg-white p-6 rounded-2xl shadow-md border border-gray-200 space-y-2">
                   <div className="flex justify-between items-center">
                     <span className="text-xs font-bold text-[#6B716D]">Contact Submissions</span>
@@ -923,6 +1131,12 @@ export const AdminDashboard: React.FC<Props> = ({
                     Empowerment ({programs.length})
                   </button>
                   <button
+                    onClick={() => setCmsSubTab('applications')}
+                    className={`px-4 py-2 rounded-xl text-xs font-bold transition cursor-pointer ${cmsSubTab === 'applications' ? 'bg-[#103C2E] text-white shadow-sm' : 'bg-white text-gray-700 border hover:bg-stone-50'}`}
+                  >
+                    Applications ({applications.length})
+                  </button>
+                  <button
                     onClick={() => setCmsSubTab('gallery')}
                     className={`px-4 py-2 rounded-xl text-xs font-bold transition cursor-pointer ${cmsSubTab === 'gallery' ? 'bg-[#103C2E] text-white' : 'bg-white text-gray-700 border'}`}
                   >
@@ -979,6 +1193,56 @@ export const AdminDashboard: React.FC<Props> = ({
                           <option value="Proposed">Proposed</option>
                         </select>
                       </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
+                        <select
+                          value={newProj.category}
+                          onChange={(e) => setNewProj({...newProj, category: e.target.value as any})}
+                          className="px-4 py-2.5 bg-[#FAF9F5] border border-gray-200 rounded-xl text-sm"
+                        >
+                          <option value="Water & Sanitation">Water & Sanitation</option>
+                          <option value="Education">Education</option>
+                          <option value="Roads & Infrastructure">Roads & Infrastructure</option>
+                          <option value="Healthcare">Healthcare</option>
+                          <option value="Youth Development">Youth Development</option>
+                          <option value="Agriculture">Agriculture</option>
+                        </select>
+                        <input
+                          type="text"
+                          placeholder="Year (e.g. 2026)"
+                          value={newProj.year}
+                          onChange={(e) => setNewProj({...newProj, year: e.target.value})}
+                          className="px-4 py-2.5 bg-[#FAF9F5] border border-gray-200 rounded-xl text-sm"
+                        />
+                        <input
+                          type="date"
+                          placeholder="Start Date"
+                          value={newProj.startDate}
+                          onChange={(e) => setNewProj({...newProj, startDate: e.target.value})}
+                          className="px-4 py-2.5 bg-[#FAF9F5] border border-gray-200 rounded-xl text-sm"
+                        />
+                        <input
+                          type="date"
+                          placeholder="Completion Date"
+                          value={newProj.completionDate}
+                          onChange={(e) => setNewProj({...newProj, completionDate: e.target.value})}
+                          className="px-4 py-2.5 bg-[#FAF9F5] border border-gray-200 rounded-xl text-sm"
+                        />
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div className="flex">
+                          <span className="inline-flex items-center px-3 bg-stone-200 border border-r-0 border-gray-200 rounded-l-xl text-sm font-bold text-[#103C2E]">{newProj.currency}</span>
+                          <input
+                            type="text"
+                            placeholder="Expenditure / Cost (e.g. 45,000,000)"
+                            value={newProj.expenditure}
+                            onChange={(e) => setNewProj({...newProj, expenditure: e.target.value})}
+                            className="w-full px-4 py-2.5 bg-[#FAF9F5] border border-gray-200 rounded-r-xl text-sm"
+                          />
+                        </div>
+                      </div>
+
                       <textarea
                         rows={3}
                         required
@@ -1068,6 +1332,54 @@ export const AdminDashboard: React.FC<Props> = ({
                           <option value="Proposed">Proposed</option>
                         </select>
                       </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
+                        <select
+                          value={editingProject.category}
+                          onChange={(e) => setEditingProject({...editingProject, category: e.target.value as any})}
+                          className="px-4 py-2.5 bg-white border border-gray-200 rounded-xl text-sm"
+                        >
+                          <option value="Water & Sanitation">Water & Sanitation</option>
+                          <option value="Education">Education</option>
+                          <option value="Roads & Infrastructure">Roads & Infrastructure</option>
+                          <option value="Healthcare">Healthcare</option>
+                          <option value="Youth Development">Youth Development</option>
+                          <option value="Agriculture">Agriculture</option>
+                        </select>
+                        <input
+                          type="text"
+                          placeholder="Year (e.g. 2026)"
+                          value={editingProject.year || '2026'}
+                          onChange={(e) => setEditingProject({...editingProject, year: e.target.value})}
+                          className="px-4 py-2.5 bg-white border border-gray-200 rounded-xl text-sm"
+                        />
+                        <input
+                          type="date"
+                          value={editingProject.startDate || ''}
+                          onChange={(e) => setEditingProject({...editingProject, startDate: e.target.value})}
+                          className="px-4 py-2.5 bg-white border border-gray-200 rounded-xl text-sm"
+                        />
+                        <input
+                          type="date"
+                          value={editingProject.completionDate || ''}
+                          onChange={(e) => setEditingProject({...editingProject, completionDate: e.target.value})}
+                          className="px-4 py-2.5 bg-white border border-gray-200 rounded-xl text-sm"
+                        />
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div className="flex">
+                          <span className="inline-flex items-center px-3 bg-stone-200 border border-r-0 border-gray-200 rounded-l-xl text-sm font-bold text-[#103C2E]">{editingProject.currency || '₦'}</span>
+                          <input
+                            type="text"
+                            placeholder="Expenditure / Cost (e.g. 45,000,000)"
+                            value={editingProject.expenditure || ''}
+                            onChange={(e) => setEditingProject({...editingProject, expenditure: e.target.value})}
+                            className="w-full px-4 py-2.5 bg-white border border-gray-200 rounded-r-xl text-sm"
+                          />
+                        </div>
+                      </div>
+
                       <textarea
                         rows={3}
                         required
@@ -1075,6 +1387,52 @@ export const AdminDashboard: React.FC<Props> = ({
                         onChange={(e) => setEditingProject({...editingProject, description: e.target.value})}
                         className="w-full px-4 py-2.5 bg-white border border-gray-200 rounded-xl text-sm"
                       ></textarea>
+
+                      {/* Project Photo Upload & Attach */}
+                      <div className="space-y-2 bg-white p-4 rounded-xl border border-emerald-200">
+                        <label className="text-xs font-bold text-[#103C2E] block">Attach Project Photos (Upload from Device or URL)</label>
+                        <div className="flex items-center gap-3">
+                          <label className="cursor-pointer bg-[#103C2E] hover:bg-[#09291F] text-white px-3.5 py-2 rounded-lg text-xs font-bold flex items-center gap-1.5 shadow transition">
+                            <Upload className="w-3.5 h-3.5 text-[#C6A15B]" />
+                            <span>Upload & Attach Photo</span>
+                            <input type="file" accept="image/*" onChange={handleEditingProjectImageUpload} className="hidden" />
+                          </label>
+                          <span className="text-[11px] text-stone-500">Max 8MB per photo</span>
+                        </div>
+                        <input
+                          type="url"
+                          placeholder="Or paste Image URL to attach"
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              e.preventDefault();
+                              const val = (e.target as HTMLInputElement).value.trim();
+                              if (val) {
+                                setEditingProject({ ...editingProject, images: [val, ...editingProject.images] });
+                                (e.target as HTMLInputElement).value = '';
+                              }
+                            }
+                          }}
+                          className="w-full px-3 py-2 bg-white border border-stone-200 rounded-xl text-xs"
+                        />
+                        {editingProject.images.length > 0 && (
+                          <div className="flex flex-wrap gap-2 pt-2">
+                            {editingProject.images.map((img, idx) => (
+                              <div key={idx} className="relative w-16 h-16 rounded-lg overflow-hidden border border-stone-300 shadow-sm">
+                                <img src={img} alt="Attached" className="w-full h-full object-cover" />
+                                <button
+                                  type="button"
+                                  onClick={() => setEditingProject({ ...editingProject, images: editingProject.images.filter((_, i) => i !== idx) })}
+                                  className="absolute top-0.5 right-0.5 bg-rose-600 text-white rounded-full p-0.5 text-[9px]"
+                                  title="Remove photo"
+                                >
+                                  <X className="w-3 h-3" />
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+
                       <div className="flex justify-end gap-3">
                         <button type="button" onClick={() => setEditingProject(null)} className="px-4 py-2 bg-gray-200 rounded-xl text-xs font-bold cursor-pointer">Cancel</button>
                         <button type="submit" className="px-5 py-2 bg-[#103C2E] text-white rounded-xl text-xs font-bold cursor-pointer">Update Project</button>
@@ -1405,99 +1763,410 @@ export const AdminDashboard: React.FC<Props> = ({
 
               {/* PROGRAMS SUB-TAB */}
               {cmsSubTab === 'programs' && (
-                <div className="space-y-4">
-                  <div className="flex justify-end">
-                    <button
-                      onClick={() => setShowAddProg(true)}
-                      className="bg-[#103C2E] hover:bg-[#09291F] text-white px-4 py-2.5 rounded-xl font-bold text-xs flex items-center gap-2 shadow cursor-pointer transition"
-                    >
-                      <Plus className="w-4 h-4 text-[#C6A15B]" /> Add Empowerment Programme
-                    </button>
+                <div className="space-y-6">
+                  <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                    <div>
+                      <h4 className="font-['Manrope'] font-bold text-lg text-[#103C2E]">
+                        Empowerment & Educational Schemes ({programs.length})
+                      </h4>
+                      <p className="text-xs text-stone-500">
+                        Create, edit, open/close, and configure eligibility and documents for constituency programmes.
+                      </p>
+                    </div>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <button
+                        onClick={() => setCmsSubTab('applications')}
+                        className="bg-stone-100 hover:bg-stone-200 text-[#103C2E] border border-stone-300 px-4 py-2.5 rounded-xl font-bold text-xs flex items-center gap-1.5 cursor-pointer transition uppercase"
+                      >
+                        <FileText className="w-4 h-4 text-[#C6A15B]" />
+                        <span>View Received Applications ({applications.length})</span>
+                      </button>
+                      <button
+                        onClick={() => { setShowAddProg(true); setEditingProg(null); }}
+                        className="bg-[#103C2E] hover:bg-[#09291F] text-white px-4 py-2.5 rounded-xl font-bold text-xs flex items-center gap-2 shadow cursor-pointer transition uppercase tracking-wider"
+                      >
+                        <Plus className="w-4 h-4 text-[#C6A15B]" /> Add New Scheme
+                      </button>
+                    </div>
                   </div>
 
+                  {/* Add Programme Form */}
                   {showAddProg && (
-                    <form onSubmit={handleCreateProgram} className="bg-white p-6 rounded-2xl shadow-md border border-gray-200 space-y-4">
-                      <h4 className="font-bold text-[#103C2E] text-base">New Empowerment Scheme</h4>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <input
-                          type="text"
-                          required
-                          placeholder="Programme Title"
-                          value={newProg.title}
-                          onChange={(e) => setNewProg({...newProg, title: e.target.value})}
-                          className="px-4 py-2.5 bg-[#FAF9F5] border border-gray-200 rounded-xl text-sm"
-                        />
-                        <select
-                          value={newProg.category}
-                          onChange={(e) => setNewProg({...newProg, category: e.target.value as any})}
-                          className="px-4 py-2.5 bg-[#FAF9F5] border border-gray-200 rounded-xl text-sm"
-                        >
-                          <option value="Youth Development">Youth Development</option>
-                          <option value="Skills Acquisition">Skills Acquisition</option>
-                          <option value="Women Empowerment">Women Empowerment</option>
-                          <option value="Educational Support">Educational Support</option>
-                          <option value="Small Business Grant">Small Business Grant</option>
-                          <option value="Agricultural Support">Agricultural Support</option>
-                        </select>
+                    <form onSubmit={handleCreateProgram} className="bg-white p-6 sm:p-8 rounded-3xl shadow-lg border border-stone-200 space-y-4">
+                      <div className="flex justify-between items-center border-b pb-3">
+                        <h4 className="font-['Manrope'] font-bold text-[#103C2E] text-base uppercase">
+                          Create New Constituency Programme
+                        </h4>
+                        <button type="button" onClick={() => setShowAddProg(false)} className="text-stone-400 hover:text-stone-700">
+                          <X className="w-5 h-5" />
+                        </button>
                       </div>
-                      <textarea
-                        rows={3}
-                        required
-                        placeholder="Description"
-                        value={newProg.description}
-                        onChange={(e) => setNewProg({...newProg, description: e.target.value})}
-                        className="w-full px-4 py-2.5 bg-[#FAF9F5] border border-gray-200 rounded-xl text-sm"
-                      ></textarea>
+
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <input
-                          type="text"
-                          required
-                          placeholder="Target Beneficiaries (e.g. 500 Youth)"
-                          value={newProg.targetBeneficiaries}
-                          onChange={(e) => setNewProg({...newProg, targetBeneficiaries: e.target.value})}
-                          className="px-4 py-2.5 bg-[#FAF9F5] border border-gray-200 rounded-xl text-sm"
-                        />
-                        <input
-                          type="text"
-                          required
-                          placeholder="Eligibility Criteria"
-                          value={newProg.eligibility}
-                          onChange={(e) => setNewProg({...newProg, eligibility: e.target.value})}
-                          className="px-4 py-2.5 bg-[#FAF9F5] border border-gray-200 rounded-xl text-sm"
-                        />
+                        <div className="space-y-1">
+                          <label className="text-xs font-bold text-[#103C2E] uppercase">Programme Title *</label>
+                          <input
+                            type="text"
+                            required
+                            placeholder="e.g. 2026 Constituency Tertiary Scholarship & Bursary"
+                            value={newProg.title}
+                            onChange={(e) => setNewProg({...newProg, title: e.target.value})}
+                            className="w-full px-4 py-2.5 bg-[#FAF9F5] border border-stone-200 rounded-xl text-xs sm:text-sm font-medium"
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <label className="text-xs font-bold text-[#103C2E] uppercase">Category *</label>
+                          <select
+                            value={newProg.category}
+                            onChange={(e) => setNewProg({...newProg, category: e.target.value as any})}
+                            className="w-full px-4 py-2.5 bg-[#FAF9F5] border border-stone-200 rounded-xl text-xs sm:text-sm font-medium"
+                          >
+                            <option value="Youth Development">Youth Development</option>
+                            <option value="Skills Acquisition">Skills Acquisition</option>
+                            <option value="Women Empowerment">Women Empowerment</option>
+                            <option value="Educational Support">Educational Support</option>
+                            <option value="Small Business Grant">Small Business Grant</option>
+                            <option value="Agricultural Support">Agricultural Support</option>
+                          </select>
+                        </div>
                       </div>
-                      <div className="flex justify-end gap-3">
-                        <button type="button" onClick={() => setShowAddProg(false)} className="px-4 py-2 bg-gray-200 rounded-xl text-xs font-bold cursor-pointer">Cancel</button>
-                        <button type="submit" className="px-5 py-2 bg-[#103C2E] text-white rounded-xl text-xs font-bold cursor-pointer">Save Programme</button>
+
+                      <div className="space-y-1">
+                        <label className="text-xs font-bold text-[#103C2E] uppercase">Description & Objectives *</label>
+                        <textarea
+                          rows={3}
+                          required
+                          placeholder="Comprehensive details regarding the programme scope, training duration, equipment or grant disbursement..."
+                          value={newProg.description}
+                          onChange={(e) => setNewProg({...newProg, description: e.target.value})}
+                          className="w-full px-4 py-2.5 bg-[#FAF9F5] border border-stone-200 rounded-xl text-xs sm:text-sm font-medium resize-none"
+                        ></textarea>
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                        <div className="space-y-1">
+                          <label className="text-xs font-bold text-[#103C2E] uppercase">Target Beneficiaries *</label>
+                          <input
+                            type="text"
+                            required
+                            placeholder="e.g. 500 Students & Youths"
+                            value={newProg.targetBeneficiaries}
+                            onChange={(e) => setNewProg({...newProg, targetBeneficiaries: e.target.value})}
+                            className="w-full px-4 py-2.5 bg-[#FAF9F5] border border-stone-200 rounded-xl text-xs sm:text-sm font-medium"
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <label className="text-xs font-bold text-[#103C2E] uppercase">Available Slots</label>
+                          <input
+                            type="number"
+                            placeholder="e.g. 500"
+                            value={newProg.slotsAvailable || ''}
+                            onChange={(e) => setNewProg({...newProg, slotsAvailable: parseInt(e.target.value) || 0})}
+                            className="w-full px-4 py-2.5 bg-[#FAF9F5] border border-stone-200 rounded-xl text-xs sm:text-sm font-medium"
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <label className="text-xs font-bold text-[#103C2E] uppercase">Application Deadline *</label>
+                          <input
+                            type="date"
+                            required
+                            value={newProg.deadline}
+                            onChange={(e) => setNewProg({...newProg, deadline: e.target.value})}
+                            className="w-full px-4 py-2.5 bg-[#FAF9F5] border border-stone-200 rounded-xl text-xs sm:text-sm font-medium"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div className="space-y-1">
+                          <label className="text-xs font-bold text-[#103C2E] uppercase">Eligibility Criteria *</label>
+                          <input
+                            type="text"
+                            required
+                            placeholder="e.g. Indigenes of Yabo/Shagari enrolled in accredited institutions"
+                            value={newProg.eligibility}
+                            onChange={(e) => setNewProg({...newProg, eligibility: e.target.value})}
+                            className="w-full px-4 py-2.5 bg-[#FAF9F5] border border-stone-200 rounded-xl text-xs sm:text-sm font-medium"
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <label className="text-xs font-bold text-[#103C2E] uppercase">Application Status *</label>
+                          <select
+                            value={newProg.status}
+                            onChange={(e) => setNewProg({...newProg, status: e.target.value as any})}
+                            className="w-full px-4 py-2.5 bg-[#FAF9F5] border border-stone-200 rounded-xl text-xs sm:text-sm font-medium"
+                          >
+                            <option value="Active">Active (Open for Submissions)</option>
+                            <option value="Upcoming">Upcoming (Announced)</option>
+                            <option value="Closed">Closed</option>
+                          </select>
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div className="space-y-1">
+                          <label className="text-xs font-bold text-[#103C2E] uppercase">Requirements List (Comma Separated)</label>
+                          <input
+                            type="text"
+                            placeholder="e.g. National ID / NIN, Indigene Certificate, Minimum 2.5 CGPA"
+                            value={newProg.requirements.join(', ')}
+                            onChange={(e) => setNewProg({...newProg, requirements: e.target.value.split(',').map(s => s.trim()).filter(Boolean)})}
+                            className="w-full px-4 py-2.5 bg-[#FAF9F5] border border-stone-200 rounded-xl text-xs sm:text-sm font-medium"
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <label className="text-xs font-bold text-[#103C2E] uppercase">Required Documents (Comma Separated)</label>
+                          <input
+                            type="text"
+                            placeholder="e.g. NIN Slip, LGA Indigene Letter, Admission Letter"
+                            value={(newProg.requiredDocs || []).join(', ')}
+                            onChange={(e) => setNewProg({...newProg, requiredDocs: e.target.value.split(',').map(s => s.trim()).filter(Boolean)})}
+                            className="w-full px-4 py-2.5 bg-[#FAF9F5] border border-stone-200 rounded-xl text-xs sm:text-sm font-medium"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-2 pt-2">
+                        <input
+                          type="checkbox"
+                          id="new-prog-publish"
+                          checked={newProg.isPublished !== false}
+                          onChange={(e) => setNewProg({...newProg, isPublished: e.target.checked})}
+                          className="w-4 h-4 rounded text-[#103C2E] cursor-pointer"
+                        />
+                        <label htmlFor="new-prog-publish" className="text-xs font-bold text-[#103C2E] cursor-pointer uppercase">
+                          Publish Immediately on Public Website
+                        </label>
+                      </div>
+
+                      <div className="flex justify-end gap-3 pt-3 border-t">
+                        <button type="button" onClick={() => setShowAddProg(false)} className="px-5 py-2.5 bg-stone-200 rounded-xl text-xs font-bold cursor-pointer uppercase">
+                          Cancel
+                        </button>
+                        <button type="submit" className="px-6 py-2.5 bg-[#103C2E] text-white rounded-xl text-xs font-bold cursor-pointer shadow uppercase">
+                          Save & Publish Programme
+                        </button>
                       </div>
                     </form>
                   )}
 
-                  <div className="bg-white rounded-2xl shadow-md border border-gray-200 overflow-hidden">
+                  {/* Edit Programme Modal */}
+                  {editingProg && (
+                    <form onSubmit={handleUpdateProgram} className="bg-white p-6 sm:p-8 rounded-3xl shadow-xl border-2 border-[#103C2E] space-y-4">
+                      <div className="flex justify-between items-center border-b pb-3">
+                        <h4 className="font-['Manrope'] font-bold text-[#103C2E] text-base uppercase">
+                          Edit Programme: {editingProg.title}
+                        </h4>
+                        <button type="button" onClick={() => setEditingProg(null)} className="text-stone-400 hover:text-stone-700">
+                          <X className="w-5 h-5" />
+                        </button>
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div className="space-y-1">
+                          <label className="text-xs font-bold text-[#103C2E] uppercase">Title</label>
+                          <input
+                            type="text"
+                            required
+                            value={editingProg.title}
+                            onChange={(e) => setEditingProg({...editingProg, title: e.target.value})}
+                            className="w-full px-4 py-2.5 bg-[#FAF9F5] border border-stone-200 rounded-xl text-xs sm:text-sm font-medium"
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <label className="text-xs font-bold text-[#103C2E] uppercase">Category</label>
+                          <select
+                            value={editingProg.category}
+                            onChange={(e) => setEditingProg({...editingProg, category: e.target.value as any})}
+                            className="w-full px-4 py-2.5 bg-[#FAF9F5] border border-stone-200 rounded-xl text-xs sm:text-sm font-medium"
+                          >
+                            <option value="Youth Development">Youth Development</option>
+                            <option value="Skills Acquisition">Skills Acquisition</option>
+                            <option value="Women Empowerment">Women Empowerment</option>
+                            <option value="Educational Support">Educational Support</option>
+                            <option value="Small Business Grant">Small Business Grant</option>
+                            <option value="Agricultural Support">Agricultural Support</option>
+                          </select>
+                        </div>
+                      </div>
+
+                      <div className="space-y-1">
+                        <label className="text-xs font-bold text-[#103C2E] uppercase">Description</label>
+                        <textarea
+                          rows={3}
+                          required
+                          value={editingProg.description}
+                          onChange={(e) => setEditingProg({...editingProg, description: e.target.value})}
+                          className="w-full px-4 py-2.5 bg-[#FAF9F5] border border-stone-200 rounded-xl text-xs sm:text-sm font-medium resize-none"
+                        ></textarea>
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                        <div className="space-y-1">
+                          <label className="text-xs font-bold text-[#103C2E] uppercase">Beneficiaries</label>
+                          <input
+                            type="text"
+                            required
+                            value={editingProg.targetBeneficiaries}
+                            onChange={(e) => setEditingProg({...editingProg, targetBeneficiaries: e.target.value})}
+                            className="w-full px-4 py-2.5 bg-[#FAF9F5] border border-stone-200 rounded-xl text-xs sm:text-sm font-medium"
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <label className="text-xs font-bold text-[#103C2E] uppercase">Slots</label>
+                          <input
+                            type="number"
+                            value={editingProg.slotsAvailable || ''}
+                            onChange={(e) => setEditingProg({...editingProg, slotsAvailable: parseInt(e.target.value) || 0})}
+                            className="w-full px-4 py-2.5 bg-[#FAF9F5] border border-stone-200 rounded-xl text-xs sm:text-sm font-medium"
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <label className="text-xs font-bold text-[#103C2E] uppercase">Deadline</label>
+                          <input
+                            type="date"
+                            required
+                            value={editingProg.deadline}
+                            onChange={(e) => setEditingProg({...editingProg, deadline: e.target.value})}
+                            className="w-full px-4 py-2.5 bg-[#FAF9F5] border border-stone-200 rounded-xl text-xs sm:text-sm font-medium"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div className="space-y-1">
+                          <label className="text-xs font-bold text-[#103C2E] uppercase">Eligibility</label>
+                          <input
+                            type="text"
+                            required
+                            value={editingProg.eligibility}
+                            onChange={(e) => setEditingProg({...editingProg, eligibility: e.target.value})}
+                            className="w-full px-4 py-2.5 bg-[#FAF9F5] border border-stone-200 rounded-xl text-xs sm:text-sm font-medium"
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <label className="text-xs font-bold text-[#103C2E] uppercase">Status</label>
+                          <select
+                            value={editingProg.status}
+                            onChange={(e) => setEditingProg({...editingProg, status: e.target.value as any})}
+                            className="w-full px-4 py-2.5 bg-[#FAF9F5] border border-stone-200 rounded-xl text-xs sm:text-sm font-medium"
+                          >
+                            <option value="Active">Active</option>
+                            <option value="Upcoming">Upcoming</option>
+                            <option value="Closed">Closed</option>
+                          </select>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-2 pt-2">
+                        <input
+                          type="checkbox"
+                          id="edit-prog-publish"
+                          checked={editingProg.isPublished !== false}
+                          onChange={(e) => setEditingProg({...editingProg, isPublished: e.target.checked})}
+                          className="w-4 h-4 rounded text-[#103C2E] cursor-pointer"
+                        />
+                        <label htmlFor="edit-prog-publish" className="text-xs font-bold text-[#103C2E] cursor-pointer uppercase">
+                          Published on Public Website
+                        </label>
+                      </div>
+
+                      <div className="flex justify-end gap-3 pt-3 border-t">
+                        <button type="button" onClick={() => setEditingProg(null)} className="px-5 py-2.5 bg-stone-200 rounded-xl text-xs font-bold cursor-pointer uppercase">
+                          Cancel
+                        </button>
+                        <button type="submit" className="px-6 py-2.5 bg-[#103C2E] text-white rounded-xl text-xs font-bold cursor-pointer shadow uppercase">
+                          Save Changes
+                        </button>
+                      </div>
+                    </form>
+                  )}
+
+                  {/* Programmes Table */}
+                  <div className="bg-white rounded-3xl shadow-md border border-stone-200 overflow-hidden">
                     <table className="w-full text-left border-collapse text-xs sm:text-sm">
                       <thead>
                         <tr className="bg-[#103C2E] text-white">
-                          <th className="p-4">Title</th>
-                          <th className="p-4">Category</th>
-                          <th className="p-4">Beneficiaries</th>
-                          <th className="p-4">Status</th>
-                          <th className="p-4 text-right">Actions</th>
+                          <th className="p-4 uppercase text-[11px] font-bold">Title & Category</th>
+                          <th className="p-4 uppercase text-[11px] font-bold">Beneficiaries & Slots</th>
+                          <th className="p-4 uppercase text-[11px] font-bold">Deadline</th>
+                          <th className="p-4 uppercase text-[11px] font-bold">Applications</th>
+                          <th className="p-4 uppercase text-[11px] font-bold">Status</th>
+                          <th className="p-4 uppercase text-[11px] font-bold">Visibility</th>
+                          <th className="p-4 text-right uppercase text-[11px] font-bold">Actions</th>
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-gray-200">
-                        {programs.map(pr => (
-                          <tr key={pr.id} className="hover:bg-gray-50">
-                            <td className="p-4 font-bold text-[#103C2E]">{pr.title}</td>
-                            <td className="p-4 text-gray-600">{pr.category}</td>
-                            <td className="p-4 text-gray-600">{pr.targetBeneficiaries}</td>
-                            <td className="p-4"><span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800">{pr.status}</span></td>
-                            <td className="p-4 text-right">
-                              <button onClick={() => handleDeleteProgram(pr.id)} className="text-rose-600 hover:text-rose-800 p-1 cursor-pointer">
-                                <Trash2 className="w-4 h-4" />
-                              </button>
-                            </td>
-                          </tr>
-                        ))}
+                      <tbody className="divide-y divide-stone-200">
+                        {programs.map(pr => {
+                          const appCount = applications.filter(a => a.programId === pr.id).length;
+                          return (
+                            <tr key={pr.id} className="hover:bg-stone-50 transition">
+                              <td className="p-4">
+                                <span className="font-bold text-[#103C2E] block">{pr.title}</span>
+                                <span className="text-[11px] text-stone-500 font-medium">{pr.category}</span>
+                              </td>
+                              <td className="p-4">
+                                <span className="font-medium text-stone-700 block">{pr.targetBeneficiaries}</span>
+                                {pr.slotsAvailable && (
+                                  <span className="text-[10px] text-emerald-700 font-bold">{pr.slotsAvailable} slots</span>
+                                )}
+                              </td>
+                              <td className="p-4 font-medium text-rose-600">{pr.deadline}</td>
+                              <td className="p-4">
+                                <button
+                                  onClick={() => {
+                                    setAppProgramFilter(pr.title);
+                                    setCmsSubTab('applications');
+                                  }}
+                                  className="bg-[#103C2E]/10 hover:bg-[#103C2E]/20 text-[#103C2E] px-2.5 py-1 rounded-lg font-bold text-xs cursor-pointer transition"
+                                >
+                                  {appCount} Submissions
+                                </button>
+                              </td>
+                              <td className="p-4">
+                                <button
+                                  onClick={() => handleToggleProgStatus(pr.id)}
+                                  className={`px-2.5 py-1 rounded-full text-xs font-bold cursor-pointer transition uppercase ${
+                                    pr.status === 'Active' ? 'bg-emerald-100 text-emerald-800 border border-emerald-300' :
+                                    pr.status === 'Upcoming' ? 'bg-amber-100 text-amber-800 border border-amber-300' :
+                                    'bg-stone-200 text-stone-700'
+                                  }`}
+                                  title="Click to toggle Active/Closed"
+                                >
+                                  {pr.status}
+                                </button>
+                              </td>
+                              <td className="p-4">
+                                <button
+                                  onClick={() => handleToggleProgPublish(pr.id)}
+                                  className={`px-2.5 py-1 rounded-full text-[11px] font-bold cursor-pointer transition uppercase ${
+                                    pr.isPublished !== false ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-rose-50 text-rose-700 border border-rose-200'
+                                  }`}
+                                >
+                                  {pr.isPublished !== false ? 'Published' : 'Hidden'}
+                                </button>
+                              </td>
+                              <td className="p-4 text-right">
+                                <div className="flex items-center justify-end gap-2">
+                                  <button
+                                    onClick={() => setEditingProg(pr)}
+                                    className="text-stone-600 hover:text-[#103C2E] p-1.5 rounded-lg hover:bg-stone-100 transition cursor-pointer"
+                                    title="Edit Programme"
+                                  >
+                                    <Edit className="w-4 h-4" />
+                                  </button>
+                                  <button
+                                    onClick={() => handleDeleteProgram(pr.id)}
+                                    className="text-rose-600 hover:text-rose-800 p-1.5 rounded-lg hover:bg-rose-50 transition cursor-pointer"
+                                    title="Delete Programme"
+                                  >
+                                    <Trash2 className="w-4 h-4" />
+                                  </button>
+                                </div>
+                              </td>
+                            </tr>
+                          );
+                        })}
                       </tbody>
                     </table>
                   </div>
@@ -1787,6 +2456,501 @@ export const AdminDashboard: React.FC<Props> = ({
                     <p className="text-xs text-stone-500 bg-white p-6 rounded-xl text-center">No contact enquiries received yet.</p>
                   )}
                 </div>
+              )}
+
+              {/* APPLICATIONS SUB-TAB */}
+              {cmsSubTab === 'applications' && (
+                <div className="space-y-6">
+                  {/* Top Header & Export Actions */}
+                  <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                    <div>
+                      <h4 className="font-['Manrope'] font-bold text-lg text-[#103C2E] uppercase">
+                        Constituency Programme & Empowerment Applications ({applications.length})
+                      </h4>
+                      <p className="text-xs text-stone-500">
+                        Review submitted beneficiary dossiers, verify NIN and credentials, advance application stages, and export official records.
+                      </p>
+                    </div>
+
+                    <div className="flex flex-wrap items-center gap-2">
+                      <button
+                        onClick={handleExportCSV}
+                        className="bg-stone-100 hover:bg-stone-200 text-[#103C2E] border border-stone-300 px-4 py-2 rounded-xl font-bold text-xs flex items-center gap-1.5 cursor-pointer transition uppercase"
+                        title="Export Applications to CSV"
+                      >
+                        <Download className="w-3.5 h-3.5 text-[#C6A15B]" />
+                        <span>EXPORT CSV</span>
+                      </button>
+
+                      <button
+                        onClick={handleExportJSON}
+                        className="bg-stone-100 hover:bg-stone-200 text-[#103C2E] border border-stone-300 px-4 py-2 rounded-xl font-bold text-xs flex items-center gap-1.5 cursor-pointer transition uppercase"
+                        title="Export Applications to JSON"
+                      >
+                        <Download className="w-3.5 h-3.5 text-[#C6A15B]" />
+                        <span>EXPORT JSON</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Summary Metric Cards */}
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                    <div className="bg-white p-4 rounded-2xl border border-stone-200 shadow-sm">
+                      <span className="text-[10px] font-bold text-stone-500 uppercase block">Total Submissions</span>
+                      <strong className="text-2xl font-black text-[#103C2E]">{applications.length}</strong>
+                    </div>
+                    <div className="bg-white p-4 rounded-2xl border border-stone-200 shadow-sm">
+                      <span className="text-[10px] font-bold text-stone-500 uppercase block">Pending / In Review</span>
+                      <strong className="text-2xl font-black text-amber-700">
+                        {applications.filter(a => a.status === 'SUBMITTED' || a.status === 'INITIAL REVIEW' || a.status === 'DOCUMENT VERIFICATION').length}
+                      </strong>
+                    </div>
+                    <div className="bg-white p-4 rounded-2xl border border-stone-200 shadow-sm">
+                      <span className="text-[10px] font-bold text-stone-500 uppercase block">Approved Beneficiaries</span>
+                      <strong className="text-2xl font-black text-emerald-700">
+                        {applications.filter(a => a.status === 'APPROVED').length}
+                      </strong>
+                    </div>
+                    <div className="bg-white p-4 rounded-2xl border border-stone-200 shadow-sm">
+                      <span className="text-[10px] font-bold text-stone-500 uppercase block">Waitlisted / Other</span>
+                      <strong className="text-2xl font-black text-stone-700">
+                        {applications.filter(a => a.status === 'WAITLISTED' || a.status === 'REJECTED').length}
+                      </strong>
+                    </div>
+                  </div>
+
+                  {/* Search & Filters Bar */}
+                  <div className="bg-white p-4 sm:p-5 rounded-2xl border border-stone-200 shadow-sm grid grid-cols-1 sm:grid-cols-12 gap-3 items-center">
+                    <div className="sm:col-span-5 relative">
+                      <Search className="w-4 h-4 text-stone-400 absolute left-3 top-3" />
+                      <input
+                        type="text"
+                        placeholder="Search by name, ref #, phone, ward, or LGA..."
+                        value={appSearchQuery}
+                        onChange={(e) => setAppSearchQuery(e.target.value)}
+                        className="w-full pl-9 pr-4 py-2 bg-stone-50 border border-stone-200 rounded-xl text-xs sm:text-sm text-[#103C2E] focus:outline-none focus:border-[#103C2E]"
+                      />
+                    </div>
+
+                    <div className="sm:col-span-3">
+                      <select
+                        value={appProgramFilter}
+                        onChange={(e) => setAppProgramFilter(e.target.value)}
+                        className="w-full px-3 py-2 bg-stone-50 border border-stone-200 rounded-xl text-xs text-[#103C2E] focus:outline-none focus:border-[#103C2E]"
+                      >
+                        <option value="ALL">All Programmes</option>
+                        {Array.from(new Set(applications.map(a => a.programTitle))).map((title, i) => (
+                          <option key={i} value={title}>{title}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div className="sm:col-span-3">
+                      <select
+                        value={appStatusFilter}
+                        onChange={(e) => setAppStatusFilter(e.target.value)}
+                        className="w-full px-3 py-2 bg-stone-50 border border-stone-200 rounded-xl text-xs text-[#103C2E] focus:outline-none focus:border-[#103C2E]"
+                      >
+                        <option value="ALL">All Statuses</option>
+                        <option value="SUBMITTED">SUBMITTED</option>
+                        <option value="INITIAL REVIEW">INITIAL REVIEW</option>
+                        <option value="DOCUMENT VERIFICATION">DOCUMENT VERIFICATION</option>
+                        <option value="ELIGIBILITY ASSESSMENT">ELIGIBILITY ASSESSMENT</option>
+                        <option value="FINAL REVIEW">FINAL REVIEW</option>
+                        <option value="APPROVED">APPROVED</option>
+                        <option value="WAITLISTED">WAITLISTED</option>
+                        <option value="REJECTED">REJECTED</option>
+                      </select>
+                    </div>
+
+                    <div className="sm:col-span-1 flex justify-end">
+                      <button
+                        onClick={() => {
+                          setAppSearchQuery('');
+                          setAppProgramFilter('ALL');
+                          setAppStatusFilter('ALL');
+                        }}
+                        className="text-[11px] font-bold text-stone-500 hover:text-stone-800 p-2 cursor-pointer uppercase"
+                        title="Reset Filters"
+                      >
+                        RESET
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Applications Table */}
+                  <div className="bg-white rounded-3xl shadow-md border border-stone-200 overflow-hidden">
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-left border-collapse text-xs sm:text-sm">
+                        <thead>
+                          <tr className="bg-[#103C2E] text-white">
+                            <th className="p-4 uppercase text-[11px] font-bold">Reference & Date</th>
+                            <th className="p-4 uppercase text-[11px] font-bold">Applicant Details</th>
+                            <th className="p-4 uppercase text-[11px] font-bold">Programme & Ward</th>
+                            <th className="p-4 uppercase text-[11px] font-bold">Credentials</th>
+                            <th className="p-4 uppercase text-[11px] font-bold">Stage / Status</th>
+                            <th className="p-4 text-right uppercase text-[11px] font-bold">Actions</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-stone-200">
+                          {applications
+                            .filter(app => {
+                              const matchesSearch = !appSearchQuery || 
+                                app.referenceNumber.toLowerCase().includes(appSearchQuery.toLowerCase()) ||
+                                app.applicantName.toLowerCase().includes(appSearchQuery.toLowerCase()) ||
+                                app.phone.toLowerCase().includes(appSearchQuery.toLowerCase()) ||
+                                (app.email && app.email.toLowerCase().includes(appSearchQuery.toLowerCase())) ||
+                                app.wardOrTown.toLowerCase().includes(appSearchQuery.toLowerCase()) ||
+                                (app.lga && app.lga.toLowerCase().includes(appSearchQuery.toLowerCase()));
+
+                              const matchesProgram = appProgramFilter === 'ALL' || app.programTitle === appProgramFilter;
+                              const matchesStatus = appStatusFilter === 'ALL' || app.status === appStatusFilter;
+
+                              return matchesSearch && matchesProgram && matchesStatus;
+                            })
+                            .map((app) => (
+                              <tr key={app.id} className="hover:bg-stone-50 transition">
+                                <td className="p-4">
+                                  <strong className="font-mono text-xs font-black text-[#103C2E] block">
+                                    {app.referenceNumber}
+                                  </strong>
+                                  <span className="text-[10px] text-stone-400 block font-mono">
+                                    {app.date} {app.submissionTime || ''}
+                                  </span>
+                                </td>
+
+                                <td className="p-4">
+                                  <span className="font-bold text-[#103C2E] block text-sm">
+                                    {app.applicantName}
+                                  </span>
+                                  <div className="text-[11px] text-stone-500 space-x-1">
+                                    <span>{app.phone}</span>
+                                    {app.nin && <span>• NIN: {app.nin}</span>}
+                                  </div>
+                                </td>
+
+                                <td className="p-4">
+                                  <span className="font-semibold text-stone-800 block">{app.programTitle}</span>
+                                  <span className="text-[11px] text-stone-500">{app.wardOrTown} ({app.lga || 'Yabo/Shagari'})</span>
+                                </td>
+
+                                <td className="p-4">
+                                  <span className="text-xs text-stone-700 block font-medium">
+                                    {app.highestEducation || app.qualifications || 'Secondary / Artisan'}
+                                  </span>
+                                  <span className="text-[10px] text-emerald-700 font-bold">
+                                    {app.documents && app.documents.length > 0 ? `${app.documents.length} verified file(s)` : 'NIN on record'}
+                                  </span>
+                                </td>
+
+                                <td className="p-4">
+                                  <span className={`inline-block px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider border ${
+                                    app.status === 'APPROVED' ? 'bg-emerald-100 text-emerald-800 border-emerald-300' :
+                                    app.status === 'REJECTED' ? 'bg-rose-100 text-rose-800 border-rose-300' :
+                                    app.status === 'WAITLISTED' ? 'bg-blue-100 text-blue-800 border-blue-300' :
+                                    'bg-amber-100 text-amber-900 border-amber-300'
+                                  }`}>
+                                    {app.status}
+                                  </span>
+                                </td>
+
+                                <td className="p-4 text-right">
+                                  <div className="flex items-center justify-end gap-1.5">
+                                    <button
+                                      onClick={() => {
+                                        setSelectedAppForReview(app);
+                                        setReviewStatusInput(app.status);
+                                        setReviewInternalNote(app.notes || '');
+                                        setReviewPublicFeedback(app.publicFeedback || '');
+                                      }}
+                                      className="bg-[#103C2E] hover:bg-[#09291F] text-white px-3 py-1.5 rounded-lg font-bold text-xs shadow-sm cursor-pointer transition uppercase"
+                                      title="Review Application & Update Stage"
+                                    >
+                                      REVIEW & STAGES
+                                    </button>
+
+                                    <button
+                                      onClick={() => setSlipModalApp(app)}
+                                      className="text-[#103C2E] hover:bg-stone-100 p-1.5 rounded-lg border border-stone-200 transition cursor-pointer"
+                                      title="View Official Application Slip"
+                                    >
+                                      <Printer className="w-4 h-4 text-[#C6A15B]" />
+                                    </button>
+
+                                    <button
+                                      onClick={() => handleDeleteApp(app.id)}
+                                      className="text-rose-600 hover:text-rose-800 p-1.5 rounded-lg hover:bg-rose-50 transition cursor-pointer"
+                                      title="Delete Application"
+                                    >
+                                      <Trash2 className="w-4 h-4" />
+                                    </button>
+                                  </div>
+                                </td>
+                              </tr>
+                            ))}
+                        </tbody>
+                      </table>
+                    </div>
+
+                    {applications.length === 0 && (
+                      <div className="p-12 text-center text-stone-500 space-y-2">
+                        <FileText className="w-10 h-10 mx-auto text-stone-400" />
+                        <p className="text-sm font-bold">No Applications Recorded</p>
+                        <p className="text-xs">Citizen applications submitted on the portal will appear here immediately.</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* DETAILED APPLICATION REVIEW & STAGES MODAL */}
+              {selectedAppForReview && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-black/80 backdrop-blur-sm overflow-y-auto animate-fadeIn">
+                  <div className="bg-white w-full max-w-4xl rounded-3xl shadow-2xl overflow-hidden border border-[#C6A15B]/40 max-h-[92vh] flex flex-col my-auto">
+                    
+                    {/* Modal Header */}
+                    <div className="bg-[#103C2E] text-white p-6 flex items-center justify-between border-b border-[#C6A15B]/40">
+                      <div>
+                        <span className="text-xs font-mono font-bold text-[#C6A15B] uppercase tracking-wider block">
+                          CONSTITUENCY DOSSIER • REF: {selectedAppForReview.referenceNumber}
+                        </span>
+                        <h3 className="text-xl font-black font-['Manrope'] text-white">
+                          {selectedAppForReview.applicantName}
+                        </h3>
+                        <p className="text-xs text-stone-300">
+                          {selectedAppForReview.programTitle} • Submitted on {selectedAppForReview.date}
+                        </p>
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => setSlipModalApp(selectedAppForReview)}
+                          className="bg-emerald-600 hover:bg-emerald-500 text-white px-3.5 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 cursor-pointer uppercase shadow"
+                        >
+                          <Printer className="w-4 h-4" />
+                          <span>PRINT SLIP</span>
+                        </button>
+                        <button
+                          onClick={() => setSelectedAppForReview(null)}
+                          className="text-stone-300 hover:text-white p-1.5 rounded-lg hover:bg-white/10 transition cursor-pointer"
+                        >
+                          <X className="w-6 h-6" />
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Modal Body */}
+                    <div className="p-6 sm:p-8 overflow-y-auto space-y-6 text-[#103C2E]">
+                      
+                      {/* Grid 1: Personal & Residence */}
+                      <div className="space-y-2">
+                        <h4 className="text-xs font-black uppercase tracking-wider text-[#103C2E] border-b pb-1 flex items-center gap-1.5">
+                          <Users className="w-4 h-4 text-[#C6A15B]" />
+                          1. PERSONAL PROFILE & RESIDENTIAL VERIFICATION
+                        </h4>
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 bg-stone-50 p-4 rounded-2xl border border-stone-200 text-xs">
+                          <div>
+                            <span className="text-stone-500 text-[10px] uppercase font-bold block">NIN</span>
+                            <span className="font-mono font-bold text-[#103C2E]">{selectedAppForReview.nin || 'Not Provided'}</span>
+                          </div>
+                          <div>
+                            <span className="text-stone-500 text-[10px] uppercase font-bold block">Gender / DOB</span>
+                            <span className="font-bold text-[#103C2E]">{selectedAppForReview.gender || 'N/A'} • {selectedAppForReview.dob || 'N/A'}</span>
+                          </div>
+                          <div>
+                            <span className="text-stone-500 text-[10px] uppercase font-bold block">Primary Phone</span>
+                            <span className="font-bold text-[#103C2E]">{selectedAppForReview.phone}</span>
+                          </div>
+                          <div>
+                            <span className="text-stone-500 text-[10px] uppercase font-bold block">Email</span>
+                            <span className="font-bold text-[#103C2E]">{selectedAppForReview.email || 'None'}</span>
+                          </div>
+                          <div>
+                            <span className="text-stone-500 text-[10px] uppercase font-bold block">LGA</span>
+                            <span className="font-bold text-[#103C2E]">{selectedAppForReview.lga || 'Yabo/Shagari'}</span>
+                          </div>
+                          <div>
+                            <span className="text-stone-500 text-[10px] uppercase font-bold block">Ward / Community</span>
+                            <span className="font-bold text-[#103C2E]">{selectedAppForReview.wardOrTown}</span>
+                          </div>
+                          <div className="col-span-2">
+                            <span className="text-stone-500 text-[10px] uppercase font-bold block">Residential Address</span>
+                            <span className="font-bold text-[#103C2E]">{selectedAppForReview.residentialAddress || 'Same as ward'}</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Grid 2: Education, Employment & Bank */}
+                      <div className="space-y-2">
+                        <h4 className="text-xs font-black uppercase tracking-wider text-[#103C2E] border-b pb-1 flex items-center gap-1.5">
+                          <Award className="w-4 h-4 text-[#C6A15B]" />
+                          2. EDUCATION, VOCATION & DISBURSEMENT DETAILS
+                        </h4>
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 bg-stone-50 p-4 rounded-2xl border border-stone-200 text-xs">
+                          <div>
+                            <span className="text-stone-500 text-[10px] uppercase font-bold block">Highest Education</span>
+                            <span className="font-bold text-[#103C2E]">{selectedAppForReview.highestEducation || 'SSCE / None'}</span>
+                          </div>
+                          <div>
+                            <span className="text-stone-500 text-[10px] uppercase font-bold block">Institution</span>
+                            <span className="font-bold text-[#103C2E]">{selectedAppForReview.institutionName || 'N/A'}</span>
+                          </div>
+                          <div>
+                            <span className="text-stone-500 text-[10px] uppercase font-bold block">Employment Status</span>
+                            <span className="font-bold text-[#103C2E]">{selectedAppForReview.employmentStatus || 'Unemployed'}</span>
+                          </div>
+                          <div>
+                            <span className="text-stone-500 text-[10px] uppercase font-bold block">Monthly Income</span>
+                            <span className="font-bold text-[#103C2E]">{selectedAppForReview.monthlyIncome || 'Below ₦50,000'}</span>
+                          </div>
+                          <div>
+                            <span className="text-stone-500 text-[10px] uppercase font-bold block">Bank Name</span>
+                            <span className="font-bold text-[#103C2E]">{selectedAppForReview.bankName || 'N/A'}</span>
+                          </div>
+                          <div>
+                            <span className="text-stone-500 text-[10px] uppercase font-bold block">Account Number</span>
+                            <span className="font-mono font-bold text-[#103C2E]">{selectedAppForReview.accountNumber || 'N/A'}</span>
+                          </div>
+                          <div className="col-span-2">
+                            <span className="text-stone-500 text-[10px] uppercase font-bold block">Account Beneficiary</span>
+                            <span className="font-bold text-[#103C2E]">{selectedAppForReview.accountName || selectedAppForReview.applicantName}</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Statement of Intent */}
+                      <div className="space-y-1">
+                        <span className="text-[10px] font-bold uppercase text-stone-500 block">
+                          Personal Statement of Intent & Impact:
+                        </span>
+                        <div className="bg-stone-50 p-4 rounded-2xl border border-stone-200 text-xs italic text-stone-800 leading-relaxed">
+                          "{selectedAppForReview.statement}"
+                        </div>
+                      </div>
+
+                      {/* Supporting Documents Section */}
+                      <div className="space-y-2">
+                        <h4 className="text-xs font-black uppercase tracking-wider text-[#103C2E] border-b pb-1 flex items-center gap-1.5">
+                          <FileText className="w-4 h-4 text-[#C6A15B]" />
+                          3. ATTACHED CREDENTIALS & DOCUMENTS
+                        </h4>
+
+                        {selectedAppForReview.documents && selectedAppForReview.documents.length > 0 ? (
+                          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                            {selectedAppForReview.documents.map((doc, idx) => (
+                              <div key={idx} className="bg-stone-50 p-3.5 rounded-2xl border border-stone-200 text-xs space-y-2">
+                                <div className="flex items-center gap-2">
+                                  <FileCheck className="w-4 h-4 text-emerald-700 shrink-0" />
+                                  <div className="overflow-hidden">
+                                    <strong className="text-[#103C2E] block truncate">{doc.type}</strong>
+                                    <span className="text-[10px] text-stone-400 block truncate">{doc.name} ({doc.size})</span>
+                                  </div>
+                                </div>
+                                {doc.dataUrl && (
+                                  <a
+                                    href={doc.dataUrl}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="bg-white hover:bg-stone-100 text-[#103C2E] border border-stone-200 text-[11px] font-bold px-3 py-1 rounded-lg block text-center uppercase"
+                                  >
+                                    View / Download File
+                                  </a>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <p className="text-xs text-stone-500 bg-stone-50 p-4 rounded-xl border">
+                            No external file scans attached directly; applicant verified identity via NIN & constituency indigeneship registration.
+                          </p>
+                        )}
+                      </div>
+
+                      {/* Stage Progression & Status Update Panel */}
+                      <div className="bg-[#FAF9F5] p-6 rounded-3xl border-2 border-[#103C2E] space-y-4">
+                        <h4 className="text-xs font-black uppercase tracking-wider text-[#103C2E] flex items-center gap-2">
+                          <Clock className="w-4 h-4 text-[#C6A15B]" />
+                          ADMINISTRATIVE STAGE TRANSITION & DECISION DESK
+                        </h4>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                          <div className="space-y-1">
+                            <label className="text-xs font-bold text-[#103C2E] uppercase">
+                              UPDATE APPLICATION STAGE *
+                            </label>
+                            <select
+                              value={reviewStatusInput}
+                              onChange={(e) => setReviewStatusInput(e.target.value as ApplicationStatus)}
+                              className="w-full px-4 py-2.5 bg-white border border-stone-300 rounded-xl text-xs sm:text-sm font-bold text-[#103C2E] focus:outline-none focus:border-[#103C2E]"
+                            >
+                              <option value="SUBMITTED">1. SUBMITTED</option>
+                              <option value="INITIAL REVIEW">2. INITIAL REVIEW</option>
+                              <option value="DOCUMENT VERIFICATION">3. DOCUMENT VERIFICATION</option>
+                              <option value="ELIGIBILITY ASSESSMENT">4. ELIGIBILITY ASSESSMENT</option>
+                              <option value="FINAL REVIEW">5. FINAL REVIEW & SELECTION</option>
+                              <option value="APPROVED">6. APPROVED (DISBURSEMENT / ADMISSION)</option>
+                              <option value="WAITLISTED">WAITLISTED (NEXT BATCH)</option>
+                              <option value="REJECTED">REJECTED / DISQUALIFIED</option>
+                            </select>
+                          </div>
+
+                          <div className="space-y-1">
+                            <label className="text-xs font-bold text-[#103C2E] uppercase">
+                              PUBLIC FEEDBACK FOR APPLICANT (SHOWN ON TRACKER & SLIP)
+                            </label>
+                            <input
+                              type="text"
+                              placeholder="e.g. Scheduled for physical screening at Yabo LGA secretariat on Monday..."
+                              value={reviewPublicFeedback}
+                              onChange={(e) => setReviewPublicFeedback(e.target.value)}
+                              className="w-full px-4 py-2.5 bg-white border border-stone-300 rounded-xl text-xs sm:text-sm text-[#103C2E] focus:outline-none focus:border-[#103C2E]"
+                            />
+                          </div>
+                        </div>
+
+                        <div className="space-y-1">
+                          <label className="text-xs font-bold text-[#103C2E] uppercase">
+                            INTERNAL REVIEW NOTES (OFFICE USE ONLY)
+                          </label>
+                          <textarea
+                            rows={2}
+                            placeholder="Internal committee comments, screening officer remarks, quota slot assignment..."
+                            value={reviewInternalNote}
+                            onChange={(e) => setReviewInternalNote(e.target.value)}
+                            className="w-full px-4 py-2 bg-white border border-stone-300 rounded-xl text-xs text-[#103C2E] focus:outline-none focus:border-[#103C2E] resize-none"
+                          ></textarea>
+                        </div>
+
+                        <div className="flex justify-end gap-3 pt-2">
+                          <button
+                            type="button"
+                            onClick={() => setSelectedAppForReview(null)}
+                            className="px-5 py-2.5 bg-stone-200 hover:bg-stone-300 rounded-xl text-xs font-bold uppercase cursor-pointer"
+                          >
+                            Cancel
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => handleAdvanceApplicationStage(selectedAppForReview.id, reviewStatusInput, reviewInternalNote, reviewPublicFeedback)}
+                            className="bg-emerald-600 hover:bg-emerald-500 text-white px-6 py-2.5 rounded-xl text-xs font-black shadow-md cursor-pointer transition uppercase tracking-wider flex items-center gap-1.5"
+                          >
+                            <CheckCircle2 className="w-4 h-4" />
+                            <span>SAVE STAGE & UPDATE APPLICANT RECORD</span>
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* SLIP MODAL FOR ADMIN */}
+              {slipModalApp && (
+                <ApplicationSlipModal
+                  application={slipModalApp}
+                  onClose={() => setSlipModalApp(null)}
+                />
               )}
             </div>
           )}

@@ -17,6 +17,9 @@ export interface Project {
   startDate: string;
   completionDate?: string;
   budgetNotes?: string;
+  expenditure?: string;
+  year?: string;
+  currency?: string;
   contractor?: string;
   images: string[];
   updates: ProjectUpdate[];
@@ -49,9 +52,13 @@ export interface EmpowermentProgram {
   startDate: string;
   deadline: string;
   status: ProgramStatus;
+  isPublished?: boolean;
+  imageUrl?: string;
   description: string;
   requirements: string[];
   slotsAvailable?: number;
+  requiredDocs?: string[];
+  stages?: string[];
 }
 
 export interface NewsArticle {
@@ -78,6 +85,8 @@ export interface GalleryItem {
   category: 'Projects' | 'Constituency Visits' | 'National Assembly' | 'Empowerment' | 'Town Halls' | 'Interviews & Debates';
   imageUrl: string;
   videoUrl?: string;
+  showOnHomepage?: boolean;
+  youtubeTitle?: string;
   date: string;
   description: string;
 }
@@ -93,16 +102,70 @@ export interface ContactSubmission {
   status: 'Unread' | 'In Progress' | 'Resolved';
 }
 
+export type ApplicationStatus = 'SUBMITTED' | 'INITIAL REVIEW' | 'DOCUMENT VERIFICATION' | 'ELIGIBILITY ASSESSMENT' | 'FINAL REVIEW' | 'APPROVED' | 'REJECTED' | 'WAITLISTED' | 'Pending' | 'Reviewing' | 'Declined';
+
+export interface ApplicationHistoryEvent {
+  stage: string;
+  timestamp: string;
+  title: string;
+  note?: string;
+  actor?: string;
+}
+
+export interface AttachedDocument {
+  id: string;
+  name: string;
+  type: string;
+  size?: string;
+  dataUrl?: string;
+  uploadedAt?: string;
+}
+
 export interface ProgramApplication {
   id: string;
+  referenceNumber: string;
   programId: string;
   programTitle: string;
+  programCategory?: string;
   applicantName: string;
+  gender?: 'Male' | 'Female' | 'Other';
+  dob?: string;
+  nin?: string;
   email: string;
   phone: string;
+  altPhone?: string;
+  lga?: 'Yabo' | 'Shagari' | 'Other';
   wardOrTown: string;
+  residentialAddress?: string;
+
+  // Education & Employment
+  highestEducation?: string;
+  institutionName?: string;
+  courseOfStudy?: string;
+  graduationYear?: string;
+  employmentStatus?: string;
+  monthlyIncome?: string;
   qualifications: string;
+
+  // Programme Specifics
   statement: string;
+  targetGrantUse?: string;
+  hasReceivedPreviousSupport?: 'Yes' | 'No';
+  previousSupportDetails?: string;
+  bankName?: string;
+  accountNumber?: string;
+  accountName?: string;
+
+  // Attached Documents
+  documents?: AttachedDocument[];
+
+  // Tracking & Timeline
   date: string;
-  status: 'Pending' | 'Approved' | 'Reviewing' | 'Declined';
+  submissionTime?: string;
+  status: ApplicationStatus;
+  currentStage?: string;
+  timeline?: ApplicationHistoryEvent[];
+  publicFeedback?: string;
+  notes?: string;
+  verifiedBy?: string;
 }

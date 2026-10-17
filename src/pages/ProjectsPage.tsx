@@ -175,15 +175,16 @@ export const ProjectsPage: React.FC<Props> = ({
               </div>
 
               <div className="px-6 pb-6 pt-2 border-t border-stone-100 flex items-center justify-between">
-                <span className="text-xs text-stone-500 flex items-center gap-1">
-                  <Calendar className="w-3.5 h-3.5 text-[#C6A15B]" /> {project.date}
-                </span>
+                <div className="text-xs text-stone-500 flex flex-col">
+                  <span className="font-bold text-[#103C2E]">YEAR: {project.year || '2026'}</span>
+                  <span className="text-[11px] text-[#C6A15B] font-bold">{project.expenditure ? `${project.currency || '₦'} ${project.expenditure}` : 'CONSTITUENCY PROJECT'}</span>
+                </div>
 
                 <button
                   onClick={() => setActiveProject(project)}
                   className="bg-[#103C2E] hover:bg-[#09291F] text-white px-4 py-2 rounded-xl text-xs font-bold transition shadow flex items-center gap-1 cursor-pointer"
                 >
-                  <span>{t('viewDetails', currentLang, translations)}</span>
+                  <span>{t('viewDetails', currentLang, translations).toUpperCase()}</span>
                   <ChevronRight className={`w-3.5 h-3.5 text-[#C6A15B] ${isRtl ? 'rotate-180' : ''}`} />
                 </button>
               </div>
@@ -226,20 +227,30 @@ export const ProjectsPage: React.FC<Props> = ({
               {/* Metadata Grid */}
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 bg-white p-4 rounded-xl border border-stone-200 text-xs">
                 <div>
-                  <span className="text-stone-500 block">{t('allStatuses', currentLang, translations)}</span>
+                  <span className="text-stone-500 block">STATUS</span>
                   <span className="font-bold text-[#103C2E] text-sm">{getStatusLabel(activeProject.status)}</span>
                 </div>
                 <div>
-                  <span className="text-stone-500 block">{t('projectLocation', currentLang, translations)}</span>
+                  <span className="text-stone-500 block">LOCATION</span>
                   <span className="font-bold text-[#103C2E] text-sm">{activeProject.location}</span>
                 </div>
                 <div>
-                  <span className="text-stone-500 block">{t('startDate', currentLang, translations)}</span>
+                  <span className="text-stone-500 block">PROJECT YEAR</span>
+                  <span className="font-bold text-[#103C2E] text-sm">{activeProject.year || '2026'}</span>
+                </div>
+                <div>
+                  <span className="text-stone-500 block">EXPENDITURE</span>
+                  <span className="font-bold text-[#103C2E] text-sm">{activeProject.expenditure ? `${activeProject.currency || '₦'} ${activeProject.expenditure}` : 'FULLY FUNDED'}</span>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4 bg-white p-4 rounded-xl border border-stone-200 text-xs">
+                <div>
+                  <span className="text-stone-500 block">START DATE</span>
                   <span className="font-bold text-[#103C2E] text-sm">{activeProject.startDate}</span>
                 </div>
                 <div>
-                  <span className="text-stone-500 block">{t('fundingSource', currentLang, translations)}</span>
-                  <span className="font-bold text-[#103C2E] text-sm">{activeProject.budgetNotes || 'Constituency Allocation'}</span>
+                  <span className="text-stone-500 block">COMPLETION DATE</span>
+                  <span className="font-bold text-[#103C2E] text-sm">{activeProject.completionDate || 'ONGOING'}</span>
                 </div>
               </div>
 
