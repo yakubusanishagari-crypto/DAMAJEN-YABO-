@@ -20,6 +20,7 @@ import { AdminDashboard } from './pages/AdminDashboard';
 import { INITIAL_PROJECTS, INITIAL_LEGISLATIVE, INITIAL_PROGRAMS, INITIAL_NEWS, INITIAL_GALLERY, INITIAL_CONTACTS } from './data/initialData';
 import { Project, LegislativeRecord, EmpowermentProgram, NewsArticle, GalleryItem, ContactSubmission } from './types';
 import { Language, Translations, DEFAULT_TRANSLATIONS } from './utils/i18n';
+import { sanitizeGalleryList } from './utils/youtube';
 
 export interface ConstituencyStats {
   projectsCount: string;
@@ -98,7 +99,15 @@ export default function App() {
 
   const [gallery, setGallery] = useState<GalleryItem[]>(() => {
     const saved = localStorage.getItem('danmaje_gallery');
-    return saved ? JSON.parse(saved) : INITIAL_GALLERY;
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        return sanitizeGalleryList(parsed);
+      } catch {
+        return sanitizeGalleryList(INITIAL_GALLERY);
+      }
+    }
+    return sanitizeGalleryList(INITIAL_GALLERY);
   });
 
   const [contacts, setContacts] = useState<ContactSubmission[]>(() => {
@@ -149,6 +158,7 @@ export default function App() {
             news={news}
             programs={programs}
             legislative={legislative}
+            gallery={gallery}
             stats={stats}
             currentLang={currentLang}
             translations={translations}

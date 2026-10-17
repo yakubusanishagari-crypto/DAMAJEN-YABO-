@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import { YouTubeVideoTheater } from '../components/YouTubeVideoTheater';
 import { Language, t, Translations } from '../utils/i18n';
+import { resolveMediaThumbnail } from '../utils/youtube';
 
 interface Props {
   gallery: GalleryItem[];
@@ -169,11 +170,13 @@ export const GalleryPage: React.FC<Props> = ({
                 {/* Media Preview Container */}
                 <div className="relative aspect-[16/10] overflow-hidden bg-stone-900">
                   <img
-                    src={item.imageUrl}
+                    src={resolveMediaThumbnail(item)}
                     alt={item.title}
                     className="w-full h-full object-cover group-hover:scale-105 transition duration-700"
                     onError={(e) => {
-                      (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1541872703-74c5e44368f9?auto=format&fit=crop&q=80&w=1000';
+                      (e.target as HTMLImageElement).src = isVideo 
+                        ? 'https://img.youtube.com/vi/ScMzIvxBSi4/hqdefault.jpg' 
+                        : 'https://images.unsplash.com/photo-1541872703-74c5e44368f9?auto=format&fit=crop&q=80&w=1000';
                     }}
                   />
 
@@ -233,6 +236,7 @@ export const GalleryPage: React.FC<Props> = ({
       {/* A. VIDEO PLAYBACK THEATER MODAL (Plays ONLY inside the website with views, likes, comments) */}
       {activeVideo && (
         <YouTubeVideoTheater
+          key={activeVideo.id}
           video={activeVideo}
           allVideos={gallery.filter(g => g.type === 'video' || !!g.videoUrl)}
           onSelectVideo={(item) => setActiveVideo(item)}

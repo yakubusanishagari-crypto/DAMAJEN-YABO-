@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { NewsArticle } from '../types';
-import { Calendar, User, Search, ArrowRight, X, Tag } from 'lucide-react';
+import { Calendar, User, Search, ArrowRight, X, Tag, Play } from 'lucide-react';
 import { Language, t, Translations } from '../utils/i18n';
+import { resolveMediaThumbnail, getYouTubeEmbedUrl } from '../utils/youtube';
 
 interface Props {
   news: NewsArticle[];
@@ -103,12 +104,19 @@ export const NewsPage: React.FC<Props> = ({
       {featured && selectedCategory === 'All' && !searchTerm && (
         <div className="bg-white rounded-3xl overflow-hidden shadow-xl border border-stone-200 grid grid-cols-1 lg:grid-cols-12 hover:border-[#C6A15B]/50 transition-all">
           <div className="lg:col-span-7 relative aspect-[16/10] lg:aspect-auto bg-stone-100 overflow-hidden">
-            <img src={featured.imageUrl} alt={featured.title} className="w-full h-full object-cover hover:scale-105 transition duration-700" />
+            <img src={resolveMediaThumbnail(featured)} alt={featured.title} className="w-full h-full object-cover hover:scale-105 transition duration-700" />
             <div className={`absolute top-4 ${isRtl ? 'right-4' : 'left-4'}`}>
               <span className="bg-[#C6A15B] text-[#09291F] font-bold text-xs px-3.5 py-1.5 rounded-full shadow">
                 {t('featuredNewsLabel', currentLang, translations)}
               </span>
             </div>
+            {featured.videoUrl && (
+              <div className="absolute inset-0 bg-black/30 flex items-center justify-center">
+                <div className="w-14 h-14 rounded-full bg-[#C6A15B] text-[#09291F] flex items-center justify-center shadow-lg">
+                  <Play className="w-6 h-6 fill-current ml-0.5" />
+                </div>
+              </div>
+            )}
           </div>
           <div className="lg:col-span-5 p-8 sm:p-10 flex flex-col justify-between space-y-6">
             <div className="space-y-4">
@@ -143,12 +151,19 @@ export const NewsPage: React.FC<Props> = ({
         {filteredNews.map((article) => (
           <div key={article.id} className="bg-white rounded-2xl overflow-hidden shadow-sm border border-stone-200 flex flex-col group hover:shadow-xl hover:border-[#C6A15B]/50 transition-all duration-300 hover:-translate-y-1">
             <div className="relative aspect-[16/10] overflow-hidden bg-stone-100">
-              <img src={article.imageUrl} alt={article.title} className="w-full h-full object-cover group-hover:scale-105 transition duration-500" />
+              <img src={resolveMediaThumbnail(article)} alt={article.title} className="w-full h-full object-cover group-hover:scale-105 transition duration-500" />
               <div className={`absolute top-3 ${isRtl ? 'right-3' : 'left-3'}`}>
                 <span className="bg-[#103C2E] text-white px-3 py-1 rounded-md text-xs font-semibold shadow">
                   {getCategoryLabel(article.category)}
                 </span>
               </div>
+              {article.videoUrl && (
+                <div className="absolute inset-0 bg-black/30 flex items-center justify-center group-hover:bg-black/20 transition-colors">
+                  <div className="w-10 h-10 rounded-full bg-[#C6A15B] text-[#09291F] flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
+                    <Play className="w-4 h-4 fill-current ml-0.5" />
+                  </div>
+                </div>
+              )}
             </div>
             <div className="p-6 flex-1 flex flex-col justify-between space-y-4">
               <div className="space-y-2">
@@ -195,8 +210,22 @@ export const NewsPage: React.FC<Props> = ({
                 {activeArticle.title}
               </h2>
 
-              <div className="aspect-[16/9] rounded-2xl overflow-hidden shadow-md bg-stone-100">
-                <img src={activeArticle.imageUrl} alt={activeArticle.title} className="w-full h-full object-cover" />
+              <div className="aspect-[16/9] rounded-2xl overflow-hidden shadow-md bg-black relative">
+                {activeArticle.videoUrl ? (
+                  <iframe
+                    src={getYouTubeEmbedUrl(activeArticle.videoUrl, false)}
+                    title={activeArticle.title}
+                    className="w-full h-full border-0"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowFullScreen
+                  ></iframe>
+                ) : (
+                  <img 
+                    src={resolveMediaThumbnail(activeArticle)} 
+                    alt={activeArticle.title} 
+                    className="w-full h-full object-cover" 
+                  />
+                )}
               </div>
 
               <div className="space-y-4 text-sm sm:text-base leading-relaxed whitespace-pre-line bg-white p-6 rounded-2xl border border-stone-200 font-light">

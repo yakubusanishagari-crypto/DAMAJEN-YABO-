@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { GalleryItem } from '../types';
 import { 
-  X, ThumbsUp, ThumbsDown, MessageSquare, Share2, Eye, 
-  Calendar, CheckCircle, Send, Play, Shield, Maximize2, Sparkles, Check
+  X, ThumbsUp, MessageSquare, Share2, Eye, 
+  Calendar, Send, Play, Check, AlertCircle, RefreshCw
 } from 'lucide-react';
+import { extractYouTubeId, getYouTubeEmbedUrl, resolveMediaThumbnail, fetchYouTubeMetadata } from '../utils/youtube';
 
 interface CommentItem {
   id: string;
@@ -27,49 +28,67 @@ export const YouTubeVideoTheater: React.FC<Props> = ({
   onSelectVideo, 
   onClose 
 }) => {
-  // Extract YouTube ID robustly supporting watch, youtu.be, embed, shorts, and raw IDs
-  const getYouTubeId = (url?: string): string => {
-    if (!url) return 'ScMzIvxBSi4'; // Default parliamentary debate ID
-    const trimmed = url.trim();
-    if (/^[\w-]{11}$/.test(trimmed)) {
-      return trimmed;
-    }
-    const regExp = /^.*(youtu\.be\/|v\/|u\/\w\/|embed\/|watch\?v=|shorts\/|\&v=)([^#\&\?]*).*/;
-    const match = trimmed.match(regExp);
-    return (match && match[2].length === 11) ? match[2] : 'ScMzIvxBSi4';
-  };
+  const youtubeId = extractYouTubeId(video.videoUrl);
+  const embedUrl = youtubeId ? getYouTubeEmbedUrl(youtubeId, true) : '';
 
-  const youtubeId = getYouTubeId(video.videoUrl);
-  const embedUrl = `https://www.youtube-nocookie.com/embed/${youtubeId}?autoplay=1&rel=0&modestbranding=1&playsinline=1&enablejsapi=1`;
+  // YouTube original title and metadata
+  const [ytTitle, setYtTitle] = useState<string>(video.youtubeTitle || '');
+  const [isPlaying, setIsPlaying] = useState<boolean>(true);
 
-  // Views state with localStorage persistence
-  const [viewsCount, setViewsCount] = useState<number>(() => {
-    const key = `danmaje_views_${video.id}`;
-    const saved = localStorage.getItem(key);
-    const initialBase = video.id === 'gal-vid-1' ? 14820 : 9650;
-    if (saved) {
-      return parseInt(saved, 10);
-    }
-    const newViews = initialBase + 1;
-    localStorage.setItem(key, newViews.toString());
-    return newViews;
-  });
-
-  // Likes state with localStorage persistence
-  const [hasLiked, setHasLiked] = useState<boolean>(() => {
-    return localStorage.getItem(`danmaje_liked_${video.id}`) === 'true';
-  });
-
-  const [likesCount, setLikesCount] = useState<number>(() => {
-    const base = video.id === 'gal-vid-1' ? 486 : 312;
-    const saved = localStorage.getItem(`danmaje_likes_count_${video.id}`);
-    return saved ? parseInt(saved, 10) : base;
-  });
-
-  // Share link feedback
+  // Synchronize dynamic states whenever selected video changes
+  const [viewsCount, setViewsCount] = useState<number>(0);
+  const [hasLiked, setHasLiked] = useState<boolean>(false);
+  const [likesCount, setLikesCount] = useState<number>(0);
+  const [comments, setComments] = useState<CommentItem[]>([]);
   const [copied, setCopied] = useState(false);
 
-  // Comments state with preloaded authentic constituency responses
+  // New comment inputs
+  const [authorName, setAuthorName] = useState('');
+  const [wardName, setWardName] = useState('Yabo/Shagari Constituent');
+  const [commentText, setCommentText] = useState('');
+
+  // Re-sync states when video changes
+  useEffect(() => {
+    setIsPlaying(true);
+    const key = `danmaje_views_${video.id}`;
+    const savedViews = localStorage.getItem(key);
+    const initialBase = video.id === 'gal-vid-1' ? 14820 : 9650;
+    if (savedViews) {
+      setViewsCount(parseInt(savedViews, 10));
+    } else {
+      const newV = initialBase + 1;
+      localStorage.setItem(key, newV.toString());
+      setViewsCount(newV);
+    }
+
+    const savedLiked = localStorage.getItem(`danmaje_liked_${video.id}`) === 'true';
+    setHasLiked(savedLiked);
+
+    const baseLikes = video.id === 'gal-vid-1' ? 486 : 312;
+    const savedLikes = localStorage.getItem(`danmaje_likes_count_${video.id}`);
+    setLikesCount(savedLikes ? parseInt(savedLikes, 10) : baseLikes);
+
+    const savedComm = localStorage.getItem(`danmaje_comments_${video.id}`);
+    if (savedComm) {
+      try {
+        setComments(JSON.parse(savedComm));
+      } catch {
+        setComments(getInitialComments(video.id));
+      }
+    } else {
+      setComments(getInitialComments(video.id));
+    }
+
+    // Retrieve original YouTube title if not present
+    if (video.videoUrl) {
+      fetchYouTubeMetadata(video.videoUrl).then(meta => {
+        if (meta && meta.title) {
+          setYtTitle(meta.title);
+        }
+      });
+    }
+  }, [video.id, video.videoUrl]);
+
   const getInitialComments = (vidId: string): CommentItem[] => {
     if (vidId === 'gal-vid-1') {
       return [
@@ -119,40 +138,27 @@ export const YouTubeVideoTheater: React.FC<Props> = ({
     ];
   };
 
-  const [comments, setComments] = useState<CommentItem[]>(() => {
-    const saved = localStorage.getItem(`danmaje_comments_${video.id}`);
-    if (saved) {
-      try {
-        return JSON.parse(saved);
-      } catch (e) {
-        return getInitialComments(video.id);
-      }
-    }
-    return getInitialComments(video.id);
-  });
-
-  // New comment form
-  const [authorName, setAuthorName] = useState('');
-  const [wardName, setWardName] = useState('Yabo/Shagari Constituent');
-  const [commentText, setCommentText] = useState('');
-
   // Persist comments when updated
   useEffect(() => {
-    localStorage.setItem(`danmaje_comments_${video.id}`, JSON.stringify(comments));
+    if (comments.length > 0) {
+      localStorage.setItem(`danmaje_comments_${video.id}`, JSON.stringify(comments));
+    }
   }, [comments, video.id]);
 
   // Handle Like click
   const handleToggleLike = () => {
     if (hasLiked) {
       setHasLiked(false);
-      setLikesCount(prev => prev - 1);
+      const newL = likesCount - 1;
+      setLikesCount(newL);
       localStorage.setItem(`danmaje_liked_${video.id}`, 'false');
-      localStorage.setItem(`danmaje_likes_count_${video.id}`, (likesCount - 1).toString());
+      localStorage.setItem(`danmaje_likes_count_${video.id}`, newL.toString());
     } else {
       setHasLiked(true);
-      setLikesCount(prev => prev + 1);
+      const newL = likesCount + 1;
+      setLikesCount(newL);
       localStorage.setItem(`danmaje_liked_${video.id}`, 'true');
-      localStorage.setItem(`danmaje_likes_count_${video.id}`, (likesCount + 1).toString());
+      localStorage.setItem(`danmaje_likes_count_${video.id}`, newL.toString());
     }
   };
 
@@ -177,11 +183,13 @@ export const YouTubeVideoTheater: React.FC<Props> = ({
   // Handle Share link
   const handleShare = () => {
     if (navigator.clipboard) {
-      navigator.clipboard.writeText(window.location.href);
+      navigator.clipboard.writeText(video.videoUrl || window.location.href);
       setCopied(true);
       setTimeout(() => setCopied(false), 2500);
     }
   };
+
+  const currentDisplayThumbnail = resolveMediaThumbnail(video);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/90 backdrop-blur-md animate-fadeIn overflow-y-auto">
@@ -219,22 +227,50 @@ export const YouTubeVideoTheater: React.FC<Props> = ({
         <div className="overflow-y-auto flex-1 flex flex-col">
           {/* Main Video Screen Container - Plays ONLY inside website */}
           <div className="relative aspect-[16/9] w-full bg-black shadow-inner">
-            <iframe
-              src={embedUrl}
-              title={video.title}
-              className="w-full h-full border-0"
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-              allowFullScreen
-            ></iframe>
+            {embedUrl && isPlaying ? (
+              <iframe
+                key={youtubeId}
+                src={embedUrl}
+                title={ytTitle || video.title}
+                className="w-full h-full border-0"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                allowFullScreen
+              ></iframe>
+            ) : (
+              <div 
+                onClick={() => setIsPlaying(true)}
+                className="relative w-full h-full group cursor-pointer overflow-hidden bg-black flex items-center justify-center"
+              >
+                <img 
+                  src={currentDisplayThumbnail} 
+                  alt={video.title} 
+                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
+                />
+                <div className="absolute inset-0 bg-black/40 group-hover:bg-black/20 transition-colors flex items-center justify-center">
+                  <div className="w-20 h-20 rounded-full bg-[#D4AF37] text-[#09291F] flex items-center justify-center shadow-2xl group-hover:scale-110 transition-transform border-4 border-white/90">
+                    <Play className="w-9 h-9 fill-current ml-1" />
+                  </div>
+                </div>
+                <div className="absolute bottom-4 left-4 right-4 bg-gradient-to-t from-black/90 to-transparent p-4">
+                  <p className="text-white font-bold text-sm sm:text-base line-clamp-1">{video.title}</p>
+                  <p className="text-[#D4AF37] text-xs font-semibold">Click to Play Video</p>
+                </div>
+              </div>
+            )}
           </div>
 
-          {/* Video Metadata & Interactive Actions (YouTube Style) */}
+          {/* Video Metadata & Interactive Actions */}
           <div className="p-4 sm:p-6 bg-[#082219] border-b border-white/10 space-y-4">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
               <div>
                 <h2 className="text-lg sm:text-2xl font-bold font-['Manrope'] text-white leading-tight">
                   {video.title}
                 </h2>
+                {ytTitle && ytTitle !== video.title && (
+                  <p className="text-xs text-[#D4AF37] font-semibold mt-1">
+                    YouTube Title: {ytTitle}
+                  </p>
+                )}
                 <div className="flex flex-wrap items-center gap-3 text-xs text-stone-300 mt-1.5">
                   <span className="inline-flex items-center gap-1 text-[#D4AF37] font-semibold">
                     <Eye className="w-4 h-4" />
@@ -382,6 +418,7 @@ export const YouTubeVideoTheater: React.FC<Props> = ({
               <div className="space-y-3">
                 {allVideos.map((item) => {
                   const isCurrent = item.id === video.id;
+                  const itemThumb = resolveMediaThumbnail(item);
                   return (
                     <div
                       key={item.id}
@@ -392,11 +429,14 @@ export const YouTubeVideoTheater: React.FC<Props> = ({
                           : 'bg-[#0A261E] hover:bg-[#0E3529] border-white/10'
                       }`}
                     >
-                      <div className="relative w-28 h-16 rounded-lg overflow-hidden shrink-0 bg-stone-900">
+                      <div className="relative w-28 h-16 rounded-lg overflow-hidden shrink-0 bg-stone-900 border border-white/10">
                         <img 
-                          src={item.imageUrl} 
+                          src={itemThumb} 
                           alt={item.title} 
                           className="w-full h-full object-cover" 
+                          onError={(e) => {
+                            (e.target as HTMLImageElement).src = 'https://img.youtube.com/vi/ScMzIvxBSi4/hqdefault.jpg';
+                          }}
                         />
                         <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
                           <Play className="w-4 h-4 text-[#D4AF37] fill-current" />

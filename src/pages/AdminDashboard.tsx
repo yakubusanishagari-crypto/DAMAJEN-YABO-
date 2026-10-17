@@ -7,9 +7,18 @@ import {
   FileText, Award, Image as ImageIcon, Users, BarChart3, Globe, Settings, 
   Activity, ArrowUpRight, TrendingUp, Download, Eye, AlertCircle, Save,
   Upload, Video, Film, Play, Check, Search, Filter, ChevronRight, CheckCircle2,
-  Clock, Printer, ExternalLink, FileCheck
+  Clock, Printer, ExternalLink, FileCheck, Star, Sparkles, RefreshCw
 } from 'lucide-react';
 import { ApplicationSlipModal } from '../components/ApplicationSlipModal';
+import { 
+  extractYouTubeId, 
+  getYouTubeThumbnailUrl, 
+  getYouTubeEmbedUrl, 
+  resolveMediaThumbnail, 
+  fetchYouTubeMetadata, 
+  sanitizeGalleryList, 
+  YOUTUBE_PLACEHOLDER_THUMBNAIL 
+} from '../utils/youtube';
 
 interface Props {
   projects: Project[];
@@ -628,6 +637,8 @@ export const AdminDashboard: React.FC<Props> = ({
     category: 'Projects' | 'Constituency Visits' | 'National Assembly' | 'Empowerment' | 'Town Halls' | 'Interviews & Debates';
     imageUrl: string;
     videoUrl: string;
+    showOnHomepage: boolean;
+    youtubeTitle: string;
     description: string;
   }>({
     title: '',
@@ -635,24 +646,38 @@ export const AdminDashboard: React.FC<Props> = ({
     category: 'National Assembly',
     imageUrl: '',
     videoUrl: '',
+    showOnHomepage: false,
+    youtubeTitle: '',
     description: ''
   });
   const [uploadedImagePreview, setUploadedImagePreview] = useState<string>('');
   const [uploadError, setUploadError] = useState<string>('');
+  const [isFetchingYtMeta, setIsFetchingYtMeta] = useState<boolean>(false);
+  const [detectedYtThumb, setDetectedYtThumb] = useState<string>('');
+  const [detectedYtTitle, setDetectedYtTitle] = useState<string>('');
 
-  const formatVideoUrl = (url: string) => {
-    if (!url) return '';
-    const trimmed = url.trim();
-    if (trimmed.includes('youtube.com/embed/')) return trimmed;
-    if (/^[\w-]{11}$/.test(trimmed)) {
-      return `https://www.youtube-nocookie.com/embed/${trimmed}?autoplay=1&rel=0&modestbranding=1&playsinline=1`;
+  const handleVideoUrlChange = (url: string) => {
+    setNewMedia(prev => ({ ...prev, videoUrl: url }));
+    const id = extractYouTubeId(url);
+    if (id) {
+      const thumb = `https://img.youtube.com/vi/${id}/hqdefault.jpg`;
+      setDetectedYtThumb(thumb);
+      setIsFetchingYtMeta(true);
+      fetchYouTubeMetadata(url).then(meta => {
+        setIsFetchingYtMeta(false);
+        if (meta && meta.title) {
+          setDetectedYtTitle(meta.title);
+          setNewMedia(prev => ({
+            ...prev,
+            youtubeTitle: meta.title,
+            title: prev.title.trim() ? prev.title : meta.title
+          }));
+        }
+      }).catch(() => setIsFetchingYtMeta(false));
+    } else {
+      setDetectedYtThumb('');
+      setDetectedYtTitle('');
     }
-    const regExp = /^.*(youtu\.be\/|v\/|u\/\w\/|embed\/|watch\?v=|shorts\/|\&v=)([^#\&\?]*).*/;
-    const match = trimmed.match(regExp);
-    if (match && match[2].length === 11) {
-      return `https://www.youtube-nocookie.com/embed/${match[2]}?autoplay=1&rel=0&modestbranding=1&playsinline=1`;
-    }
-    return trimmed;
   };
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -679,19 +704,38 @@ export const AdminDashboard: React.FC<Props> = ({
       setUploadError('Please select a photograph to upload or provide an image link.');
       return;
     }
-    const finalVideoUrl = newMedia.type === 'video' ? formatVideoUrl(newMedia.videoUrl) : undefined;
+
+    let finalImageUrl = newMedia.imageUrl;
+    let finalVideoUrl = newMedia.videoUrl ? newMedia.videoUrl.trim() : undefined;
+
+    if (newMedia.type === 'video') {
+      const ytId = extractYouTubeId(newMedia.videoUrl);
+      if (!ytId) {
+        setUploadError('Please enter a valid YouTube video URL or 11-character video ID.');
+        return;
+      }
+      finalImageUrl = `https://img.youtube.com/vi/${ytId}/hqdefault.jpg`;
+      finalVideoUrl = `https://www.youtube.com/watch?v=${ytId}`;
+    }
+
     const createdItem: GalleryItem = {
       id: `gal-${Date.now()}`,
-      title: newMedia.title,
+      title: newMedia.title.trim() || detectedYtTitle || 'Constituency Video Record',
       type: newMedia.type,
       category: newMedia.category,
-      imageUrl: newMedia.imageUrl || (newMedia.type === 'video' ? '/national_assembly_chamber_1792063300782.jpg' : 'https://images.unsplash.com/photo-1541872703-74c5e44368f9?auto=format&fit=crop&q=80&w=1000'),
-      videoUrl: finalVideoUrl,
+      imageUrl: finalImageUrl || YOUTUBE_PLACEHOLDER_THUMBNAIL,
+      videoUrl: newMedia.type === 'video' ? finalVideoUrl : undefined,
+      showOnHomepage: newMedia.type === 'video' ? newMedia.showOnHomepage : false,
+      youtubeTitle: newMedia.youtubeTitle || detectedYtTitle || undefined,
       date: new Date().toISOString().split('T')[0],
       description: newMedia.description
     };
 
-    const updated = [createdItem, ...gallery];
+    let updated = [createdItem, ...gallery];
+    if (createdItem.showOnHomepage) {
+      updated = updated.map(item => item.id === createdItem.id ? item : { ...item, showOnHomepage: false });
+    }
+
     setGallery(updated);
     try {
       localStorage.setItem('danmaje_gallery', JSON.stringify(updated));
@@ -711,13 +755,50 @@ export const AdminDashboard: React.FC<Props> = ({
       category: 'National Assembly',
       imageUrl: '',
       videoUrl: '',
+      showOnHomepage: false,
+      youtubeTitle: '',
       description: ''
     });
+    setDetectedYtThumb('');
+    setDetectedYtTitle('');
     setUploadedImagePreview('');
     setActivityLogs(prev => [{
       id: `log-${Date.now()}`,
       user: email,
       action: `Uploaded ${createdItem.type === 'video' ? 'video' : 'photograph'}: ${createdItem.title}`,
+      timestamp: new Date().toISOString().replace('T', ' ').substring(0, 16),
+      role: adminRole
+    }, ...prev]);
+  };
+
+  const handleSetHomepageFeaturedVideo = (id: string) => {
+    const updated = gallery.map(item => ({
+      ...item,
+      showOnHomepage: item.id === id
+    }));
+    setGallery(updated);
+    try {
+      localStorage.setItem('danmaje_gallery', JSON.stringify(updated));
+    } catch {}
+    setActivityLogs(prev => [{
+      id: `log-${Date.now()}`,
+      user: email,
+      action: `Selected video #${id} as the featured video on the homepage`,
+      timestamp: new Date().toISOString().replace('T', ' ').substring(0, 16),
+      role: adminRole
+    }, ...prev]);
+  };
+
+  const handleResyncAllVideoThumbnails = () => {
+    const sanitized = sanitizeGalleryList(gallery);
+    setGallery(sanitized);
+    try {
+      localStorage.setItem('danmaje_gallery', JSON.stringify(sanitized));
+    } catch {}
+    setActivityLogs(prev => [{
+      id: `log-${Date.now()}`,
+      user: email,
+      action: `Sanitized and resynced all video thumbnails with authentic YouTube images`,
       timestamp: new Date().toISOString().replace('T', ' ').substring(0, 16),
       role: adminRole
     }, ...prev]);
@@ -2179,15 +2260,26 @@ export const AdminDashboard: React.FC<Props> = ({
                   <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
                     <div>
                       <h4 className="font-bold text-[#103C2E] text-base">Photographs & Embedded Videos ({gallery.length})</h4>
-                      <p className="text-xs text-stone-500">Upload photos directly or embed YouTube and MP4 video URLs normally.</p>
+                      <p className="text-xs text-stone-500">Upload photos directly or embed YouTube videos with automatic authentic thumbnail generation.</p>
                     </div>
-                    <button
-                      onClick={() => setShowAddMedia(!showAddMedia)}
-                      className="bg-[#103C2E] text-white px-4 py-2.5 rounded-xl font-bold text-xs flex items-center gap-2 shadow hover:bg-[#09291F] transition cursor-pointer"
-                    >
-                      <Plus className="w-4 h-4 text-[#C6A15B]" />
-                      <span>{showAddMedia ? 'Close Form' : 'Upload Photo / Add Video'}</span>
-                    </button>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={handleResyncAllVideoThumbnails}
+                        className="bg-stone-100 hover:bg-stone-200 text-[#103C2E] border border-stone-300 px-3.5 py-2.5 rounded-xl font-bold text-xs flex items-center gap-1.5 transition cursor-pointer"
+                        title="Resync and verify authentic YouTube thumbnails for all videos"
+                      >
+                        <RefreshCw className="w-3.5 h-3.5 text-[#C6A15B]" />
+                        <span>Resync Video Thumbnails</span>
+                      </button>
+
+                      <button
+                        onClick={() => setShowAddMedia(!showAddMedia)}
+                        className="bg-[#103C2E] text-white px-4 py-2.5 rounded-xl font-bold text-xs flex items-center gap-2 shadow hover:bg-[#09291F] transition cursor-pointer"
+                      >
+                        <Plus className="w-4 h-4 text-[#C6A15B]" />
+                        <span>{showAddMedia ? 'Close Form' : 'Upload Photo / Add Video'}</span>
+                      </button>
+                    </div>
                   </div>
 
                   {showAddMedia && (
@@ -2226,7 +2318,7 @@ export const AdminDashboard: React.FC<Props> = ({
                           <input
                             type="text"
                             required
-                            placeholder="e.g. Commissioning of Solar Water Project in Yabo"
+                            placeholder="e.g. Plenary Debate: Agricultural Technology Bill"
                             value={newMedia.title}
                             onChange={(e) => setNewMedia({ ...newMedia, title: e.target.value })}
                             className="w-full px-4 py-2.5 bg-[#FAF9F5] border border-gray-200 rounded-xl text-xs sm:text-sm focus:outline-none focus:border-[#103C2E]"
@@ -2302,39 +2394,87 @@ export const AdminDashboard: React.FC<Props> = ({
                           )}
                         </div>
                       ) : (
-                        /* Video Embed URL input */
+                        /* Upgraded Video URL Input with Auto YouTube Metadata & Thumbnail */
                         <div className="space-y-3 bg-[#FAF9F5] p-4 rounded-xl border border-stone-200">
                           <div className="space-y-1">
                             <label className="text-xs font-bold text-[#103C2E]">
-                              Embedded Video URL (YouTube watch/embed link or MP4) *
+                              YouTube Video URL or Video ID *
                             </label>
                             <input
                               type="url"
                               required
-                              placeholder="e.g. https://www.youtube.com/watch?v=ScMzIvxBSi4 or https://www.youtube.com/embed/ScMzIvxBSi4"
+                              placeholder="e.g. https://www.youtube.com/watch?v=ScMzIvxBSi4 or youtu.be/ScMzIvxBSi4"
                               value={newMedia.videoUrl}
-                              onChange={(e) => setNewMedia({ ...newMedia, videoUrl: e.target.value })}
+                              onChange={(e) => handleVideoUrlChange(e.target.value)}
                               className="w-full px-4 py-2.5 bg-white border border-stone-200 rounded-xl text-xs sm:text-sm focus:outline-none focus:border-[#103C2E]"
                             />
                             <p className="text-[11px] text-stone-500">
-                              Tip: You can paste standard YouTube video links or embed links normally.
+                              Supports standard links, youtu.be, shorts, embeds, and raw 11-character video IDs.
                             </p>
                           </div>
 
-                          {/* Live Video Preview if URL provided */}
-                          {newMedia.videoUrl && (
-                            <div className="pt-2">
-                              <span className="text-[11px] font-bold text-stone-600 block mb-1">Live Video Player Preview:</span>
-                              <div className="aspect-[16/9] max-w-sm rounded-xl overflow-hidden border border-stone-300 shadow-sm bg-black">
-                                <iframe
-                                  src={formatVideoUrl(newMedia.videoUrl)}
-                                  title="Video preview"
-                                  className="w-full h-full"
-                                  allowFullScreen
-                                ></iframe>
+                          {/* YouTube Metadata Loading Status */}
+                          {isFetchingYtMeta && (
+                            <div className="flex items-center gap-2 text-xs text-[#103C2E] font-medium bg-emerald-50 p-2.5 rounded-xl border border-emerald-200 animate-pulse">
+                              <RefreshCw className="w-3.5 h-3.5 animate-spin text-[#C6A15B]" />
+                              <span>Querying official YouTube oEmbed API for real title and thumbnail...</span>
+                            </div>
+                          )}
+
+                          {/* Detected YouTube Title Suggestion */}
+                          {detectedYtTitle && (
+                            <div className="bg-emerald-50 border border-emerald-200 p-3 rounded-xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
+                              <div className="text-xs text-emerald-950 min-w-0">
+                                <span className="font-bold text-[#103C2E] block">Original YouTube Title Detected:</span>
+                                <span className="font-medium line-clamp-1">{detectedYtTitle}</span>
+                              </div>
+                              <button
+                                type="button"
+                                onClick={() => setNewMedia(prev => ({ ...prev, title: detectedYtTitle }))}
+                                className="bg-[#103C2E] hover:bg-[#09291F] text-white px-3 py-1 rounded-lg text-xs font-bold shrink-0 transition cursor-pointer"
+                              >
+                                Apply As Caption
+                              </button>
+                            </div>
+                          )}
+
+                          {/* Live YouTube Thumbnail Preview */}
+                          {detectedYtThumb && (
+                            <div className="space-y-1.5 pt-2">
+                              <span className="text-[11px] font-bold text-stone-700 block">
+                                Authentic YouTube Thumbnail (Will be saved with this video):
+                              </span>
+                              <div className="aspect-[16/9] max-w-sm rounded-xl overflow-hidden border-2 border-[#C6A15B] shadow-md bg-stone-900 relative group">
+                                <img
+                                  src={detectedYtThumb}
+                                  alt="YouTube Thumbnail Preview"
+                                  className="w-full h-full object-cover"
+                                />
+                                <div className="absolute inset-0 bg-black/30 flex items-center justify-center">
+                                  <div className="w-12 h-12 rounded-full bg-[#D4AF37] text-[#09291F] flex items-center justify-center shadow-lg">
+                                    <Play className="w-5 h-5 fill-current ml-0.5" />
+                                  </div>
+                                </div>
+                                <div className="absolute bottom-2 left-2 bg-black/70 text-white text-[10px] px-2 py-0.5 rounded font-bold">
+                                  Real YouTube Image • Verified
+                                </div>
                               </div>
                             </div>
                           )}
+
+                          {/* Homepage Showcase Checkbox */}
+                          <div className="flex items-center gap-2.5 bg-white p-3 rounded-xl border border-stone-200 mt-2">
+                            <input
+                              type="checkbox"
+                              id="mediaShowOnHomepage"
+                              checked={newMedia.showOnHomepage}
+                              onChange={(e) => setNewMedia({ ...newMedia, showOnHomepage: e.target.checked })}
+                              className="w-4 h-4 text-[#103C2E] rounded border-stone-300 focus:ring-[#103C2E]"
+                            />
+                            <label htmlFor="mediaShowOnHomepage" className="text-xs font-bold text-[#103C2E] cursor-pointer">
+                              Feature this video on the Homepage Video Dispatch section
+                            </label>
+                          </div>
                         </div>
                       )}
 
@@ -2355,6 +2495,8 @@ export const AdminDashboard: React.FC<Props> = ({
                           onClick={() => {
                             setShowAddMedia(false);
                             setUploadedImagePreview('');
+                            setDetectedYtThumb('');
+                            setDetectedYtTitle('');
                           }}
                           className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl text-xs font-bold transition cursor-pointer"
                         >
@@ -2377,8 +2519,9 @@ export const AdminDashboard: React.FC<Props> = ({
                       <thead>
                         <tr className="bg-[#103C2E] text-white">
                           <th className="p-4">Preview</th>
-                          <th className="p-4">Title</th>
+                          <th className="p-4">Title / YouTube Caption</th>
                           <th className="p-4">Type</th>
+                          <th className="p-4">Homepage Feature</th>
                           <th className="p-4">Category</th>
                           <th className="p-4">Date</th>
                           <th className="p-4 text-right">Actions</th>
@@ -2387,27 +2530,35 @@ export const AdminDashboard: React.FC<Props> = ({
                       <tbody className="divide-y divide-gray-200">
                         {gallery.map(item => {
                           const isVid = item.type === 'video' || !!item.videoUrl;
+                          const thumbUrl = resolveMediaThumbnail(item);
                           return (
                             <tr key={item.id} className="hover:bg-gray-50">
-                              <td className="p-3 w-20">
-                                <div className="w-16 h-12 rounded-lg overflow-hidden bg-stone-200 relative border border-stone-200">
+                              <td className="p-3 w-24">
+                                <div className="w-20 h-14 rounded-lg overflow-hidden bg-stone-900 relative border border-stone-300 shadow-sm">
                                   <img
-                                    src={item.imageUrl}
+                                    src={thumbUrl}
                                     alt={item.title}
                                     className="w-full h-full object-cover"
                                     onError={(e) => {
-                                      (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1541872703-74c5e44368f9?auto=format&fit=crop&q=80&w=200';
+                                      (e.target as HTMLImageElement).src = isVid
+                                        ? 'https://img.youtube.com/vi/ScMzIvxBSi4/hqdefault.jpg'
+                                        : 'https://images.unsplash.com/photo-1541872703-74c5e44368f9?auto=format&fit=crop&q=80&w=200';
                                     }}
                                   />
                                   {isVid && (
-                                    <div className="absolute inset-0 bg-black/30 flex items-center justify-center">
-                                      <Play className="w-3.5 h-3.5 text-white fill-current" />
+                                    <div className="absolute inset-0 bg-black/35 flex items-center justify-center">
+                                      <Play className="w-4 h-4 text-[#D4AF37] fill-current" />
                                     </div>
                                   )}
                                 </div>
                               </td>
                               <td className="p-4 font-bold text-[#103C2E]">
                                 {item.title}
+                                {item.youtubeTitle && item.youtubeTitle !== item.title && (
+                                  <p className="text-[11px] text-[#C6A15B] font-semibold mt-0.5">
+                                    YT: {item.youtubeTitle}
+                                  </p>
+                                )}
                                 <p className="text-[11px] text-stone-500 font-normal line-clamp-1">{item.description}</p>
                               </td>
                               <td className="p-4">
@@ -2417,6 +2568,26 @@ export const AdminDashboard: React.FC<Props> = ({
                                   {isVid ? <Video className="w-3 h-3" /> : <ImageIcon className="w-3 h-3" />}
                                   {isVid ? 'Video' : 'Photo'}
                                 </span>
+                              </td>
+                              <td className="p-4">
+                                {isVid ? (
+                                  item.showOnHomepage ? (
+                                    <span className="px-2.5 py-1 bg-[#103C2E] text-[#D4AF37] border border-[#C6A15B]/40 rounded-lg text-xs font-bold inline-flex items-center gap-1 shadow-sm">
+                                      <Star className="w-3 h-3 fill-[#D4AF37]" />
+                                      <span>Featured on Home</span>
+                                    </span>
+                                  ) : (
+                                    <button
+                                      onClick={() => handleSetHomepageFeaturedVideo(item.id)}
+                                      className="px-2.5 py-1 bg-stone-100 hover:bg-[#103C2E] hover:text-white text-stone-700 rounded-lg text-xs font-semibold border border-stone-300 transition cursor-pointer"
+                                      title="Feature this video on the homepage video section"
+                                    >
+                                      Set as Homepage Video
+                                    </button>
+                                  )
+                                ) : (
+                                  <span className="text-stone-400 text-xs">—</span>
+                                )}
                               </td>
                               <td className="p-4 text-gray-600">{item.category}</td>
                               <td className="p-4 text-gray-600">{item.date}</td>

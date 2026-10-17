@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Project, NewsArticle, EmpowermentProgram, LegislativeRecord, GalleryItem } from '../types';
 import { ConstituencyStats } from '../App';
 import { INITIAL_GALLERY } from '../data/initialData';
@@ -10,6 +10,7 @@ import {
   ThumbsUp, MessageSquare, Eye, Play
 } from 'lucide-react';
 import { Language, t, Translations } from '../utils/i18n';
+import { resolveMediaThumbnail, getYouTubeEmbedUrl, extractYouTubeId } from '../utils/youtube';
 
 interface Props {
   setCurrentTab: (tab: string) => void;
@@ -17,6 +18,7 @@ interface Props {
   news: NewsArticle[];
   programs: EmpowermentProgram[];
   legislative: LegislativeRecord[];
+  gallery: GalleryItem[];
   stats: ConstituencyStats;
   currentLang: Language;
   translations: Translations;
@@ -28,6 +30,7 @@ export const Home: React.FC<Props> = ({
   news, 
   programs, 
   legislative,
+  gallery = INITIAL_GALLERY,
   stats, 
   currentLang, 
   translations 
@@ -38,25 +41,41 @@ export const Home: React.FC<Props> = ({
   const [activeLegItem, setActiveLegItem] = useState<LegislativeRecord | null>(null);
   const [applyProgram, setApplyProgram] = useState<EmpowermentProgram | null>(null);
   const [activeVideoTheater, setActiveVideoTheater] = useState<GalleryItem | null>(null);
+
+  // Dynamic featured video selected by admin or first available video
+  const featuredVideo: GalleryItem = gallery.find(g => (g.type === 'video' || !!g.videoUrl) && g.showOnHomepage)
+    || gallery.find(g => g.type === 'video' || !!g.videoUrl)
+    || INITIAL_GALLERY[0];
+
+  const [isPlayingInline, setIsPlayingInline] = useState<boolean>(false);
   const [homepageVideoLiked, setHomepageVideoLiked] = useState<boolean>(() => {
-    return localStorage.getItem('danmaje_liked_gal-vid-1') === 'true';
+    return localStorage.getItem(`danmaje_liked_${featuredVideo.id}`) === 'true';
   });
   const [homepageLikesCount, setHomepageLikesCount] = useState<number>(() => {
-    const saved = localStorage.getItem('danmaje_likes_count_gal-vid-1');
+    const saved = localStorage.getItem(`danmaje_likes_count_${featuredVideo.id}`);
     return saved ? parseInt(saved, 10) : 486;
   });
+
+  useEffect(() => {
+    setHomepageVideoLiked(localStorage.getItem(`danmaje_liked_${featuredVideo.id}`) === 'true');
+    const saved = localStorage.getItem(`danmaje_likes_count_${featuredVideo.id}`);
+    setHomepageLikesCount(saved ? parseInt(saved, 10) : 486);
+    setIsPlayingInline(false);
+  }, [featuredVideo.id]);
 
   const toggleHomepageLike = () => {
     if (homepageVideoLiked) {
       setHomepageVideoLiked(false);
-      setHomepageLikesCount(prev => prev - 1);
-      localStorage.setItem('danmaje_liked_gal-vid-1', 'false');
-      localStorage.setItem('danmaje_likes_count_gal-vid-1', (homepageLikesCount - 1).toString());
+      const newCount = homepageLikesCount - 1;
+      setHomepageLikesCount(newCount);
+      localStorage.setItem(`danmaje_liked_${featuredVideo.id}`, 'false');
+      localStorage.setItem(`danmaje_likes_count_${featuredVideo.id}`, newCount.toString());
     } else {
       setHomepageVideoLiked(true);
-      setHomepageLikesCount(prev => prev + 1);
-      localStorage.setItem('danmaje_liked_gal-vid-1', 'true');
-      localStorage.setItem('danmaje_likes_count_gal-vid-1', (homepageLikesCount + 1).toString());
+      const newCount = homepageLikesCount + 1;
+      setHomepageLikesCount(newCount);
+      localStorage.setItem(`danmaje_liked_${featuredVideo.id}`, 'true');
+      localStorage.setItem(`danmaje_likes_count_${featuredVideo.id}`, newCount.toString());
     }
   };
 
@@ -669,22 +688,21 @@ export const Home: React.FC<Props> = ({
           <div className="lg:col-span-6 space-y-4 relative z-10">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#C6A15B]/20 border border-[#C6A15B]/40 text-xs font-semibold text-[#D4AF37] uppercase tracking-wider">
               <span className="w-2 h-2 rounded-full bg-rose-500 animate-ping"></span>
-              <span>Official Video Dispatch • Plenary Session</span>
+              <span>Official Video Dispatch • {featuredVideo.category || 'Plenary Session'}</span>
             </div>
 
             <h2 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold font-['Manrope'] leading-tight">
-              Plenary Debate: Federal College of Agricultural Technology, Yabo
+              {featuredVideo.youtubeTitle || featuredVideo.title}
             </h2>
 
             <p className="text-stone-300 text-xs sm:text-sm leading-relaxed font-light">
-              Watch Hon. Umar Yusuf (Danmaje Yabo) advocate for modern agricultural education, youth technical empowerment, and research facilities for Yabo/Shagari on the floor of the House of Representatives, National Assembly, Abuja.
+              {featuredVideo.description || 'Watch plenary speeches, constituency inspections, and official debates by Hon. Umar Yusuf (Danmaje Yabo).'}
             </p>
 
             <div className="pt-2 flex flex-wrap gap-3 items-center">
               <button
                 onClick={() => {
-                  const targetVid = INITIAL_GALLERY.find(g => g.id === 'gal-vid-1') || INITIAL_GALLERY[0];
-                  setActiveVideoTheater(targetVid);
+                  setActiveVideoTheater(featuredVideo);
                 }}
                 className="bg-gradient-to-r from-[#D4AF37] via-[#C6A15B] to-[#B38F44] hover:brightness-110 active:scale-[0.98] text-[#09291F] font-extrabold px-6 py-3 rounded-xl shadow-lg transition-all flex items-center gap-2 text-xs sm:text-sm cursor-pointer border border-[#E5C16C]"
               >
@@ -702,16 +720,55 @@ export const Home: React.FC<Props> = ({
             </div>
           </div>
 
-          {/* Embedded Video Player with In-Website Likes, Views, Comments Controls */}
+          {/* Embedded Video Player: Shows authentic YouTube Thumbnail & Real Title BEFORE playing */}
           <div className="lg:col-span-6 relative z-10 space-y-3">
             <div className="aspect-[16/9] w-full rounded-2xl overflow-hidden shadow-2xl border-2 border-[#C6A15B]/50 bg-black relative group">
-              <iframe
-                src="https://www.youtube-nocookie.com/embed/ScMzIvxBSi4?rel=0&modestbranding=1&playsinline=1&enablejsapi=1"
-                title="Hon. Umar Yusuf Danmaje Yabo - Plenary Speech"
-                className="w-full h-full border-0"
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                allowFullScreen
-              ></iframe>
+              {isPlayingInline && featuredVideo.videoUrl ? (
+                <iframe
+                  src={getYouTubeEmbedUrl(featuredVideo.videoUrl, true)}
+                  title={featuredVideo.youtubeTitle || featuredVideo.title}
+                  className="w-full h-full border-0"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowFullScreen
+                ></iframe>
+              ) : (
+                <div
+                  onClick={() => setIsPlayingInline(true)}
+                  className="relative w-full h-full cursor-pointer overflow-hidden group select-none"
+                  title="Click to play video"
+                >
+                  <img
+                    src={resolveMediaThumbnail(featuredVideo)}
+                    alt={featuredVideo.title}
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).src = 'https://img.youtube.com/vi/ScMzIvxBSi4/hqdefault.jpg';
+                    }}
+                  />
+
+                  {/* High Visibility Play Overlay */}
+                  <div className="absolute inset-0 bg-black/40 group-hover:bg-black/20 transition-colors flex items-center justify-center">
+                    <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-gradient-to-tr from-[#C6A15B] to-[#F3DB92] text-[#09291F] flex items-center justify-center shadow-2xl group-hover:scale-110 transition-transform duration-300 border-4 border-white/90">
+                      <Play className="w-8 h-8 sm:w-9 sm:h-9 fill-current ml-1" />
+                    </div>
+                  </div>
+
+                  {/* Video Caption Overlay */}
+                  <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/95 via-black/60 to-transparent p-4 flex items-center justify-between">
+                    <div className="min-w-0 pr-3">
+                      <p className="text-white font-bold text-xs sm:text-sm truncate">
+                        {featuredVideo.youtubeTitle || featuredVideo.title}
+                      </p>
+                      <span className="text-[11px] text-[#D4AF37] font-semibold flex items-center gap-1">
+                        <Play className="w-3 h-3 fill-current" /> Click to Play Now
+                      </span>
+                    </div>
+                    <span className="bg-[#103C2E]/90 text-[#D4AF37] border border-[#C6A15B]/30 px-2.5 py-1 rounded text-[10px] font-bold shrink-0">
+                      Official HD
+                    </span>
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* In-Website YouTube Interaction Toolbar (Views, Likes, Comments) */}
@@ -720,7 +777,7 @@ export const Home: React.FC<Props> = ({
                 {/* Views */}
                 <div className="flex items-center gap-1.5 text-stone-300 font-medium">
                   <Eye className="w-4 h-4 text-[#D4AF37]" />
-                  <span>14,820 views</span>
+                  <span>{featuredVideo.id === 'gal-vid-1' ? '14,820' : '9,650'} views</span>
                 </div>
 
                 <div className="w-1 h-1 rounded-full bg-stone-600"></div>
@@ -733,7 +790,7 @@ export const Home: React.FC<Props> = ({
                       ? 'bg-[#D4AF37] text-[#09291F] border-[#E5C16C] shadow-sm font-bold'
                       : 'bg-white/5 hover:bg-white/15 text-stone-200 border-white/10'
                   }`}
-                  title="Like this plenary video"
+                  title="Like this video"
                 >
                   <ThumbsUp className={`w-3.5 h-3.5 ${homepageVideoLiked ? 'fill-current' : ''}`} />
                   <span>{homepageLikesCount}</span>
@@ -742,22 +799,20 @@ export const Home: React.FC<Props> = ({
                 {/* Comments Trigger */}
                 <button
                   onClick={() => {
-                    const targetVid = INITIAL_GALLERY.find(g => g.id === 'gal-vid-1') || INITIAL_GALLERY[0];
-                    setActiveVideoTheater(targetVid);
+                    setActiveVideoTheater(featuredVideo);
                   }}
                   className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold bg-white/5 hover:bg-white/15 text-stone-200 border border-white/10 transition cursor-pointer"
                   title="View and post comments"
                 >
                   <MessageSquare className="w-3.5 h-3.5 text-[#C6A15B]" />
-                  <span>28 Comments</span>
+                  <span>Citizen Reactions</span>
                 </button>
               </div>
 
               {/* Theater Mode Action */}
               <button
                 onClick={() => {
-                  const targetVid = INITIAL_GALLERY.find(g => g.id === 'gal-vid-1') || INITIAL_GALLERY[0];
-                  setActiveVideoTheater(targetVid);
+                  setActiveVideoTheater(featuredVideo);
                 }}
                 className="text-[11px] font-bold text-[#D4AF37] hover:underline flex items-center gap-1 cursor-pointer"
               >
@@ -870,7 +925,7 @@ export const Home: React.FC<Props> = ({
               <div>
                 <div className="relative aspect-[16/10] overflow-hidden bg-stone-200">
                   <img
-                    src={article.imageUrl}
+                    src={resolveMediaThumbnail(article)}
                     alt={article.title}
                     className="w-full h-full object-cover group-hover:scale-105 transition duration-500"
                     onError={(e) => {
@@ -1367,8 +1422,9 @@ export const Home: React.FC<Props> = ({
       {/* D. INTERACTIVE YOUTUBE VIDEO THEATER (LIKES, VIEWS, COMMENTS) */}
       {activeVideoTheater && (
         <YouTubeVideoTheater
+          key={activeVideoTheater.id}
           video={activeVideoTheater}
-          allVideos={INITIAL_GALLERY.filter(g => g.type === 'video' || !!g.videoUrl)}
+          allVideos={gallery.filter(g => g.type === 'video' || !!g.videoUrl)}
           onSelectVideo={(item) => setActiveVideoTheater(item)}
           onClose={() => setActiveVideoTheater(null)}
         />

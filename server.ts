@@ -4,6 +4,7 @@ import path from 'path';
 import fs from 'fs';
 import { INITIAL_PROJECTS, INITIAL_LEGISLATIVE, INITIAL_PROGRAMS, INITIAL_NEWS, INITIAL_GALLERY, INITIAL_CONTACTS } from './src/data/initialData';
 import { Project, LegislativeRecord, EmpowermentProgram, NewsArticle, GalleryItem, ContactSubmission, ProgramApplication } from './src/types';
+import { sanitizeGalleryList } from './src/utils/youtube';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -20,7 +21,7 @@ async function startServer() {
     legislative: [...INITIAL_LEGISLATIVE],
     programs: [...INITIAL_PROGRAMS],
     news: [...INITIAL_NEWS],
-    gallery: [...INITIAL_GALLERY],
+    gallery: sanitizeGalleryList([...INITIAL_GALLERY]),
     contacts: [...INITIAL_CONTACTS],
     applications: [] as ProgramApplication[],
     stats: {
@@ -138,6 +139,13 @@ async function startServer() {
     const item: GalleryItem = { ...req.body, id: `gal-${Date.now()}` };
     store.gallery.unshift(item);
     res.status(201).json(item);
+  });
+  app.put('/api/gallery/:id', (req, res) => {
+    const { id } = req.params;
+    const index = store.gallery.findIndex(g => g.id === id);
+    if (index === -1) return res.status(404).json({ error: 'Gallery item not found' });
+    store.gallery[index] = { ...store.gallery[index], ...req.body, id };
+    res.json(store.gallery[index]);
   });
   app.delete('/api/gallery/:id', (req, res) => {
     store.gallery = store.gallery.filter(g => g.id !== req.params.id);

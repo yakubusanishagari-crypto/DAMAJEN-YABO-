@@ -249,20 +249,24 @@ export const INITIAL_GALLERY: GalleryItem[] = [
   {
     id: 'gal-vid-1',
     title: 'Plenary Debate: Federal College of Agricultural Technology Yabo Bill',
+    youtubeTitle: 'Plenary Debate: Federal College of Agricultural Technology Yabo Bill',
     type: 'video',
     category: 'National Assembly',
-    imageUrl: '/national_assembly_chamber_1792063300782.jpg',
-    videoUrl: 'https://www.youtube.com/embed/ScMzIvxBSi4',
+    imageUrl: 'https://img.youtube.com/vi/ScMzIvxBSi4/hqdefault.jpg',
+    videoUrl: 'https://www.youtube.com/watch?v=ScMzIvxBSi4',
+    showOnHomepage: true,
     date: '2025-07-19',
     description: 'Hon. Umar Yusuf Danmaje leading the debate during plenary session at the Green Chamber, advocating for agricultural education and research for Sokoto State.'
   },
   {
     id: 'gal-vid-2',
     title: 'Constituency Documentary: Solar Water Project Inspection in Yabo',
+    youtubeTitle: 'Constituency Documentary: Solar Water Project Inspection in Yabo',
     type: 'video',
     category: 'Projects',
-    imageUrl: '/solar_water_project_1792063316637.jpg',
-    videoUrl: 'https://www.youtube.com/embed/ScMzIvxBSi4',
+    imageUrl: 'https://img.youtube.com/vi/M7lc1UVf-VE/hqdefault.jpg',
+    videoUrl: 'https://www.youtube.com/watch?v=M7lc1UVf-VE',
+    showOnHomepage: false,
     date: '2025-08-20',
     description: 'Field report showing the completed motorized solar-powered water schemes serving rural communities in Yabo and Shagari.'
   },
