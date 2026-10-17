@@ -804,6 +804,31 @@ export const AdminDashboard: React.FC<Props> = ({
     }, ...prev]);
   };
 
+  const [editingMedia, setEditingMedia] = useState<GalleryItem | null>(null);
+
+  const handleEditMedia = (item: GalleryItem) => {
+    setEditingMedia(item);
+    setNewMedia({
+      title: item.title,
+      type: (item.type === 'video' || !!item.videoUrl) ? 'video' : 'photo',
+      category: item.category,
+      imageUrl: item.imageUrl || '',
+      videoUrl: item.videoUrl || '',
+      showOnHomepage: item.showOnHomepage || false
+    });
+    setShowAddMedia(true);
+  };
+
+  const handleUpdateMedia = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingMedia) return;
+    const updated = gallery.map(item => item.id === editingMedia.id ? { ...editingMedia, ...newMedia } : item);
+    setGallery(updated);
+    try { localStorage.setItem('danmaje_gallery', JSON.stringify(updated)); } catch {}
+    setEditingMedia(null);
+    setShowAddMedia(false);
+  };
+
   const handleDeleteMedia = async (id: string) => {
     const updated = gallery.filter(g => g.id !== id);
     setGallery(updated);
@@ -1094,7 +1119,7 @@ export const AdminDashboard: React.FC<Props> = ({
 
               {/* Recent Activity Logs */}
               <div className="bg-white rounded-2xl shadow-md border border-gray-200 p-6 space-y-4">
-                <h4 className="font-['Manrope'] font-bold text-lg text-[#103C2E]">Recent Administrative Activity Logs</h4>
+                <h4 className="font-['Manrope'] font-bold text-lg text-[#103C2E]">RECENT ADMINISTRATIVE ACTIVITY LOGS</h4>
                 <div className="space-y-3">
                   {activityLogs.map(log => (
                     <div key={log.id} className="flex items-center justify-between p-3.5 bg-[#FAF9F5] rounded-xl border border-gray-100 text-xs">
@@ -2259,8 +2284,8 @@ export const AdminDashboard: React.FC<Props> = ({
                 <div className="space-y-4">
                   <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
                     <div>
-                      <h4 className="font-bold text-[#103C2E] text-base">Photographs & Embedded Videos ({gallery.length})</h4>
-                      <p className="text-xs text-stone-500">Upload photos directly or embed YouTube videos with automatic authentic thumbnail generation.</p>
+                      <h4 className="font-bold text-[#103C2E] text-base">PHOTOGRAPHS & EMBEDDED VIDEOS ({gallery.length})</h4>
+                      <p className="text-xs text-stone-500">UPLOAD PHOTOS DIRECTLY OR EMBED YOUTUBE VIDEOS WITH AUTOMATIC AUTHENTIC THUMBNAIL GENERATION.</p>
                     </div>
                     <div className="flex items-center gap-2">
                       <button
@@ -2283,9 +2308,9 @@ export const AdminDashboard: React.FC<Props> = ({
                   </div>
 
                   {showAddMedia && (
-                    <form onSubmit={handleCreateMedia} className="bg-white p-6 rounded-2xl shadow-md border border-gray-200 space-y-4">
+                    <form onSubmit={editingMedia ? handleUpdateMedia : handleCreateMedia} className="bg-white p-6 rounded-2xl shadow-md border border-gray-200 space-y-4">
                       <div className="flex justify-between items-center border-b pb-3">
-                        <h4 className="font-bold text-[#103C2E] text-sm">Add Media Record</h4>
+                        <h4 className="font-bold text-[#103C2E] text-sm">{editingMedia ? 'EDIT MEDIA RECORD' : 'ADD MEDIA RECORD'}</h4>
                         {/* Media Type Toggle */}
                         <div className="flex bg-stone-100 p-1 rounded-lg">
                           <button
@@ -2507,7 +2532,7 @@ export const AdminDashboard: React.FC<Props> = ({
                           className="px-6 py-2.5 bg-[#103C2E] hover:bg-[#09291F] text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow transition cursor-pointer"
                         >
                           <Save className="w-4 h-4 text-[#C6A15B]" />
-                          <span>Save Media Record</span>
+                          <span>{editingMedia ? 'Update Media Record' : 'Save Media Record'}</span>
                         </button>
                       </div>
                     </form>
@@ -2592,13 +2617,22 @@ export const AdminDashboard: React.FC<Props> = ({
                               <td className="p-4 text-gray-600">{item.category}</td>
                               <td className="p-4 text-gray-600">{item.date}</td>
                               <td className="p-4 text-right">
-                                <button
-                                  onClick={() => handleDeleteMedia(item.id)}
-                                  className="text-rose-600 hover:text-rose-800 p-1.5 rounded-lg hover:bg-rose-50 transition cursor-pointer"
-                                  title="Delete media item"
-                                >
-                                  <Trash2 className="w-4 h-4" />
-                                </button>
+                                <div className="flex items-center justify-end gap-2">
+                                  <button
+                                    onClick={() => handleEditMedia(item)}
+                                    className="text-[#103C2E] hover:text-[#C6A15B] p-1.5 rounded-lg hover:bg-emerald-50 transition cursor-pointer"
+                                    title="Edit media item"
+                                  >
+                                    <Edit className="w-4 h-4" />
+                                  </button>
+                                  <button
+                                    onClick={() => handleDeleteMedia(item.id)}
+                                    className="text-rose-600 hover:text-rose-800 p-1.5 rounded-lg hover:bg-rose-50 transition cursor-pointer"
+                                    title="Delete media item"
+                                  >
+                                    <Trash2 className="w-4 h-4" />
+                                  </button>
+                                </div>
                               </td>
                             </tr>
                           );
