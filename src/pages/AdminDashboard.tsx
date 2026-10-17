@@ -1052,13 +1052,13 @@ export const AdminDashboard: React.FC<Props> = ({
                   <span className="text-[11px] text-emerald-600 font-semibold">Active constituency records</span>
                 </div>
 
-                <div className="bg-white p-6 rounded-2xl shadow-md border border-gray-200 space-y-2">
+                <div className="bg-white p-6 rounded-3xl shadow-sm border border-emerald-100/50 hover:shadow-md transition-all duration-300 space-y-2">
                   <div className="flex justify-between items-center">
-                    <span className="text-xs font-bold text-[#6B716D]">News & Press Releases</span>
+                    <span className="text-xs font-bold text-emerald-900 uppercase tracking-wider">News & Press Releases</span>
                     <FileText className="w-5 h-5 text-[#C6A15B]" />
                   </div>
-                  <div className="text-3xl font-extrabold font-['Manrope'] text-[#103C2E]">{news.length}</div>
-                  <span className="text-[11px] text-emerald-600 font-semibold">Published articles</span>
+                  <div className="text-4xl font-extrabold font-['Manrope'] text-[#103C2E] tracking-tight">{news.length}</div>
+                  <span className="text-[11px] text-emerald-700/70 font-semibold">Published articles</span>
                 </div>
 
                 <div className="bg-white p-6 rounded-2xl shadow-md border border-gray-200 space-y-2">
