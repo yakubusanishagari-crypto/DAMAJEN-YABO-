@@ -321,10 +321,10 @@ export const EmpowermentPage: React.FC<Props> = ({
           <div className="flex flex-wrap items-center gap-3 pt-2">
             <button
               onClick={() => setActiveMainTab('programs')}
-              className={`px-6 py-3 rounded-xl text-xs sm:text-sm font-black transition-all cursor-pointer shadow-sm uppercase tracking-wider flex items-center gap-2 ${
+              className={`px-6 py-3.5 rounded-xl text-xs sm:text-sm font-black transition-all cursor-pointer shadow-md uppercase tracking-wider flex items-center gap-2 ${
                 activeMainTab === 'programs'
                   ? 'bg-emerald-600 text-white border border-emerald-400/50 shadow-lg'
-                  : 'bg-white/10 text-white hover:bg-white/20 border border-white/20'
+                  : 'bg-[#0A261E] text-stone-100 hover:bg-[#103C2E] hover:text-[#D4AF37] border border-[#C6A15B]/50'
               }`}
             >
               <Award className="w-4 h-4 text-[#C6A15B]" />
@@ -333,10 +333,10 @@ export const EmpowermentPage: React.FC<Props> = ({
 
             <button
               onClick={() => setActiveMainTab('track')}
-              className={`px-6 py-3 rounded-xl text-xs sm:text-sm font-black transition-all cursor-pointer shadow-sm uppercase tracking-wider flex items-center gap-2 ${
+              className={`px-6 py-3.5 rounded-xl text-xs sm:text-sm font-black transition-all cursor-pointer shadow-md uppercase tracking-wider flex items-center gap-2 ${
                 activeMainTab === 'track'
                   ? 'bg-emerald-600 text-white border border-emerald-400/50 shadow-lg'
-                  : 'bg-white/10 text-white hover:bg-white/20 border border-white/20'
+                  : 'bg-[#0A261E] text-stone-100 hover:bg-[#103C2E] hover:text-[#D4AF37] border border-[#C6A15B]/50'
               }`}
             >
               <Search className="w-4 h-4 text-[#C6A15B]" />
@@ -377,9 +377,9 @@ export const EmpowermentPage: React.FC<Props> = ({
 
             <button
               onClick={() => setActiveMainTab('track')}
-              className="text-xs font-bold text-[#103C2E] hover:text-[#09291F] flex items-center gap-1.5 underline cursor-pointer uppercase tracking-wider"
+              className="bg-emerald-50 hover:bg-emerald-100 text-[#103C2E] border border-emerald-300 px-4 py-2.5 rounded-xl text-xs font-bold flex items-center gap-2 shadow-xs transition cursor-pointer uppercase tracking-wider"
             >
-              <span>Already applied? Track your submission here</span>
+              <span>ALREADY APPLIED? TRACK YOUR SUBMISSION HERE</span>
               <ArrowRight className="w-3.5 h-3.5 text-[#C6A15B]" />
             </button>
           </div>
@@ -500,7 +500,7 @@ export const EmpowermentPage: React.FC<Props> = ({
               </div>
               <button 
                 onClick={() => setSelectedProgram(null)} 
-                className="text-stone-300 hover:text-white p-2 rounded-xl hover:bg-white/10 transition cursor-pointer"
+                className="bg-rose-950/60 hover:bg-rose-900 text-rose-200 border border-rose-700/50 p-2 rounded-xl transition cursor-pointer shadow-sm"
                 aria-label="Close modal"
               >
                 <X className="w-6 h-6" />
@@ -940,7 +940,7 @@ export const EmpowermentPage: React.FC<Props> = ({
                         <button
                           type="button"
                           onClick={() => handleAddSampleDoc('National ID', 'NIN Slip')}
-                          className="text-stone-600 hover:text-[#103C2E] border border-stone-200 bg-stone-50 px-3 py-2 rounded-xl text-xs font-bold cursor-pointer transition uppercase"
+                          className="text-[#103C2E] border border-emerald-300 bg-emerald-50 hover:bg-emerald-100 px-3 py-2 rounded-xl text-xs font-bold cursor-pointer transition uppercase shadow-xs"
                         >
                           + ATTACH VERIFIED SAMPLE NIN
                         </button>
@@ -998,7 +998,7 @@ export const EmpowermentPage: React.FC<Props> = ({
                         <button
                           type="button"
                           onClick={() => handleAddSampleDoc('Indigene Certificate', 'Indigene Certificate')}
-                          className="text-stone-600 hover:text-[#103C2E] border border-stone-200 bg-stone-50 px-3 py-2 rounded-xl text-xs font-bold cursor-pointer transition uppercase"
+                          className="text-[#103C2E] border border-emerald-300 bg-emerald-50 hover:bg-emerald-100 px-3 py-2 rounded-xl text-xs font-bold cursor-pointer transition uppercase shadow-xs"
                         >
                           + ATTACH VERIFIED SAMPLE INDIGENE CERTIFICATE
                         </button>
@@ -1056,7 +1056,7 @@ export const EmpowermentPage: React.FC<Props> = ({
                         <button
                           type="button"
                           onClick={() => handleAddSampleDoc('Educational Credential', 'Credential')}
-                          className="text-stone-600 hover:text-[#103C2E] border border-stone-200 bg-stone-50 px-3 py-2 rounded-xl text-xs font-bold cursor-pointer transition uppercase"
+                          className="text-[#103C2E] border border-emerald-300 bg-emerald-50 hover:bg-emerald-100 px-3 py-2 rounded-xl text-xs font-bold cursor-pointer transition uppercase shadow-xs"
                         >
                           + ATTACH VERIFIED SAMPLE CREDENTIAL
                         </button>
@@ -1160,9 +1160,9 @@ export const EmpowermentPage: React.FC<Props> = ({
                   <button
                     type="button"
                     onClick={handleSaveDraft}
-                    className="px-4 py-2.5 rounded-xl text-xs font-bold text-stone-600 border border-stone-300 hover:bg-stone-100 transition cursor-pointer flex items-center gap-1 uppercase"
+                    className="px-4 py-2.5 rounded-xl text-xs font-bold text-amber-900 bg-amber-50 border border-amber-300 hover:bg-amber-100 transition cursor-pointer flex items-center gap-1 uppercase shadow-xs"
                   >
-                    <Save className="w-3.5 h-3.5" />
+                    <Save className="w-3.5 h-3.5 text-amber-700" />
                     <span>SAVE DRAFT</span>
                   </button>
                 </div>

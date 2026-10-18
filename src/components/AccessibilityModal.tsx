@@ -19,12 +19,12 @@ export const AccessibilityModal: React.FC<Props> = ({ isOpen, onClose, currentLa
         <div className="bg-[#103C2E] text-white p-6 flex items-center justify-between">
           <div className="flex items-center space-x-3 rtl:space-x-reverse">
             <Eye className="w-6 h-6 text-[#C6A15B] shrink-0" />
-            <h3 className="text-xl font-bold font-['Manrope']">
-              {t('accessibility', currentLang, translations)}
+            <h3 className="text-xl font-bold font-['Manrope'] uppercase">
+              {t('accessibility', currentLang, translations).toUpperCase()}
             </h3>
           </div>
-          <button onClick={onClose} className="text-white/80 hover:text-white p-2 cursor-pointer">
-            <X className="w-6 h-6" />
+          <button onClick={onClose} className="bg-[#09291F] hover:bg-rose-700 text-white p-2 rounded-xl border border-[#C6A15B]/40 transition shadow-sm cursor-pointer" title="Close">
+            <X className="w-5 h-5" />
           </button>
         </div>
         <div className="p-6 overflow-y-auto space-y-4 text-[#242824] text-sm leading-relaxed">
@@ -54,8 +54,8 @@ export const AccessibilityModal: React.FC<Props> = ({ isOpen, onClose, currentLa
           </p>
         </div>
         <div className="bg-gray-100 p-4 border-t border-gray-200 flex justify-end">
-          <button onClick={onClose} className="bg-[#103C2E] text-white px-6 py-2 rounded-xl font-bold text-xs hover:bg-[#09291F] transition cursor-pointer">
-            {t('closeBtn', currentLang, translations)}
+          <button onClick={onClose} className="bg-[#103C2E] text-white px-6 py-2 rounded-xl font-bold text-xs hover:bg-[#09291F] transition cursor-pointer uppercase tracking-wider">
+            {t('closeBtn', currentLang, translations).toUpperCase()}
           </button>
         </div>
       </div>

@@ -219,7 +219,7 @@ export const Navbar: React.FC<Props> = ({
           <div className="relative">
             <button
               onClick={() => setLangDropdownOpen(!langDropdownOpen)}
-              className="flex items-center gap-1.5 bg-white/10 hover:bg-white/20 text-white px-3 py-1.5 rounded-lg text-xs font-bold tracking-wider uppercase transition border border-white/20 cursor-pointer"
+              className="flex items-center gap-1.5 bg-[#09291F] hover:bg-[#061D16] text-[#D4AF37] px-3.5 py-1.5 rounded-xl text-xs font-extrabold tracking-wider uppercase transition border border-[#C6A15B]/50 shadow-md cursor-pointer"
             >
               <Globe className="w-3.5 h-3.5 text-[#C6A15B]" />
               <span>{languages.find(l => l.code === currentLang)?.label}</span>
@@ -258,7 +258,7 @@ export const Navbar: React.FC<Props> = ({
             value={currentLang}
             onChange={(e) => setCurrentLang(e.target.value as Language)}
             aria-label="Select Language"
-            className="bg-white/10 text-white font-bold text-xs px-2 py-1.5 rounded-lg border border-white/20 focus:outline-none"
+            className="bg-[#09291F] text-[#D4AF37] font-extrabold text-xs px-2.5 py-1.5 rounded-xl border border-[#C6A15B]/50 focus:outline-none shadow-sm cursor-pointer"
           >
             <option value="en" className="text-black font-bold">EN</option>
             <option value="ha" className="text-black font-bold">HA</option>
@@ -267,7 +267,7 @@ export const Navbar: React.FC<Props> = ({
 
           <button
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="text-white p-2 rounded-lg hover:bg-white/10 focus:outline-none cursor-pointer"
+            className="bg-[#09291F] hover:bg-[#061D16] text-[#D4AF37] p-2 rounded-xl border border-[#C6A15B]/40 focus:outline-none cursor-pointer shadow-sm"
             aria-label="Toggle navigation menu"
           >
             {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}

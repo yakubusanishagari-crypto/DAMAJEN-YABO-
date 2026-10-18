@@ -179,9 +179,9 @@ export const NewsPage: React.FC<Props> = ({
               </div>
               <button
                 onClick={() => setActiveArticle(article)}
-                className="text-[#103C2E] font-bold text-xs flex items-center gap-1 hover:text-[#C6A15B] transition pt-2 border-t border-stone-100 cursor-pointer"
+                className="w-full bg-[#103C2E] hover:bg-[#09291F] active:scale-[0.98] text-white py-2.5 px-4 rounded-xl font-bold text-xs transition-all shadow-xs flex items-center justify-center gap-1.5 cursor-pointer uppercase tracking-wider border border-[#C6A15B]/30"
               >
-                <span>{t('readMore', currentLang, translations)}</span> 
+                <span>{t('readMore', currentLang, translations).toUpperCase()}</span> 
                 <ArrowRight className={`w-3.5 h-3.5 text-[#C6A15B] ${isRtl ? 'rotate-180' : ''}`} />
               </button>
             </div>

@@ -669,9 +669,9 @@ export const Home: React.FC<Props> = ({
               <div className="pt-2">
                 <button
                   onClick={() => setActiveLegItem(item)}
-                  className="text-xs font-bold text-[#103C2E] hover:text-[#C6A15B] transition-colors flex items-center gap-1 cursor-pointer"
+                  className="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 bg-emerald-50 hover:bg-[#103C2E] text-[#103C2E] hover:text-white border border-emerald-300 hover:border-[#103C2E] px-4 py-2 rounded-xl font-bold text-xs shadow-xs transition-all uppercase tracking-wider cursor-pointer"
                 >
-                  <span>Track Bill Progress & Gazette Details</span>
+                  <span>TRACK BILL PROGRESS & GAZETTE</span>
                   <ChevronRight className="w-4 h-4" />
                 </button>
               </div>
@@ -712,9 +712,9 @@ export const Home: React.FC<Props> = ({
 
               <button
                 onClick={() => navigateTo('gallery')}
-                className="bg-white/10 hover:bg-white/20 active:scale-[0.98] text-white font-semibold px-5 py-3 rounded-xl transition-all flex items-center gap-2 text-xs sm:text-sm cursor-pointer border border-white/20"
+                className="bg-[#0A261E] hover:bg-[#103C2E] active:scale-[0.98] text-[#D4AF37] font-bold px-6 py-3 rounded-xl transition-all flex items-center gap-2 text-xs sm:text-sm cursor-pointer border border-[#C6A15B]/50 shadow-md uppercase tracking-wider"
               >
-                <span>Media Archive</span>
+                <span>{t('media', currentLang, translations).toUpperCase()}</span>
                 <ArrowRight className="w-4 h-4" />
               </button>
             </div>
@@ -785,10 +785,10 @@ export const Home: React.FC<Props> = ({
                 {/* Like Button */}
                 <button
                   onClick={toggleHomepageLike}
-                  className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold transition cursor-pointer border ${
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer border shadow-sm ${
                     homepageVideoLiked
-                      ? 'bg-[#D4AF37] text-[#09291F] border-[#E5C16C] shadow-sm font-bold'
-                      : 'bg-white/5 hover:bg-white/15 text-stone-200 border-white/10'
+                      ? 'bg-[#D4AF37] text-[#09291F] border-[#E5C16C] shadow-md'
+                      : 'bg-[#0A261E] hover:bg-[#103C2E] text-stone-100 border-[#C6A15B]/40'
                   }`}
                   title="Like this video"
                 >
@@ -801,7 +801,7 @@ export const Home: React.FC<Props> = ({
                   onClick={() => {
                     setActiveVideoTheater(featuredVideo);
                   }}
-                  className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold bg-white/5 hover:bg-white/15 text-stone-200 border border-white/10 transition cursor-pointer"
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-[#0A261E] hover:bg-[#103C2E] text-[#D4AF37] border border-[#C6A15B]/50 transition cursor-pointer shadow-sm"
                   title="View and post comments"
                 >
                   <MessageSquare className="w-3.5 h-3.5 text-[#C6A15B]" />
@@ -885,9 +885,9 @@ export const Home: React.FC<Props> = ({
 
                   <button
                     onClick={() => navigateTo('empowerment')}
-                    className="text-xs font-bold text-stone-600 hover:text-[#103C2E] py-2 px-3 transition"
+                    className="bg-amber-50 hover:bg-[#D4AF37] text-amber-950 hover:text-[#09291F] border border-amber-300 px-4 py-3 rounded-xl text-xs font-bold shadow-xs transition-all uppercase tracking-wider cursor-pointer"
                   >
-                    View Guidelines
+                    VIEW GUIDELINES
                   </button>
                 </div>
               </div>
@@ -962,10 +962,10 @@ export const Home: React.FC<Props> = ({
               <div className="px-6 pb-6 pt-2">
                 <button
                   onClick={() => setActiveNews(article)}
-                  className="w-full bg-[#103C2E]/10 hover:bg-[#103C2E] hover:text-white text-[#103C2E] py-3 rounded-xl font-bold text-xs transition-colors text-center flex items-center justify-center gap-1.5 cursor-pointer"
+                  className="w-full bg-gradient-to-r from-[#103C2E] to-[#0A261E] hover:from-[#09291F] hover:to-[#061D16] text-white py-3 rounded-xl font-bold text-xs transition-all shadow-md text-center flex items-center justify-center gap-1.5 cursor-pointer uppercase tracking-wider border border-[#C6A15B]/40"
                 >
-                  <span>{t('readMore', currentLang, translations)}</span>
-                  <ChevronRight className="w-3.5 h-3.5" />
+                  <span>{t('readMore', currentLang, translations).toUpperCase()}</span>
+                  <ChevronRight className="w-3.5 h-3.5 text-[#C6A15B]" />
                 </button>
               </div>
             </div>
@@ -996,9 +996,9 @@ export const Home: React.FC<Props> = ({
               </button>
               <button
                 onClick={() => navigateTo('empowerment')}
-                className="bg-white/10 hover:bg-white/20 active:scale-[0.98] text-white font-bold px-8 py-4 rounded-xl transition-all transform hover:-translate-y-0.5 text-sm sm:text-base border border-white/30 backdrop-blur-md cursor-pointer"
+                className="bg-[#103C2E] hover:bg-[#09291F] active:scale-[0.98] text-[#D4AF37] font-extrabold px-8 py-4 rounded-xl shadow-xl transition-all transform hover:-translate-y-0.5 text-sm sm:text-base border border-[#C6A15B]/60 cursor-pointer uppercase tracking-wider"
               >
-                <span>{t('applyEmpowermentBtn', currentLang, translations)}</span>
+                <span>{t('applyEmpowermentBtn', currentLang, translations).toUpperCase()}</span>
               </button>
             </div>
           </div>
@@ -1087,23 +1087,23 @@ export const Home: React.FC<Props> = ({
               )}
             </div>
 
-            <div className="p-4 sm:p-6 bg-stone-50 border-t border-stone-200 flex justify-between items-center">
+            <div className="p-4 sm:p-6 bg-stone-50 border-t border-stone-200 flex flex-wrap justify-between items-center gap-3">
               <button
                 onClick={() => {
                   setActiveProject(null);
                   navigateTo('projects');
                 }}
-                className="text-xs font-bold text-[#103C2E] hover:text-[#C6A15B] transition flex items-center gap-1 cursor-pointer"
+                className="bg-[#C6A15B] hover:bg-[#b59048] text-[#09291F] px-4 py-2.5 rounded-xl font-bold text-xs shadow-xs transition flex items-center gap-1.5 cursor-pointer uppercase tracking-wider border border-[#E5C16C]"
               >
-                <span>View Full Projects Directory</span>
+                <span>VIEW FULL PROJECTS DIRECTORY</span>
                 <ChevronRight className="w-4 h-4" />
               </button>
 
               <button
                 onClick={() => setActiveProject(null)}
-                className="bg-[#103C2E] hover:bg-[#09291F] text-white px-5 py-2.5 rounded-xl font-bold text-xs transition cursor-pointer"
+                className="bg-[#103C2E] hover:bg-[#09291F] text-white px-5 py-2.5 rounded-xl font-bold text-xs transition cursor-pointer uppercase tracking-wider"
               >
-                Close Preview
+                CLOSE PREVIEW
               </button>
             </div>
           </div>
@@ -1150,23 +1150,23 @@ export const Home: React.FC<Props> = ({
               </div>
             </div>
 
-            <div className="p-4 sm:p-6 bg-stone-50 border-t border-stone-200 flex justify-between items-center">
+            <div className="p-4 sm:p-6 bg-stone-50 border-t border-stone-200 flex flex-wrap justify-between items-center gap-3">
               <button
                 onClick={() => {
                   setActiveNews(null);
                   navigateTo('news');
                 }}
-                className="text-xs font-bold text-[#103C2E] hover:text-[#C6A15B] transition flex items-center gap-1 cursor-pointer"
+                className="bg-[#C6A15B] hover:bg-[#b59048] text-[#09291F] px-4 py-2.5 rounded-xl font-bold text-xs shadow-xs transition flex items-center gap-1.5 cursor-pointer uppercase tracking-wider border border-[#E5C16C]"
               >
-                <span>View News & Press Hub</span>
+                <span>VIEW NEWS & PRESS HUB</span>
                 <ChevronRight className="w-4 h-4" />
               </button>
 
               <button
                 onClick={() => setActiveNews(null)}
-                className="bg-[#103C2E] hover:bg-[#09291F] text-white px-5 py-2.5 rounded-xl font-bold text-xs transition cursor-pointer"
+                className="bg-[#103C2E] hover:bg-[#09291F] text-white px-5 py-2.5 rounded-xl font-bold text-xs transition cursor-pointer uppercase tracking-wider"
               >
-                Close Article
+                CLOSE ARTICLE
               </button>
             </div>
           </div>
@@ -1222,23 +1222,23 @@ export const Home: React.FC<Props> = ({
               )}
             </div>
 
-            <div className="p-4 sm:p-6 bg-stone-50 border-t border-stone-200 flex justify-between items-center">
+            <div className="p-4 sm:p-6 bg-stone-50 border-t border-stone-200 flex flex-wrap justify-between items-center gap-3">
               <button
                 onClick={() => {
                   setActiveLegItem(null);
                   navigateTo('legislative');
                 }}
-                className="text-xs font-bold text-[#103C2E] hover:text-[#C6A15B] transition flex items-center gap-1 cursor-pointer"
+                className="bg-[#C6A15B] hover:bg-[#b59048] text-[#09291F] px-4 py-2.5 rounded-xl font-bold text-xs shadow-xs transition flex items-center gap-1.5 cursor-pointer uppercase tracking-wider border border-[#E5C16C]"
               >
-                <span>Full Legislative Tracker</span>
+                <span>FULL LEGISLATIVE TRACKER</span>
                 <ChevronRight className="w-4 h-4" />
               </button>
 
               <button
                 onClick={() => setActiveLegItem(null)}
-                className="bg-[#103C2E] hover:bg-[#09291F] text-white px-5 py-2.5 rounded-xl font-bold text-xs transition cursor-pointer"
+                className="bg-[#103C2E] hover:bg-[#09291F] text-white px-5 py-2.5 rounded-xl font-bold text-xs transition cursor-pointer uppercase tracking-wider"
               >
-                Close
+                CLOSE
               </button>
             </div>
           </div>

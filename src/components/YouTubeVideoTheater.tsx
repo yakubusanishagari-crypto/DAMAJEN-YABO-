@@ -206,19 +206,19 @@ export const YouTubeVideoTheater: React.FC<Props> = ({
           <div className="flex items-center gap-2">
             <button
               onClick={handleShare}
-              className="bg-white/10 hover:bg-white/20 text-white px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 cursor-pointer"
+              className="bg-[#0A261E] hover:bg-[#103C2E] text-[#D4AF37] border border-[#C6A15B]/60 px-3.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-sm cursor-pointer"
               title="Share video"
             >
               {copied ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Share2 className="w-3.5 h-3.5 text-[#D4AF37]" />}
-              <span>{copied ? 'Link Copied!' : 'Share'}</span>
+              <span>{copied ? 'LINK COPIED!' : 'SHARE'}</span>
             </button>
 
             <button
               onClick={onClose}
-              className="text-white/80 hover:text-white p-1.5 rounded-full hover:bg-white/10 transition cursor-pointer"
+              className="bg-rose-950/60 hover:bg-rose-900 text-rose-200 border border-rose-700/50 p-2 rounded-xl transition cursor-pointer shadow-sm"
               aria-label="Close video player"
             >
-              <X className="w-6 h-6" />
+              <X className="w-5 h-5" />
             </button>
           </div>
         </div>
@@ -292,10 +292,10 @@ export const YouTubeVideoTheater: React.FC<Props> = ({
               <div className="flex items-center gap-2">
                 <button
                   onClick={handleToggleLike}
-                  className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition shadow-sm cursor-pointer border ${
+                  className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition shadow-sm cursor-pointer border ${
                     hasLiked 
                       ? 'bg-[#D4AF37] text-[#09291F] border-[#E5C16C] shadow-lg scale-105' 
-                      : 'bg-white/10 text-white hover:bg-white/20 border-white/20'
+                      : 'bg-[#0E3529] text-stone-100 hover:bg-[#154636] hover:text-[#D4AF37] border-[#C6A15B]/50'
                   }`}
                   aria-label="Like video"
                 >
@@ -305,10 +305,10 @@ export const YouTubeVideoTheater: React.FC<Props> = ({
 
                 <button
                   onClick={handleShare}
-                  className="flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold bg-white/10 hover:bg-white/20 text-white border border-white/20 transition cursor-pointer"
+                  className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold bg-[#0E3529] hover:bg-[#154636] text-[#D4AF37] border border-[#C6A15B]/50 shadow-sm transition cursor-pointer"
                 >
                   <Share2 className="w-4 h-4 text-[#D4AF37]" />
-                  <span>Share</span>
+                  <span>SHARE</span>
                 </button>
               </div>
             </div>

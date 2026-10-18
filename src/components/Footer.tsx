@@ -208,45 +208,45 @@ export const Footer: React.FC<Props> = ({ setCurrentTab, currentLang, translatio
             </h4>
             <ul className="space-y-2 text-xs sm:text-sm text-stone-300">
               <li>
-                <button onClick={() => navigateTo('home')} className="hover:text-[#D4AF37] transition flex items-center gap-1.5 cursor-pointer">
+                <button onClick={() => navigateTo('home')} className="hover:text-[#D4AF37] transition flex items-center gap-1.5 cursor-pointer uppercase text-xs font-semibold">
                   <ChevronRight className="w-3.5 h-3.5 text-[#C6A15B] shrink-0" />
-                  <span>{t('home', currentLang, translations)}</span>
+                  <span>{t('home', currentLang, translations).toUpperCase()}</span>
                 </button>
               </li>
               <li>
-                <button onClick={() => navigateTo('biography')} className="hover:text-[#D4AF37] transition flex items-center gap-1.5 cursor-pointer">
+                <button onClick={() => navigateTo('biography')} className="hover:text-[#D4AF37] transition flex items-center gap-1.5 cursor-pointer uppercase text-xs font-semibold">
                   <ChevronRight className="w-3.5 h-3.5 text-[#C6A15B] shrink-0" />
-                  <span>{t('biography', currentLang, translations)}</span>
+                  <span>{t('biography', currentLang, translations).toUpperCase()}</span>
                 </button>
               </li>
               <li>
-                <button onClick={() => navigateTo('projects')} className="hover:text-[#D4AF37] transition flex items-center gap-1.5 cursor-pointer">
+                <button onClick={() => navigateTo('projects')} className="hover:text-[#D4AF37] transition flex items-center gap-1.5 cursor-pointer uppercase text-xs font-semibold">
                   <ChevronRight className="w-3.5 h-3.5 text-[#C6A15B] shrink-0" />
-                  <span>{t('projects', currentLang, translations)}</span>
+                  <span>{t('projects', currentLang, translations).toUpperCase()}</span>
                 </button>
               </li>
               <li>
-                <button onClick={() => navigateTo('legislative')} className="hover:text-[#D4AF37] transition flex items-center gap-1.5 cursor-pointer">
+                <button onClick={() => navigateTo('legislative')} className="hover:text-[#D4AF37] transition flex items-center gap-1.5 cursor-pointer uppercase text-xs font-semibold">
                   <ChevronRight className="w-3.5 h-3.5 text-[#C6A15B] shrink-0" />
-                  <span>{t('legislative', currentLang, translations)}</span>
+                  <span>{t('legislative', currentLang, translations).toUpperCase()}</span>
                 </button>
               </li>
               <li>
-                <button onClick={() => navigateTo('empowerment')} className="hover:text-[#D4AF37] transition flex items-center gap-1.5 cursor-pointer">
+                <button onClick={() => navigateTo('empowerment')} className="hover:text-[#D4AF37] transition flex items-center gap-1.5 cursor-pointer uppercase text-xs font-semibold">
                   <ChevronRight className="w-3.5 h-3.5 text-[#C6A15B] shrink-0" />
-                  <span>{t('empowerment', currentLang, translations)}</span>
+                  <span>{t('empowerment', currentLang, translations).toUpperCase()}</span>
                 </button>
               </li>
               <li>
-                <button onClick={() => navigateTo('gallery')} className="hover:text-[#D4AF37] transition flex items-center gap-1.5 cursor-pointer">
+                <button onClick={() => navigateTo('gallery')} className="hover:text-[#D4AF37] transition flex items-center gap-1.5 cursor-pointer uppercase text-xs font-semibold">
                   <ChevronRight className="w-3.5 h-3.5 text-[#C6A15B] shrink-0" />
-                  <span>{t('media', currentLang, translations)}</span>
+                  <span>{t('media', currentLang, translations).toUpperCase()}</span>
                 </button>
               </li>
               <li>
-                <button onClick={() => navigateTo('news')} className="hover:text-[#D4AF37] transition flex items-center gap-1.5 cursor-pointer">
+                <button onClick={() => navigateTo('news')} className="hover:text-[#D4AF37] transition flex items-center gap-1.5 cursor-pointer uppercase text-xs font-semibold">
                   <ChevronRight className="w-3.5 h-3.5 text-[#C6A15B] shrink-0" />
-                  <span>{t('news', currentLang, translations)}</span>
+                  <span>{t('news', currentLang, translations).toUpperCase()}</span>
                 </button>
               </li>
             </ul>
@@ -339,17 +339,18 @@ export const Footer: React.FC<Props> = ({ setCurrentTab, currentLang, translatio
             © {new Date().getFullYear()} {currentLang === 'ha' ? 'Ofishin Hon. Umar Yusuf (Danmaje Yabo). Duk Hakkoki a Tsare.' : currentLang === 'ar' ? 'مكتب النائب عمر يوسف (دانماجي يابو). جميع الحقوق محفوظة.' : 'Office of Hon. Umar Yusuf (Danmaje Yabo). All Rights Reserved.'}
           </div>
           <div className="flex flex-wrap items-center gap-4 sm:gap-6">
-            <button onClick={() => navigateTo('privacy')} className="hover:text-[#D4AF37] transition cursor-pointer font-medium">
-              {t('privacyPolicy', currentLang, translations)}
+            <button onClick={() => navigateTo('privacy')} className="hover:text-[#D4AF37] transition cursor-pointer font-bold text-xs uppercase">
+              {t('privacyPolicy', currentLang, translations).toUpperCase()}
             </button>
-            <button onClick={() => navigateTo('terms')} className="hover:text-[#D4AF37] transition cursor-pointer font-medium">
-              {t('termsOfUse', currentLang, translations)}
+            <button onClick={() => navigateTo('terms')} className="hover:text-[#D4AF37] transition cursor-pointer font-bold text-xs uppercase">
+              {t('termsOfUse', currentLang, translations).toUpperCase()}
             </button>
-            <button onClick={() => navigateTo('accessibility')} className="hover:text-[#D4AF37] transition cursor-pointer font-medium">
-              {t('accessibility', currentLang, translations)}
+            <button onClick={() => navigateTo('accessibility')} className="hover:text-[#D4AF37] transition cursor-pointer font-bold text-xs uppercase">
+              {t('accessibility', currentLang, translations).toUpperCase()}
             </button>
-            <button onClick={onOpenAdmin} className="text-white/30 hover:text-white/80 transition text-[10px]" title="Admin Access">
-              <Shield className="w-3.5 h-3.5 inline" />
+            <button onClick={onOpenAdmin} className="bg-[#0A261E] hover:bg-[#103C2E] text-[#D4AF37] px-2.5 py-1.5 rounded-lg border border-[#C6A15B]/30 transition shadow-xs text-xs inline-flex items-center gap-1 cursor-pointer" title="Admin Access">
+              <Shield className="w-3.5 h-3.5 inline text-[#C6A15B]" />
+              <span className="font-bold text-[10px] uppercase">PORTAL ADMIN</span>
             </button>
           </div>
         </div>

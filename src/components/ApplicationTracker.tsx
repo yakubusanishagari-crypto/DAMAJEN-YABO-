@@ -300,9 +300,9 @@ export const ApplicationTracker: React.FC<Props> = ({ applications = [], initial
                 setRefInput('');
                 setPhoneOrEmailInput('');
               }}
-              className="text-stone-500 hover:text-stone-800 text-xs font-bold flex items-center gap-1.5 cursor-pointer"
+              className="bg-stone-100 hover:bg-stone-200 text-stone-700 border border-stone-300 px-4 py-2.5 rounded-xl text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-xs transition uppercase tracking-wider"
             >
-              <RefreshCw className="w-3.5 h-3.5" />
+              <RefreshCw className="w-3.5 h-3.5 text-stone-500" />
               <span>TRACK ANOTHER APPLICATION</span>
             </button>
 
