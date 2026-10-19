@@ -155,10 +155,10 @@ export const LegislativePage: React.FC<Props> = ({
 
                 <button
                   onClick={() => setActiveGazette(record)}
-                  className="bg-[#103C2E] hover:bg-[#09291F] text-white px-5 py-2.5 rounded-xl font-bold text-xs flex items-center gap-1.5 shadow transition-all cursor-pointer"
+                  className="bg-[#103C2E] hover:bg-[#09291F] text-white px-5 py-2.5 rounded-xl font-bold text-xs flex items-center gap-1.5 shadow transition-all cursor-pointer uppercase tracking-wider"
                 >
                   <FileText className="w-4 h-4 text-[#C6A15B]" /> 
-                  <span>{currentLang === 'ha' ? 'Duba Kundin Doka' : currentLang === 'ar' ? 'عرض وثيقة الجريدة' : 'View Gazette Docket'}</span>
+                  <span>{currentLang === 'ha' ? 'DUBA KUNDIN DOKA' : currentLang === 'ar' ? 'عرض وثيقة الجريدة' : 'VIEW GAZETTE DOCKET'}</span>
                 </button>
               </div>
 
@@ -313,17 +313,17 @@ export const LegislativePage: React.FC<Props> = ({
                   a.click();
                   URL.revokeObjectURL(url);
                 }}
-                className="bg-[#C6A15B] hover:bg-[#b59048] text-[#09291F] font-bold px-4 py-2 rounded-xl text-xs flex items-center gap-1.5 shadow cursor-pointer"
+                className="bg-[#C6A15B] hover:bg-[#b59048] text-[#09291F] font-bold px-4 py-2 rounded-xl text-xs flex items-center gap-1.5 shadow cursor-pointer uppercase tracking-wider"
               >
                 <Download className="w-4 h-4" /> 
-                <span>{currentLang === 'ha' ? 'Sauke Takardar Doka' : currentLang === 'ar' ? 'تحميل الوثيقة الرسمية' : 'Download Official Record'}</span>
+                <span>{currentLang === 'ha' ? 'SAUKE TAKARDAR DOKA' : currentLang === 'ar' ? 'تحميل الوثيقة الرسمية' : 'DOWNLOAD OFFICIAL RECORD'}</span>
               </button>
 
               <button
                 onClick={() => setActiveGazette(null)}
-                className="bg-[#103C2E] text-white px-5 py-2 rounded-xl font-bold text-xs hover:bg-[#09291F] transition cursor-pointer ml-auto"
+                className="bg-[#103C2E] text-white px-5 py-2 rounded-xl font-bold text-xs hover:bg-[#09291F] transition cursor-pointer ml-auto uppercase tracking-wider"
               >
-                {t('closeBtn', currentLang, translations)}
+                {t('closeBtn', currentLang, translations).toUpperCase()}
               </button>
             </div>
           </div>

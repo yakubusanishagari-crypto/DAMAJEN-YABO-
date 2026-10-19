@@ -20,16 +20,7 @@ export const Footer: React.FC<Props> = ({ setCurrentTab, currentLang, translatio
   const [privacyOpen, setPrivacyOpen] = useState(false);
   const [termsOpen, setTermsOpen] = useState(false);
   const [accessibilityOpen, setAccessibilityOpen] = useState(false);
-  const [secretClicks, setSecretClicks] = useState(0);
 
-  const handleSecretAdminTrigger = () => {
-    const next = secretClicks + 1;
-    setSecretClicks(next);
-    if (next >= 3) {
-      setSecretClicks(0);
-      onOpenAdmin();
-    }
-  };
 
   const navigateTo = (tab: string) => {
     setCurrentTab(tab);
@@ -71,24 +62,25 @@ export const Footer: React.FC<Props> = ({ setCurrentTab, currentLang, translatio
               href="https://wa.me/2348000000000?text=Hello%20Hon.%20Umar%20Yusuf%20Danmaje%20Yabo,%20I%20am%20contacting%20from%20Yabo/Shagari%20Constituency."
               target="_blank"
               rel="noopener noreferrer"
-              className="group bg-[#0B2A20] hover:bg-[#0F362A] p-4 sm:p-5 rounded-2xl border border-[#25D366]/30 hover:border-[#25D366] transition-all duration-300 shadow-md hover:shadow-xl hover:-translate-y-1 flex items-start gap-4 cursor-pointer"
+              className="group bg-[#08241B] hover:bg-[#0D3629] p-4 sm:p-5 rounded-2xl border border-[#C6A15B]/30 hover:border-[#D4AF37] focus:outline-hidden focus-visible:ring-2 focus-visible:ring-[#C6A15B] transition-all duration-300 shadow-md hover:shadow-xl active:scale-[0.985] flex items-center gap-3.5 cursor-pointer min-h-[108px]"
+              title="Official WhatsApp Liaison Desk"
             >
-              <div className="w-12 h-12 rounded-xl bg-[#25D366] text-white flex items-center justify-center shadow-md group-hover:scale-110 transition-transform shrink-0">
+              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[#103C2E] to-[#061D16] border border-[#25D366]/40 text-[#25D366] flex items-center justify-center shadow-md group-hover:scale-105 group-hover:border-[#25D366] transition-all duration-300 shrink-0">
                 <MessageCircle className="w-6 h-6 fill-current" />
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center justify-between gap-1">
-                  <h4 className="font-['Manrope'] font-bold text-white text-sm group-hover:text-[#25D366] transition-colors truncate">
-                    {t('footerWhatsappTitle', currentLang, translations)}
+                  <h4 className="font-['Manrope'] font-bold text-white text-xs sm:text-sm group-hover:text-[#D4AF37] transition-colors truncate uppercase tracking-wider">
+                    {t('footerWhatsappTitle', currentLang, translations).toUpperCase()}
                   </h4>
-                  <span className="inline-block w-2 h-2 rounded-full bg-[#25D366]"></span>
+                  <span className="inline-block w-2 h-2 rounded-full bg-[#25D366] shadow-xs shrink-0"></span>
                 </div>
-                <p className="text-xs text-stone-300 font-light mt-0.5 leading-snug">
+                <p className="text-xs text-stone-300 font-normal mt-0.5 leading-snug line-clamp-1">
                   {t('footerWhatsappSubtitle', currentLang, translations)}
                 </p>
-                <span className="text-[10px] text-[#25D366] font-semibold mt-2 inline-flex items-center gap-1 group-hover:underline">
-                  <span>Chat on WhatsApp</span>
-                  <ExternalLink className="w-2.5 h-2.5" />
+                <span className="text-[10px] sm:text-[11px] text-[#25D366] font-extrabold uppercase tracking-wider mt-1.5 inline-flex items-center gap-1 group-hover:underline">
+                  <span>CHAT ON WHATSAPP</span>
+                  <ExternalLink className="w-3 h-3" />
                 </span>
               </div>
             </a>
@@ -96,24 +88,25 @@ export const Footer: React.FC<Props> = ({ setCurrentTab, currentLang, translatio
             {/* 2. Media & Speeches Gallery */}
             <button
               onClick={() => navigateTo('gallery')}
-              className="group text-left bg-[#0B2A20] hover:bg-[#0F362A] p-4 sm:p-5 rounded-2xl border border-[#8B5CF6]/30 hover:border-[#A78BFA] transition-all duration-300 shadow-md hover:shadow-xl hover:-translate-y-1 flex items-start gap-4 cursor-pointer"
+              className="group text-left bg-[#08241B] hover:bg-[#0D3629] p-4 sm:p-5 rounded-2xl border border-[#C6A15B]/30 hover:border-[#D4AF37] focus:outline-hidden focus-visible:ring-2 focus-visible:ring-[#C6A15B] transition-all duration-300 shadow-md hover:shadow-xl active:scale-[0.985] flex items-center gap-3.5 cursor-pointer min-h-[108px] w-full"
+              title="Official Media & Gallery Archive"
             >
-              <div className="w-12 h-12 rounded-xl bg-[#8B5CF6] text-white flex items-center justify-center shadow-md group-hover:scale-110 transition-transform shrink-0">
+              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[#103C2E] to-[#061D16] border border-[#C6A15B]/40 text-[#D4AF37] flex items-center justify-center shadow-md group-hover:scale-105 group-hover:border-[#D4AF37] transition-all duration-300 shrink-0">
                 <Film className="w-6 h-6" />
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center justify-between gap-1">
-                  <h4 className="font-['Manrope'] font-bold text-white text-sm group-hover:text-[#A78BFA] transition-colors truncate">
-                    {t('footerGalleryTitle', currentLang, translations)}
+                  <h4 className="font-['Manrope'] font-bold text-white text-xs sm:text-sm group-hover:text-[#D4AF37] transition-colors truncate uppercase tracking-wider">
+                    {t('footerGalleryTitle', currentLang, translations).toUpperCase()}
                   </h4>
-                  <ChevronRight className="w-3.5 h-3.5 text-stone-400 group-hover:text-[#A78BFA] transition-transform group-hover:translate-x-0.5" />
+                  <ChevronRight className="w-3.5 h-3.5 text-[#C6A15B] group-hover:translate-x-0.5 transition-transform shrink-0" />
                 </div>
-                <p className="text-xs text-stone-300 font-light mt-0.5 leading-snug">
+                <p className="text-xs text-stone-300 font-normal mt-0.5 leading-snug line-clamp-1">
                   {t('footerGallerySubtitle', currentLang, translations)}
                 </p>
-                <span className="text-[10px] text-[#A78BFA] font-semibold mt-2 inline-flex items-center gap-1 group-hover:underline">
-                  <span>{currentLang === 'ha' ? 'Duba Hotuna' : currentLang === 'ar' ? 'استعراض المعرض' : 'Browse Archive'}</span>
-                  <ArrowRight className="w-2.5 h-2.5" />
+                <span className="text-[10px] sm:text-[11px] text-[#D4AF37] font-extrabold uppercase tracking-wider mt-1.5 inline-flex items-center gap-1 group-hover:underline">
+                  <span>{currentLang === 'ha' ? 'DUBA HOTUNA' : currentLang === 'ar' ? 'استعراض المعرض' : 'BROWSE ARCHIVE'}</span>
+                  <ArrowRight className="w-3 h-3" />
                 </span>
               </div>
             </button>
@@ -121,24 +114,25 @@ export const Footer: React.FC<Props> = ({ setCurrentTab, currentLang, translatio
             {/* 3. Constituency Capital Projects */}
             <button
               onClick={() => navigateTo('projects')}
-              className="group text-left bg-[#0B2A20] hover:bg-[#0F362A] p-4 sm:p-5 rounded-2xl border border-[#C6A15B]/40 hover:border-[#D4AF37] transition-all duration-300 shadow-md hover:shadow-xl hover:-translate-y-1 flex items-start gap-4 cursor-pointer"
+              className="group text-left bg-[#08241B] hover:bg-[#0D3629] p-4 sm:p-5 rounded-2xl border border-[#C6A15B]/30 hover:border-[#D4AF37] focus:outline-hidden focus-visible:ring-2 focus-visible:ring-[#C6A15B] transition-all duration-300 shadow-md hover:shadow-xl active:scale-[0.985] flex items-center gap-3.5 cursor-pointer min-h-[108px] w-full"
+              title="Track Constituency Capital Projects"
             >
-              <div className="w-12 h-12 rounded-xl bg-[#D4AF37] text-[#09291F] flex items-center justify-center shadow-md group-hover:scale-110 transition-transform shrink-0 font-extrabold">
+              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[#103C2E] to-[#061D16] border border-[#C6A15B]/40 text-[#D4AF37] flex items-center justify-center shadow-md group-hover:scale-105 group-hover:border-[#D4AF37] transition-all duration-300 shrink-0 font-extrabold">
                 <Building2 className="w-6 h-6" />
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center justify-between gap-1">
-                  <h4 className="font-['Manrope'] font-bold text-white text-sm group-hover:text-[#D4AF37] transition-colors truncate">
-                    {t('footerProjectsTitle', currentLang, translations)}
+                  <h4 className="font-['Manrope'] font-bold text-white text-xs sm:text-sm group-hover:text-[#D4AF37] transition-colors truncate uppercase tracking-wider">
+                    {t('footerProjectsTitle', currentLang, translations).toUpperCase()}
                   </h4>
-                  <ChevronRight className="w-3.5 h-3.5 text-stone-400 group-hover:text-[#D4AF37] transition-transform group-hover:translate-x-0.5" />
+                  <ChevronRight className="w-3.5 h-3.5 text-[#C6A15B] group-hover:translate-x-0.5 transition-transform shrink-0" />
                 </div>
-                <p className="text-xs text-stone-300 font-light mt-0.5 leading-snug">
+                <p className="text-xs text-stone-300 font-normal mt-0.5 leading-snug line-clamp-1">
                   {t('footerProjectsSubtitle', currentLang, translations)}
                 </p>
-                <span className="text-[10px] text-[#D4AF37] font-semibold mt-2 inline-flex items-center gap-1 group-hover:underline">
-                  <span>{currentLang === 'ha' ? 'Duba Ayyuka' : currentLang === 'ar' ? 'عرض المشاريع' : 'Track Deliverables'}</span>
-                  <ArrowRight className="w-2.5 h-2.5" />
+                <span className="text-[10px] sm:text-[11px] text-[#D4AF37] font-extrabold uppercase tracking-wider mt-1.5 inline-flex items-center gap-1 group-hover:underline">
+                  <span>{currentLang === 'ha' ? 'DUBA AYYUKA' : currentLang === 'ar' ? 'عرض المشاريع' : 'TRACK DELIVERABLES'}</span>
+                  <ArrowRight className="w-3 h-3" />
                 </span>
               </div>
             </button>
@@ -146,23 +140,25 @@ export const Footer: React.FC<Props> = ({ setCurrentTab, currentLang, translatio
             {/* 4. Official Email Desk */}
             <a
               href="mailto:contact@danmayeyabo.gov.ng"
-              className="group bg-[#0B2A20] hover:bg-[#0F362A] p-4 sm:p-5 rounded-2xl border border-[#2563EB]/40 hover:border-[#60A5FA] transition-all duration-300 shadow-md hover:shadow-xl hover:-translate-y-1 flex items-start gap-4 cursor-pointer"
+              className="group bg-[#08241B] hover:bg-[#0D3629] p-4 sm:p-5 rounded-2xl border border-[#C6A15B]/30 hover:border-[#D4AF37] focus:outline-hidden focus-visible:ring-2 focus-visible:ring-[#C6A15B] transition-all duration-300 shadow-md hover:shadow-xl active:scale-[0.985] flex items-center gap-3.5 cursor-pointer min-h-[108px]"
+              title="Send Official Correspondence"
             >
-              <div className="w-12 h-12 rounded-xl bg-[#2563EB] text-white flex items-center justify-center shadow-md group-hover:scale-110 transition-transform shrink-0">
+              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[#103C2E] to-[#061D16] border border-[#C6A15B]/40 text-[#D4AF37] flex items-center justify-center shadow-md group-hover:scale-105 group-hover:border-[#D4AF37] transition-all duration-300 shrink-0">
                 <Mail className="w-6 h-6" />
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center justify-between gap-1">
-                  <h4 className="font-['Manrope'] font-bold text-white text-sm group-hover:text-[#60A5FA] transition-colors truncate">
-                    {t('footerEmailTitle', currentLang, translations)}
+                  <h4 className="font-['Manrope'] font-bold text-white text-xs sm:text-sm group-hover:text-[#D4AF37] transition-colors truncate uppercase tracking-wider">
+                    {t('footerEmailTitle', currentLang, translations).toUpperCase()}
                   </h4>
-                  <ExternalLink className="w-3.5 h-3.5 text-stone-400 group-hover:text-[#60A5FA]" />
+                  <ExternalLink className="w-3.5 h-3.5 text-[#C6A15B] group-hover:text-[#D4AF37] shrink-0" />
                 </div>
-                <p className="text-xs text-stone-300 font-light mt-0.5 leading-snug">
+                <p className="text-xs text-stone-300 font-normal mt-0.5 leading-snug line-clamp-1">
                   {t('footerEmailSubtitle', currentLang, translations)}
                 </p>
-                <span className="text-[10px] text-[#60A5FA] font-semibold mt-2 inline-flex items-center gap-1 group-hover:underline">
-                  <span>contact@danmayeyabo.gov.ng</span>
+                <span className="text-[10px] sm:text-[11px] text-[#D4AF37] font-extrabold uppercase tracking-wider mt-1.5 inline-flex items-center gap-1 group-hover:underline truncate">
+                  <span>SEND OFFICIAL EMAIL</span>
+                  <ArrowRight className="w-3 h-3 shrink-0" />
                 </span>
               </div>
             </a>
@@ -335,7 +331,7 @@ export const Footer: React.FC<Props> = ({ setCurrentTab, currentLang, translatio
         {/* 3. BOTTOM LEGAL & COPYRIGHT BAR */}
         {/* ========================================================================= */}
         <div className="pt-8 border-t border-white/10 flex flex-col md:flex-row items-center justify-between text-xs text-stone-400 gap-4">
-          <div onClick={handleSecretAdminTrigger} className="cursor-pointer select-none hover:text-stone-200 transition" title="Official Parliamentary Portal">
+          <div className="select-none text-stone-400 transition" title="Official Parliamentary Portal">
             © {new Date().getFullYear()} {currentLang === 'ha' ? 'Ofishin Hon. Umar Yusuf (Danmaje Yabo). Duk Hakkoki a Tsare.' : currentLang === 'ar' ? 'مكتب النائب عمر يوسف (دانماجي يابو). جميع الحقوق محفوظة.' : 'Office of Hon. Umar Yusuf (Danmaje Yabo). All Rights Reserved.'}
           </div>
           <div className="flex flex-wrap items-center gap-4 sm:gap-6">

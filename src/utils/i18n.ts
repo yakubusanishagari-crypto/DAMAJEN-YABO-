@@ -60,12 +60,12 @@ export const DEFAULT_TRANSLATIONS: Translations = {
     ar: 'اتصال الدائرة'
   },
   exploreProjects: {
-    en: 'Explore Projects',
+    en: 'EXPLORE PROJECTS',
     ha: 'Bincika Ayruka',
     ar: 'استكشاف المشاريع'
   },
   contactOffice: {
-    en: 'Contact the Office',
+    en: 'CONTACT OFFICE',
     ha: 'Tuntubi Ofishin',
     ar: 'اتصل بالمكتب'
   },
@@ -115,22 +115,22 @@ export const DEFAULT_TRANSLATIONS: Translations = {
     ar: 'مجالات التأثير'
   },
   grassrootsTransformation: {
-    en: 'Committed to Grassroots Transformation',
+    en: 'COMMITTED TO GRASSROOTS TRANSFORMATION',
     ha: 'An Sadaukar da Kai Ga Cigaban Al’umma',
     ar: 'ملتزمون بالتحول على مستوى القاعدة الشعبية'
   },
   viewAllProjects: {
-    en: 'View All Projects',
+    en: 'VIEW ALL PROJECTS',
     ha: 'Duba Duk Ayruka',
     ar: 'عرض جميع المشاريع'
   },
   readMore: {
-    en: 'Read Full Article',
+    en: 'READ MORE',
     ha: 'Karanta Cikakken Labari',
     ar: 'قراءة المقال كاملاً'
   },
   submitMessage: {
-    en: 'Submit Official Message',
+    en: 'SUBMIT OFFICIAL MESSAGE',
     ha: 'Aika Sakon Hukumomi',
     ar: 'إرسال رسالة رسمية'
   },
@@ -160,17 +160,17 @@ export const DEFAULT_TRANSLATIONS: Translations = {
     ar: 'البحث عن مشاريع أو أخبار أو كلمات مفتاحية...'
   },
   viewDetails: {
-    en: 'View Project Details',
+    en: 'VIEW PROJECT DETAILS',
     ha: 'Duba Cikakken Aiki',
     ar: 'عرض تفاصيل المشروع'
   },
   applyNow: {
-    en: 'Apply Now',
+    en: 'APPLY NOW',
     ha: 'Neman Wannan Taimako',
     ar: 'قدم الآن'
   },
   citizenEngagementTitle: {
-    en: 'Have an Enquiry or Community Concern?',
+    en: 'HAVE AN ENQUIRY OR COMMUNITY CONCERN?',
     ha: 'Kuna da Tambaya Ko Korafe-Korafe?',
     ar: 'هل لديك استفسار أو مشكلة مجتمعية؟'
   },
@@ -180,12 +180,12 @@ export const DEFAULT_TRANSLATIONS: Translations = {
     ar: 'مكتبنا في أبوجا ومكاتب الاتصال في الدوائر مفتوحة لتلقي الاستفسارات وطلبات المشاريع.'
   },
   submitEnquiryBtn: {
-    en: 'Submit Enquiry / Report Issue',
+    en: 'SUBMIT ENQUIRY / REPORT ISSUE',
     ha: 'Aika Kori Ko Bayar da Rahoto',
     ar: 'إرسال استفسار أو الإبلاغ عن مشكلة'
   },
   applyEmpowermentBtn: {
-    en: 'Apply for Empowerment Programmes',
+    en: 'APPLY FOR EMPOWERMENT PROGRAMMES',
     ha: 'Nemi Shirye-shiryen Karfafawa',
     ar: 'التقدم بطلب لبرامج التمكين'
   },
@@ -195,17 +195,17 @@ export const DEFAULT_TRANSLATIONS: Translations = {
     ar: 'عن النائب'
   },
   aboutBriefSubtitle: {
-    en: 'A Life Dedicated to Public Service and People-Centred Representation',
+    en: 'A LIFE DEDICATED TO PUBLIC SERVICE AND PEOPLE-CENTRED REPRESENTATION',
     ha: 'Rayuwa da Aka Sadaukar Domin Aikin Al\'umma da Wakilci na Gari',
     ar: 'حياة مكرسة للخدمة العامة والتمثيل المرتكز على خدمة الشعب'
   },
   readFullBio: {
-    en: 'Read Full Biography & Profile',
+    en: 'READ FULL BIOGRAPHY & PROFILE',
     ha: 'Karanta Cikakken Tarihin Rayuwa',
     ar: 'قراءة السيرة الذاتية الكاملة'
   },
   legislativeSectionTitle: {
-    en: 'Legislative Work & National Assembly Activities',
+    en: 'LEGISLATIVE WORK & NATIONAL ASSEMBLY ACTIVITIES',
     ha: 'Ayyukan Dokoki a Majalisar Tarayya',
     ar: 'العمل التشريعي وأنشطة الجمعية الوطنية'
   },
@@ -215,12 +215,12 @@ export const DEFAULT_TRANSLATIONS: Translations = {
     ar: 'رعاية مشاريع القوانين المؤثرة وتقديم الملتمسات ذات الأهمية الوطنية العاجلة وتمثيل مصالح يابو وشاغاري.'
   },
   viewAllLegislative: {
-    en: 'Explore Legislative Tracker',
+    en: 'EXPLORE LEGISLATIVE TRACKER',
     ha: 'Duba Jerin Ayyukan Dokoki',
     ar: 'استكشاف سجل التشريعات'
   },
   empowermentSectionTitle: {
-    en: 'Constituency Empowerment & Welfare Initiatives',
+    en: 'CONSTITUENCY EMPOWERMENT & WELFARE INITIATIVES',
     ha: 'Shirye-shiryen Tallafi da Karfafa Al\'umma',
     ar: 'مبادرات التمكين والرعاية الاجتماعية في الدائرة'
   },
@@ -230,7 +230,7 @@ export const DEFAULT_TRANSLATIONS: Translations = {
     ar: 'تدخلات قاعدية مباشرة تستهدف الإنتاجية الزراعية والمهارات الفنية للشباب ومشاريع المرأة.'
   },
   viewAllEmpowerment: {
-    en: 'Explore All Programmes & Apply',
+    en: 'EXPLORE ALL PROGRAMMES & APPLY',
     ha: 'Bincika Duk Shirye-shirye da Neman Shiga',
     ar: 'استكشاف جميع البرامج والتقديم'
   },
@@ -255,12 +255,12 @@ export const DEFAULT_TRANSLATIONS: Translations = {
     ar: 'مشرع مبدئي وإداري عام محنك ومخلص لخدمة المجتمع، مكرس لسن تشريعات تخدم الشعب والنهوض بالقطاع الزراعي والخدمة العامة الخاضعة للمساءلة في جميع الدوائر الـ 22.'
   },
   bioDeliverables: {
-    en: 'View Constituency Deliverables',
+    en: 'VIEW CONSTITUENCY DELIVERABLES',
     ha: 'Duba Ayyukan da aka Bayar',
     ar: 'عرض إنجازات الدائرة'
   },
   contactRep: {
-    en: 'Contact Representative',
+    en: 'CONTACT REPRESENTATIVE',
     ha: 'Tuntubi Wakili',
     ar: 'الاتصال بالنائب'
   },
@@ -578,7 +578,7 @@ export const DEFAULT_TRANSLATIONS: Translations = {
     ar: 'الموقع / الدائرة'
   },
   viewVerifiedRecord: {
-    en: 'View Verified Record',
+    en: 'VIEW VERIFIED RECORD',
     ha: 'Duba Cikakken Rahoto',
     ar: 'عرض السجل الموثق'
   },
@@ -682,7 +682,7 @@ export const DEFAULT_TRANSLATIONS: Translations = {
     ar: 'الوثائق المطلوبة'
   },
   applyForSchemeBtn: {
-    en: 'Apply for this Scheme',
+    en: 'APPLY FOR THIS SCHEME',
     ha: 'Nemi Wannan Tallafin',
     ar: 'التقدم بطلب لهذا البرنامج'
   },
@@ -707,7 +707,7 @@ export const DEFAULT_TRANSLATIONS: Translations = {
     ar: 'كيف سيفيد هذا التدخل التمكيني معيشتك أو مجتمعك؟'
   },
   submitApplicationBtn: {
-    en: 'Submit Verified Application',
+    en: 'SUBMIT VERIFIED APPLICATION',
     ha: 'Aika Cikakkiyar Takarda',
     ar: 'إرسال الطلب المعتمد'
   },
@@ -781,7 +781,7 @@ export const DEFAULT_TRANSLATIONS: Translations = {
     ar: 'انقر لتشغيل الفيديو'
   },
   viewHighResPhoto: {
-    en: 'View High-Res Photo',
+    en: 'VIEW HIGH-RES PHOTO',
     ha: 'Duba Cikakken Hoto Mai Kyau',
     ar: 'عرض الصورة بدقة عالية'
   },
@@ -878,12 +878,12 @@ export const DEFAULT_TRANSLATIONS: Translations = {
     ar: 'شكراً لك! تم استلام رسالتك وتوجيهها إلى مكتب خدمة المواطنين.'
   },
   closeBtn: {
-    en: 'Close',
+    en: 'CLOSE',
     ha: 'Rufe',
     ar: 'إغلاق'
   },
   backToHome: {
-    en: 'Back to Home',
+    en: 'BACK TO HOME',
     ha: 'Koma Gida',
     ar: 'العودة للرئيسية'
   },
@@ -1090,7 +1090,7 @@ export const DEFAULT_TRANSLATIONS: Translations = {
     ar: 'رعاية مشاريع قوانين التنمية الزراعية، وتطوير التعليم الأساسي، وتقديم ملتمسات عاجلة للتدخل الفيدرالي لمكافحة انجراف التربة والسيول في ولاية سوكوتو.'
   },
   impactCardLegBtn: {
-    en: 'View Bills & Motions',
+    en: 'VIEW BILLS & MOTIONS',
     ha: 'Duba Kudurori da Motsi',
     ar: 'عرض القوانين والملتمسات'
   },
@@ -1105,7 +1105,7 @@ export const DEFAULT_TRANSLATIONS: Translations = {
     ar: 'تنفيذ شبكات مياه بالطاقة الشمسية، وتحديث المختبرات العلمية في المدارس، وتوسعة المراكز الصحية، وتمهيد الطرق الزراعية الحيوية.'
   },
   impactCardInfraBtn: {
-    en: 'Explore Project Directory',
+    en: 'EXPLORE PROJECT DIRECTORY',
     ha: 'Bincika Kundin Ayyuka',
     ar: 'استكشاف دليل المشاريع'
   },
@@ -1120,7 +1120,7 @@ export const DEFAULT_TRANSLATIONS: Translations = {
     ar: 'دعم صغار المزارعين بأسمدة الزراعة المروية، وتزويد الشباب بحقائب التكنولوجيا المهنية، وتمويل الجمعيات التعاونية لنساء الريف.'
   },
   impactCardWelfareBtn: {
-    en: 'View Programmes & Apply',
+    en: 'VIEW PROGRAMMES & APPLY',
     ha: 'Duba Shirye-shirye da Neman Shiga',
     ar: 'عرض البرامج والتقديم'
   },
@@ -1147,7 +1147,7 @@ export const DEFAULT_TRANSLATIONS: Translations = {
     ar: 'القطاع:'
   },
   allInterventions: {
-    en: 'All Interventions',
+    en: 'ALL INTERVENTIONS',
     ha: 'Duk Ayyuka',
     ar: 'جميع التدخلات'
   },
@@ -1169,12 +1169,12 @@ export const DEFAULT_TRANSLATIONS: Translations = {
     ar: 'شاهد كلمة سعادة النائب عمر يوسف (دانماجي يابو) في مجلس النواب حول الطرق الزراعية ودعم الري الموسمي ومواجهة الفيضانات في ولاية سوكوتو.'
   },
   watchInTheaterBtn: {
-    en: 'Watch in Interactive Video Theater',
+    en: 'WATCH IN INTERACTIVE VIDEO THEATER',
     ha: 'Kalli a Zauren Bidiyo na Musamman',
     ar: 'المشاهدة في منصة العرض التفاعلية'
   },
   browseMediaLibraryBtn: {
-    en: 'Browse Media Library',
+    en: 'BROWSE MEDIA LIBRARY',
     ha: 'Duba Kundin Bidiyo da Hotuna',
     ar: 'تصفح مكتبة الوسائط'
   },
@@ -1184,7 +1184,7 @@ export const DEFAULT_TRANSLATIONS: Translations = {
     ar: 'تسجيل رسمي من الجلسة العامة للجمعية العاشرة'
   },
   openCitizenDiscussionBtn: {
-    en: 'Open Citizen Discussion & Transcript',
+    en: 'OPEN CITIZEN DISCUSSION & TRANSCRIPT',
     ha: 'Bude Tattaunawar Jama\'a da Rubutun Jawabi',
     ar: 'فتح نقاش المواطنين ونص الخطاب'
   },

@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { 
   Project, LegislativeRecord, EmpowermentProgram, NewsArticle, GalleryItem, 
-  ContactSubmission, ProjectStatus, ProgramApplication, ApplicationStatus 
+  ContactSubmission, ProjectStatus, ProgramApplication, ApplicationStatus,
+  PollingUnitAgentLink, ElectionReport
 } from '../types';
 import { Language, Translations } from '../utils/i18n';
 import { ConstituencyStats } from '../App';
@@ -11,9 +12,11 @@ import {
   Activity, ArrowUpRight, TrendingUp, Download, Eye, AlertCircle, Save,
   Upload, Video, Film, Play, Check, Search, Filter, ChevronRight, CheckCircle2,
   Clock, Printer, ExternalLink, FileCheck, Star, Sparkles, RefreshCw, Menu,
-  Send, Calendar, MapPin, Sliders, ChevronDown, Landmark
+  Send, Calendar, MapPin, Sliders, ChevronDown, Landmark, Smartphone, Monitor, Laptop,
+  Tablet, Compass, CheckSquare, BarChart2, Share2, Copy
 } from 'lucide-react';
 import { ApplicationSlipModal } from '../components/ApplicationSlipModal';
+import { ElectionTab } from '../components/ElectionTab';
 import { 
   extractYouTubeId, 
   getYouTubeThumbnailUrl, 
@@ -23,6 +26,7 @@ import {
   sanitizeGalleryList, 
   YOUTUBE_PLACEHOLDER_THUMBNAIL 
 } from '../utils/youtube';
+import { getAnalyticsStore, resetAnalyticsBaseline, AnalyticsStore } from '../utils/analytics';
 
 interface Props {
   projects: Project[];
@@ -37,6 +41,10 @@ interface Props {
   setGallery: React.Dispatch<React.SetStateAction<GalleryItem[]>>;
   contacts: ContactSubmission[];
   setContacts: React.Dispatch<React.SetStateAction<ContactSubmission[]>>;
+  agents: PollingUnitAgentLink[];
+  setAgents: React.Dispatch<React.SetStateAction<PollingUnitAgentLink[]>>;
+  electionReports: ElectionReport[];
+  setElectionReports: React.Dispatch<React.SetStateAction<ElectionReport[]>>;
   translations: Translations;
   setTranslations: React.Dispatch<React.SetStateAction<Translations>>;
   stats: ConstituencyStats;
@@ -55,6 +63,7 @@ export type DashboardTab =
   | 'applications' 
   | 'gallery' 
   | 'enquiries' 
+  | 'election'
   | 'settings';
 
 export const AdminDashboard: React.FC<Props> = ({
@@ -64,6 +73,8 @@ export const AdminDashboard: React.FC<Props> = ({
   news, setNews,
   gallery, setGallery,
   contacts, setContacts,
+  agents, setAgents,
+  electionReports, setElectionReports,
   translations, setTranslations,
   stats, setStats,
   currentLang,
@@ -327,25 +338,32 @@ export const AdminDashboard: React.FC<Props> = ({
     { id: 'log-3', user: 'media@danmayeyabo.gov.ng', action: 'Verified authentic YouTube broadcast thumbnail', timestamp: '2026-10-18 08:45', role: 'News Editor' }
   ]);
 
-  // Analytics Metrics State
-  const [analyticsData] = useState({
-    pageViews: 14820,
-    sessions: 4120,
-    uniqueVisitors: 3180,
-    bounceRate: '32.4%',
-    avgSessionDuration: '2m 54s',
-    topPages: [
-      { path: '/', views: 6420, title: 'Official Home Portal' },
-      { path: '/biography', views: 3890, title: 'Hon. Umar Yusuf Biography' },
-      { path: '/projects', views: 4210, title: 'Constituency Projects Tracker' },
-      { path: '/empowerment', views: 2650, title: 'Empowerment Application Portal' },
-      { path: '/news', views: 1840, title: 'News & Press Releases' },
-      { path: '/legislative', views: 1420, title: 'Legislative Bills & Motions' }
-    ],
-    devices: { mobile: '74%', desktop: '22%', tablet: '4%' },
-    browsers: { chrome: '69%', safari: '21%', firefox: '10%' },
-    languages: { english: '82%', hausa: '14%', arabic: '4%' }
-  });
+  // Real Analytics Metrics State (Zero Baseline Tracking)
+  const [analyticsStore, setAnalyticsStore] = useState<AnalyticsStore>(() => getAnalyticsStore());
+  const [analyticsDateFilter, setAnalyticsDateFilter] = useState<'all' | 'today' | '7days' | '30days'>('all');
+  const [analyticsRefreshing, setAnalyticsRefreshing] = useState(false);
+  const [showResetConfirm, setShowResetConfirm] = useState(false);
+
+  const refreshAnalytics = () => {
+    setAnalyticsRefreshing(true);
+    const updated = getAnalyticsStore();
+    setAnalyticsStore(updated);
+    setTimeout(() => setAnalyticsRefreshing(false), 400);
+  };
+
+  // Periodic automatic sync every 6 seconds to keep live metrics accurate
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setAnalyticsStore(getAnalyticsStore());
+    }, 6000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const handleResetAnalytics = () => {
+    const fresh = resetAnalyticsBaseline();
+    setAnalyticsStore(fresh);
+    setShowResetConfirm(false);
+  };
 
   // Projects CRUD State
   const [showAddProj, setShowAddProj] = useState(false);
@@ -898,7 +916,8 @@ export const AdminDashboard: React.FC<Props> = ({
     { id: 'applications', label: '7. APPLICATIONS', icon: CheckCircle2, count: applications.length },
     { id: 'gallery', label: '8. PHOTOS & VIDEOS', icon: Film, count: gallery.length },
     { id: 'enquiries', label: '9. ENQUIRIES', icon: Mail, count: contacts.length },
-    { id: 'settings', label: '10. USER SETTINGS', icon: Settings },
+    { id: 'election', label: '10. ELECTION RESULTS & AGENTS', icon: CheckSquare },
+    { id: 'settings', label: '11. USER SETTINGS', icon: Settings },
   ];
 
   // LOGIN SCREEN
@@ -1039,13 +1058,17 @@ export const AdminDashboard: React.FC<Props> = ({
 
         {/* REORGANIZED MODERN SIDEBAR (EXACT 10 NAVIGATION ITEMS) */}
         <aside className={`
-          fixed md:relative z-20 inset-y-0 left-0 w-72 md:w-64 lg:w-72 shrink-0 bg-white border-r border-stone-200 
-          flex flex-col justify-between overflow-y-auto transition-transform duration-300 ease-in-out
+          fixed md:relative z-20 inset-y-0 left-0 w-72 md:w-64 lg:w-72 shrink-0 bg-[#FAF9F5] border-r border-[#103C2E]/15 
+          flex flex-col justify-between overflow-y-auto transition-transform duration-300 ease-in-out shadow-lg md:shadow-none
           ${mobileMenuOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
         `}>
-          <div className="p-3.5 space-y-1">
-            <div className="px-3 py-2 text-[10px] font-extrabold uppercase tracking-widest text-stone-400 border-b border-stone-100 mb-2">
-              Official Navigation Menu
+          <div className="p-3.5 space-y-1.5">
+            <div className="px-3 py-2 text-[10px] font-black uppercase tracking-widest text-[#103C2E] bg-[#103C2E]/5 rounded-xl border border-[#103C2E]/10 flex items-center justify-between mb-3">
+              <span className="flex items-center gap-1.5">
+                <Shield className="w-3.5 h-3.5 text-[#C6A15B]" />
+                ADMINISTRATION MODULES
+              </span>
+              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
             </div>
 
             {navItems.map((item) => {
@@ -1058,19 +1081,27 @@ export const AdminDashboard: React.FC<Props> = ({
                     setActiveTab(item.id);
                     setMobileMenuOpen(false);
                   }}
-                  className={`w-full text-left px-3.5 py-2.5 rounded-xl font-bold text-xs flex items-center justify-between transition-all cursor-pointer ${
+                  className={`w-full text-left px-3.5 py-3 rounded-xl font-extrabold text-xs flex items-center justify-between transition-all duration-200 cursor-pointer group focus:outline-hidden focus-visible:ring-2 focus-visible:ring-[#C6A15B] ${
                     isActive 
-                      ? 'bg-[#103C2E] text-white shadow-md' 
-                      : 'text-stone-600 hover:bg-stone-100 hover:text-[#103C2E]'
+                      ? 'bg-gradient-to-r from-[#09291F] via-[#103C2E] to-[#124536] text-white shadow-lg border-l-4 border-l-[#C6A15B] border-y border-r border-[#C6A15B]/30 ring-1 ring-emerald-500/20' 
+                      : 'text-stone-700 hover:text-[#09291F] hover:bg-white hover:border-[#103C2E]/20 hover:shadow-xs border border-transparent'
                   }`}
                 >
-                  <div className="flex items-center gap-2.5 truncate">
-                    <Icon className={`w-4 h-4 shrink-0 ${isActive ? 'text-[#D4AF37]' : 'text-stone-400'}`} />
-                    <span className="truncate">{item.label}</span>
+                  <div className="flex items-center gap-3 truncate">
+                    <div className={`p-1.5 rounded-lg transition-transform duration-200 ${
+                      isActive 
+                        ? 'bg-[#09291F] text-[#D4AF37] border border-[#C6A15B]/40 shadow-xs scale-105' 
+                        : 'bg-stone-200/70 text-stone-500 group-hover:bg-[#103C2E]/10 group-hover:text-[#103C2E]'
+                    }`}>
+                      <Icon className="w-4 h-4 shrink-0" />
+                    </div>
+                    <span className="truncate tracking-wide">{item.label}</span>
                   </div>
                   {item.count !== undefined && (
-                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold shrink-0 ${
-                      isActive ? 'bg-[#D4AF37] text-[#09291F]' : 'bg-stone-100 text-stone-600'
+                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-black shrink-0 transition-colors ${
+                      isActive 
+                        ? 'bg-[#D4AF37] text-[#09291F] shadow-xs' 
+                        : 'bg-stone-200 text-stone-700 group-hover:bg-[#103C2E]/10 group-hover:text-[#103C2E]'
                     }`}>
                       {item.count}
                     </span>
@@ -1081,13 +1112,19 @@ export const AdminDashboard: React.FC<Props> = ({
           </div>
 
           {/* Sidebar Footer Badge */}
-          <div className="p-4 border-t border-stone-200 bg-stone-50 space-y-1">
-            <span className="text-[10px] font-bold text-stone-400 uppercase block">Database Persistence:</span>
-            <div className="flex items-center gap-1.5 text-xs text-emerald-700 font-bold">
-              <CheckCircle className="w-3.5 h-3.5" />
-              <span>Verified & Synchronized</span>
+          <div className="p-4 m-3 rounded-2xl border border-[#C6A15B]/40 bg-[#09291F] text-white space-y-1.5 shadow-md">
+            <div className="flex items-center justify-between text-[10px] font-extrabold text-[#D4AF37] uppercase tracking-wider">
+              <span>SYSTEM STATUS:</span>
+              <span className="flex items-center gap-1 text-emerald-400">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                ACTIVE
+              </span>
             </div>
-            <span className="text-[10px] text-stone-400 block pt-1 font-mono">10th National Assembly • Abuja</span>
+            <div className="flex items-center gap-1.5 text-xs text-white font-bold">
+              <CheckCircle className="w-3.5 h-3.5 text-emerald-400" />
+              <span>Portal Synchronized</span>
+            </div>
+            <span className="text-[10px] text-stone-300 block pt-0.5 font-mono">10th National Assembly • Abuja</span>
           </div>
         </aside>
 
@@ -1267,101 +1304,507 @@ export const AdminDashboard: React.FC<Props> = ({
           )}
 
           {/* ========================================================
-              TAB 2: VISITORS ANALYTICS
+              TAB 2: VISITORS ANALYTICS (REAL ZERO BASELINE SYSTEM)
              ======================================================== */}
-          {activeTab === 'analytics' && (
-            <div className="w-full min-w-0 space-y-8">
-              <div className="border-b border-stone-200 pb-4">
-                <h3 className="font-['Manrope'] font-extrabold text-2xl text-[#103C2E] uppercase">
-                  2. VISITORS ANALYTICS & TRAFFIC INTELLIGENCE
-                </h3>
-                <p className="text-xs text-stone-500 mt-0.5">
-                  Verified real-time portal engagement, page traffic, device distribution, and citizen reach.
-                </p>
-              </div>
+          {activeTab === 'analytics' && (() => {
+            // Compute real statistics from analyticsStore
+            const totalViews = analyticsStore.totalPageViews;
+            const totalVisits = analyticsStore.totalVisits;
+            const uniqueVisitorsCount = analyticsStore.uniqueVisitors ? analyticsStore.uniqueVisitors.length : 0;
+            
+            // Format baseline date
+            const baselineDateFormatted = analyticsStore.baselineDate 
+              ? new Date(analyticsStore.baselineDate).toLocaleDateString(undefined, {
+                  year: 'numeric',
+                  month: 'short',
+                  day: 'numeric',
+                  hour: '2-digit',
+                  minute: '2-digit'
+                })
+              : 'Initial Session';
 
-              {/* Analytics Metric Cards */}
-              <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
-                <div className="bg-white p-6 rounded-3xl border border-stone-200 shadow-sm space-y-1">
-                  <span className="text-[11px] font-bold uppercase text-stone-500">Total Page Views</span>
-                  <div className="text-3xl font-black text-[#103C2E]">{analyticsData.pageViews.toLocaleString()}</div>
-                  <span className="text-xs text-emerald-600 font-semibold flex items-center gap-1">
-                    <TrendingUp className="w-3.5 h-3.5" /> +14.2% weekly increase
-                  </span>
+            // Sorted Top Pages
+            const pagesList = Object.values(analyticsStore.topPages || {}).sort((a, b) => b.views - a.views);
+            const topPage = pagesList[0] || null;
+
+            // Device counts and percentages
+            const totalDevices = ((analyticsStore.deviceCategories?.mobile) || 0) + 
+                                 ((analyticsStore.deviceCategories?.desktop) || 0) + 
+                                 ((analyticsStore.deviceCategories?.tablet) || 0);
+            const mobilePct = totalDevices > 0 ? Math.round(((analyticsStore.deviceCategories?.mobile || 0) / totalDevices) * 100) : 0;
+            const desktopPct = totalDevices > 0 ? Math.round(((analyticsStore.deviceCategories?.desktop || 0) / totalDevices) * 100) : 0;
+            const tabletPct = totalDevices > 0 ? Math.round(((analyticsStore.deviceCategories?.tablet || 0) / totalDevices) * 100) : 0;
+
+            // Daily visits (chronological list)
+            const dailyEntries = Object.values(analyticsStore.dailyVisits || {}).sort((a, b) => a.date.localeCompare(b.date));
+            const maxDailyViews = Math.max(...dailyEntries.map(d => d.views), 1);
+
+            // Traffic sources
+            const trafficEntries = Object.entries(analyticsStore.trafficSources || {}).sort((a, b) => b[1] - a[1]);
+            const totalTrafficEvents = trafficEntries.reduce((acc, curr) => acc + curr[1], 0);
+
+            return (
+              <div className="w-full min-w-0 space-y-8 animate-fadeIn">
+                {/* Header with Live Indicator, Baseline Badge, Date Filter & Action Buttons */}
+                <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 border-b border-stone-200 pb-5">
+                  <div>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <h3 className="font-['Manrope'] font-black text-2xl text-[#103C2E] uppercase tracking-wide">
+                        2. VISITORS ANALYTICS & TRAFFIC INTELLIGENCE
+                      </h3>
+                      <span className="inline-flex items-center gap-1.5 bg-emerald-100 text-emerald-800 text-[11px] font-black uppercase px-2.5 py-0.5 rounded-full border border-emerald-300">
+                        <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                        LIVE EVENT TRACKING ACTIVE
+                      </span>
+                    </div>
+                    <p className="text-xs text-stone-500 mt-1">
+                      Genuine recorded activity starting from baseline established on <strong className="text-[#103C2E]">{baselineDateFormatted}</strong>. Admin actions and automated crawlers are excluded.
+                    </p>
+                  </div>
+
+                  <div className="flex flex-wrap items-center gap-2.5">
+                    {/* Refresh Button */}
+                    <button
+                      onClick={refreshAnalytics}
+                      className="bg-white hover:bg-stone-50 active:scale-[0.98] text-[#103C2E] px-3.5 py-2 rounded-xl text-xs font-bold border border-stone-300 shadow-xs flex items-center gap-1.5 transition cursor-pointer uppercase tracking-wider"
+                      title="Poll latest visitor activity"
+                    >
+                      <RefreshCw className={`w-3.5 h-3.5 text-[#C6A15B] ${analyticsRefreshing ? 'animate-spin' : ''}`} />
+                      <span>REFRESH DATA</span>
+                    </button>
+
+                    {/* Reset to Zero Baseline Button */}
+                    <button
+                      onClick={() => setShowResetConfirm(true)}
+                      className="bg-rose-50 hover:bg-rose-600 text-rose-700 hover:text-white active:scale-[0.98] px-3.5 py-2 rounded-xl text-xs font-bold border border-rose-200 shadow-xs flex items-center gap-1.5 transition cursor-pointer uppercase tracking-wider"
+                      title="Clear tracking and establish a new zero baseline"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                      <span>RESET TO ZERO BASELINE</span>
+                    </button>
+                  </div>
                 </div>
 
-                <div className="bg-white p-6 rounded-3xl border border-stone-200 shadow-sm space-y-1">
-                  <span className="text-[11px] font-bold uppercase text-stone-500">Unique Citizens & Visitors</span>
-                  <div className="text-3xl font-black text-[#103C2E]">{analyticsData.uniqueVisitors.toLocaleString()}</div>
-                  <span className="text-xs text-emerald-600 font-semibold">Active constituency users</span>
-                </div>
-
-                <div className="bg-white p-6 rounded-3xl border border-stone-200 shadow-sm space-y-1">
-                  <span className="text-[11px] font-bold uppercase text-stone-500">Avg. Session Duration</span>
-                  <div className="text-3xl font-black text-[#103C2E]">{analyticsData.avgSessionDuration}</div>
-                  <span className="text-xs text-stone-500">High engagement depth</span>
-                </div>
-
-                <div className="bg-white p-6 rounded-3xl border border-stone-200 shadow-sm space-y-1">
-                  <span className="text-[11px] font-bold uppercase text-stone-500">Bounce Rate</span>
-                  <div className="text-3xl font-black text-emerald-700">{analyticsData.bounceRate}</div>
-                  <span className="text-xs text-emerald-600 font-semibold">Optimal citizen retention</span>
-                </div>
-              </div>
-
-              {/* Breakdown Grid */}
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <div className="bg-white p-6 rounded-3xl border border-stone-200 shadow-sm space-y-4">
-                  <h4 className="font-['Manrope'] font-bold text-base text-[#103C2E] uppercase">
-                    Most Visited Constituency Pages
-                  </h4>
-                  <div className="space-y-3">
-                    {analyticsData.topPages.map((tp, idx) => (
-                      <div key={idx} className="flex justify-between items-center p-3.5 bg-stone-50 rounded-xl text-xs">
-                        <div>
-                          <strong className="text-[#103C2E] block">{tp.title}</strong>
-                          <span className="text-stone-400 font-mono text-[11px]">{tp.path}</span>
-                        </div>
-                        <span className="bg-[#103C2E] text-white font-bold px-3 py-1 rounded-lg">
-                          {tp.views.toLocaleString()} views
-                        </span>
-                      </div>
+                {/* Filter Pills */}
+                <div className="flex flex-wrap items-center justify-between gap-3 bg-white p-3.5 rounded-2xl border border-stone-200 shadow-xs">
+                  <div className="flex items-center gap-1.5">
+                    <Filter className="w-3.5 h-3.5 text-[#C6A15B]" />
+                    <span className="text-xs font-black uppercase text-[#103C2E]">TIME RANGE FILTER:</span>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-2">
+                    {(['all', 'today', '7days', '30days'] as const).map(filterKey => (
+                      <button
+                        key={filterKey}
+                        onClick={() => setAnalyticsDateFilter(filterKey)}
+                        className={`px-3 py-1.5 rounded-xl text-xs font-bold uppercase transition cursor-pointer ${
+                          analyticsDateFilter === filterKey
+                            ? 'bg-[#103C2E] text-white shadow-xs'
+                            : 'bg-stone-100 text-stone-600 hover:bg-stone-200'
+                        }`}
+                      >
+                        {filterKey === 'all' ? 'ALL TIME (ZERO BASELINE)' : filterKey === 'today' ? 'TODAY' : filterKey === '7days' ? 'LAST 7 DAYS' : 'LAST 30 DAYS'}
+                      </button>
                     ))}
                   </div>
                 </div>
 
-                <div className="bg-white p-6 rounded-3xl border border-stone-200 shadow-sm space-y-6">
-                  <h4 className="font-['Manrope'] font-bold text-base text-[#103C2E] uppercase">
-                    Constituency Demographic Distribution
-                  </h4>
-                  
-                  <div className="space-y-4 text-xs">
-                    <div>
-                      <div className="flex justify-between font-bold text-stone-700 mb-1">
-                        <span>Device: Mobile vs Desktop</span>
-                        <span>{analyticsData.devices.mobile} Mobile • {analyticsData.devices.desktop} Desktop</span>
-                      </div>
-                      <div className="w-full bg-stone-100 rounded-full h-2.5 overflow-hidden">
-                        <div className="bg-emerald-600 h-2.5 rounded-full" style={{ width: analyticsData.devices.mobile }}></div>
+                {/* Top Metric KPI Cards */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                  {/* Card 1: Total Page Views */}
+                  <div className="bg-white p-6 rounded-3xl border border-stone-200 shadow-sm space-y-2 hover:border-[#103C2E]/40 transition">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[11px] font-black uppercase tracking-wider text-stone-500">TOTAL PAGE VIEWS</span>
+                      <div className="w-8 h-8 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center">
+                        <Eye className="w-4 h-4" />
                       </div>
                     </div>
+                    <div className="text-3xl sm:text-4xl font-black font-['Manrope'] text-[#103C2E]">
+                      {totalViews.toLocaleString()}
+                    </div>
+                    <div className="text-xs text-stone-500 flex items-center gap-1 font-medium">
+                      <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
+                      <span>Verified page navigation events</span>
+                    </div>
+                  </div>
 
-                    <div>
-                      <div className="flex justify-between font-bold text-stone-700 mb-1">
-                        <span>Language Preference</span>
-                        <span>English {analyticsData.languages.english} • Hausa {analyticsData.languages.hausa} • Arabic {analyticsData.languages.arabic}</span>
+                  {/* Card 2: Total Visits / Sessions */}
+                  <div className="bg-white p-6 rounded-3xl border border-stone-200 shadow-sm space-y-2 hover:border-[#103C2E]/40 transition">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[11px] font-black uppercase tracking-wider text-stone-500">TOTAL VISITS</span>
+                      <div className="w-8 h-8 rounded-xl bg-amber-50 text-amber-700 flex items-center justify-center">
+                        <Activity className="w-4 h-4" />
                       </div>
-                      <div className="w-full bg-stone-100 rounded-full h-2.5 overflow-hidden flex">
-                        <div className="bg-[#103C2E] h-2.5" style={{ width: analyticsData.languages.english }}></div>
-                        <div className="bg-[#D4AF37] h-2.5" style={{ width: analyticsData.languages.hausa }}></div>
-                        <div className="bg-emerald-500 h-2.5" style={{ width: analyticsData.languages.arabic }}></div>
+                    </div>
+                    <div className="text-3xl sm:text-4xl font-black font-['Manrope'] text-[#103C2E]">
+                      {totalVisits.toLocaleString()}
+                    </div>
+                    <div className="text-xs text-stone-500 flex items-center gap-1 font-medium">
+                      <span>Distinct 30-min browsing sessions</span>
+                    </div>
+                  </div>
+
+                  {/* Card 3: Unique Visitors */}
+                  <div className="bg-white p-6 rounded-3xl border border-stone-200 shadow-sm space-y-2 hover:border-[#103C2E]/40 transition">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[11px] font-black uppercase tracking-wider text-stone-500">UNIQUE VISITORS</span>
+                      <div className="w-8 h-8 rounded-xl bg-blue-50 text-blue-700 flex items-center justify-center">
+                        <Users className="w-4 h-4" />
                       </div>
+                    </div>
+                    <div className="text-3xl sm:text-4xl font-black font-['Manrope'] text-[#103C2E]">
+                      {uniqueVisitorsCount.toLocaleString()}
+                    </div>
+                    <div className="text-xs text-stone-500 flex items-center gap-1 font-medium">
+                      <span>Reliably measurable client devices</span>
+                    </div>
+                  </div>
+
+                  {/* Card 4: Top-Performing Page */}
+                  <div className="bg-white p-6 rounded-3xl border border-stone-200 shadow-sm space-y-2 hover:border-[#103C2E]/40 transition">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[11px] font-black uppercase tracking-wider text-stone-500">TOP-PERFORMING PAGE</span>
+                      <div className="w-8 h-8 rounded-xl bg-[#C6A15B]/15 text-[#C6A15B] flex items-center justify-center">
+                        <TrendingUp className="w-4 h-4" />
+                      </div>
+                    </div>
+                    <div className="text-lg font-black font-['Manrope'] text-[#103C2E] truncate" title={topPage ? topPage.title : 'No visits recorded yet'}>
+                      {topPage ? topPage.title : 'Awaiting Visits'}
+                    </div>
+                    <div className="text-xs text-emerald-700 font-bold">
+                      {topPage ? `${topPage.views} views (${totalViews > 0 ? Math.round((topPage.views / totalViews) * 100) : 0}% of traffic)` : 'Zero baseline initial state'}
                     </div>
                   </div>
                 </div>
+
+                {/* Zero Baseline Notice when counts are small */}
+                {totalViews === 0 && (
+                  <div className="bg-emerald-50 border border-emerald-200 p-6 rounded-3xl flex items-start gap-4">
+                    <div className="p-2.5 rounded-xl bg-emerald-100 text-emerald-800 shrink-0">
+                      <CheckCircle2 className="w-6 h-6" />
+                    </div>
+                    <div className="space-y-1">
+                      <h4 className="font-bold text-[#103C2E] text-sm uppercase">
+                        GENUINE ZERO-BASELINE TRACKING ACTIVATED
+                      </h4>
+                      <p className="text-xs text-stone-600 leading-relaxed">
+                        The analytics system is configured to record real visitor interactions exclusively. As citizens navigate the public portal (Home, Biography, Projects, Legislative, Empowerment, News, Gallery, and Contact), genuine events will be securely logged and reflected here in real-time. Admin operations and search-bot traffic are excluded to guarantee 100% data fidelity.
+                      </p>
+                    </div>
+                  </div>
+                )}
+
+                {/* Visits by Date Timeline / Chart */}
+                <div className="bg-white p-6 sm:p-7 rounded-3xl border border-stone-200 shadow-sm space-y-5">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-stone-100 pb-3">
+                    <div>
+                      <h4 className="font-['Manrope'] font-black text-base text-[#103C2E] uppercase">
+                        VISITS & VIEWS BY DATE (GENUINE RECORDED TIMELINE)
+                      </h4>
+                      <span className="text-xs text-stone-500">
+                        Daily breakdown of genuine public website traffic.
+                      </span>
+                    </div>
+                    <span className="text-xs font-bold text-emerald-700 bg-emerald-50 px-3 py-1 rounded-full border border-emerald-200">
+                      {dailyEntries.length} ACTIVE RECORDING DAY(S)
+                    </span>
+                  </div>
+
+                  {dailyEntries.length === 0 ? (
+                    <div className="py-12 text-center text-xs text-stone-400 space-y-2">
+                      <BarChart3 className="w-8 h-8 mx-auto text-stone-300" />
+                      <p className="font-medium">No recorded daily traffic yet for this period.</p>
+                      <p className="text-[11px] text-stone-400">Events appear here automatically as public visitors browse pages.</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      <div className="flex items-end gap-3 h-48 pt-6 pb-2 px-2 border-b border-stone-200 overflow-x-auto">
+                        {dailyEntries.map((day, idx) => {
+                          const heightPct = Math.max(Math.round((day.views / maxDailyViews) * 100), 12);
+                          return (
+                            <div key={idx} className="flex-1 min-w-[50px] max-w-[90px] flex flex-col items-center gap-2 group h-full justify-end">
+                              <span className="text-[10px] font-bold text-stone-500 group-hover:text-[#103C2E]">
+                                {day.views}
+                              </span>
+                              <div
+                                style={{ height: `${heightPct}%` }}
+                                className="w-full bg-gradient-to-t from-[#103C2E] to-emerald-600 rounded-t-xl transition-all duration-300 group-hover:brightness-110 shadow-xs relative"
+                              >
+                                <div className="opacity-0 group-hover:opacity-100 absolute -top-8 left-1/2 -translate-x-1/2 bg-[#09291F] text-white text-[10px] px-2 py-0.5 rounded shadow whitespace-nowrap pointer-events-none z-10 transition">
+                                  {day.views} views • {day.visits} visits
+                                </div>
+                              </div>
+                              <span className="text-[10px] font-mono text-stone-500 truncate w-full text-center">
+                                {day.date.substring(5)}
+                              </span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                      <div className="flex items-center justify-between text-xs text-stone-500 pt-1">
+                        <span>Baseline Date: {dailyEntries[0]?.date || 'Today'}</span>
+                        <span className="flex items-center gap-2">
+                          <span className="inline-block w-3 h-3 rounded bg-[#103C2E]"></span>
+                          <span>Daily Recorded Views</span>
+                        </span>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* 2-Column Grid: Top-Performing Pages & Demographic Categories */}
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                  {/* Left Column: Top-Performing Website Pages */}
+                  <div className="lg:col-span-7 bg-white p-6 sm:p-7 rounded-3xl border border-stone-200 shadow-sm space-y-5">
+                    <div className="flex items-center justify-between border-b border-stone-100 pb-3">
+                      <div>
+                        <h4 className="font-['Manrope'] font-black text-base text-[#103C2E] uppercase">
+                          TOP-PERFORMING WEBSITE PAGES
+                        </h4>
+                        <span className="text-xs text-stone-500">
+                          Ranked by total genuine page-view volume.
+                        </span>
+                      </div>
+                      <span className="text-xs font-bold text-[#103C2E] bg-stone-100 px-2.5 py-1 rounded-lg">
+                        {pagesList.length} PAGES TRACKED
+                      </span>
+                    </div>
+
+                    {pagesList.length === 0 ? (
+                      <div className="py-10 text-center text-xs text-stone-400">
+                        No pages recorded yet. Navigate the website to start recording.
+                      </div>
+                    ) : (
+                      <div className="space-y-3">
+                        {pagesList.map((p, idx) => {
+                          const pct = totalViews > 0 ? Math.round((p.views / totalViews) * 100) : 0;
+                          return (
+                            <div key={idx} className="p-3.5 bg-stone-50 hover:bg-stone-100/80 rounded-2xl border border-stone-200/80 space-y-2 transition">
+                              <div className="flex items-start justify-between gap-3">
+                                <div className="min-w-0">
+                                  <div className="flex items-center gap-2">
+                                    <span className="w-5 h-5 rounded-md bg-[#103C2E] text-white text-[10px] font-black flex items-center justify-center shrink-0">
+                                      {idx + 1}
+                                    </span>
+                                    <strong className="text-xs sm:text-sm font-bold text-[#103C2E] truncate block">
+                                      {p.title}
+                                    </strong>
+                                  </div>
+                                  <span className="text-[11px] font-mono text-stone-500 pl-7 block">
+                                    {p.path}
+                                  </span>
+                                </div>
+                                <div className="text-right shrink-0">
+                                  <span className="bg-[#103C2E] text-white text-xs font-black px-2.5 py-1 rounded-lg inline-block">
+                                    {p.views.toLocaleString()} VIEWS
+                                  </span>
+                                  <span className="text-[10px] text-stone-400 block pt-0.5">
+                                    {pct}% OF TRAFFIC
+                                  </span>
+                                </div>
+                              </div>
+                              <div className="w-full bg-stone-200 h-2 rounded-full overflow-hidden">
+                                <div 
+                                  className="bg-gradient-to-r from-emerald-600 to-[#C6A15B] h-full rounded-full transition-all duration-500" 
+                                  style={{ width: `${Math.max(pct, 4)}%` }}
+                                ></div>
+                              </div>
+                              <div className="text-[10px] text-stone-400 flex items-center justify-between">
+                                <span>Last Activity: {p.lastVisited}</span>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Right Column: Device Categories & Traffic Sources */}
+                  <div className="lg:col-span-5 space-y-6">
+                    {/* Device Breakdown */}
+                    <div className="bg-white p-6 rounded-3xl border border-stone-200 shadow-sm space-y-5">
+                      <div className="border-b border-stone-100 pb-3">
+                        <h4 className="font-['Manrope'] font-black text-base text-[#103C2E] uppercase">
+                          DEVICE CATEGORIES
+                        </h4>
+                        <span className="text-xs text-stone-500">
+                          Measured device viewport categories.
+                        </span>
+                      </div>
+
+                      <div className="grid grid-cols-3 gap-3">
+                        <div className="bg-stone-50 p-3.5 rounded-2xl border border-stone-200 text-center space-y-1">
+                          <Smartphone className="w-5 h-5 mx-auto text-emerald-700" />
+                          <span className="text-[11px] font-black uppercase text-stone-500 block">MOBILE</span>
+                          <strong className="text-lg font-black text-[#103C2E] block">{mobilePct}%</strong>
+                          <span className="text-[10px] text-stone-400 font-medium">({analyticsStore.deviceCategories?.mobile || 0} views)</span>
+                        </div>
+
+                        <div className="bg-stone-50 p-3.5 rounded-2xl border border-stone-200 text-center space-y-1">
+                          <Monitor className="w-5 h-5 mx-auto text-blue-700" />
+                          <span className="text-[11px] font-black uppercase text-stone-500 block">DESKTOP</span>
+                          <strong className="text-lg font-black text-[#103C2E] block">{desktopPct}%</strong>
+                          <span className="text-[10px] text-stone-400 font-medium">({analyticsStore.deviceCategories?.desktop || 0} views)</span>
+                        </div>
+
+                        <div className="bg-stone-50 p-3.5 rounded-2xl border border-stone-200 text-center space-y-1">
+                          <Tablet className="w-5 h-5 mx-auto text-amber-700" />
+                          <span className="text-[11px] font-black uppercase text-stone-500 block">TABLET</span>
+                          <strong className="text-lg font-black text-[#103C2E] block">{tabletPct}%</strong>
+                          <span className="text-[10px] text-stone-400 font-medium">({analyticsStore.deviceCategories?.tablet || 0} views)</span>
+                        </div>
+                      </div>
+
+                      {/* Proportional Bar */}
+                      <div className="w-full bg-stone-100 h-3 rounded-full overflow-hidden flex">
+                        <div className="bg-emerald-600 h-full" style={{ width: `${mobilePct}%` }} title={`Mobile: ${mobilePct}%`}></div>
+                        <div className="bg-blue-600 h-full" style={{ width: `${desktopPct}%` }} title={`Desktop: ${desktopPct}%`}></div>
+                        <div className="bg-amber-500 h-full" style={{ width: `${tabletPct}%` }} title={`Tablet: ${tabletPct}%`}></div>
+                      </div>
+                    </div>
+
+                    {/* Traffic Sources */}
+                    <div className="bg-white p-6 rounded-3xl border border-stone-200 shadow-sm space-y-4">
+                      <div className="border-b border-stone-100 pb-3">
+                        <h4 className="font-['Manrope'] font-black text-base text-[#103C2E] uppercase">
+                          TRAFFIC SOURCES & REFERRALS
+                        </h4>
+                        <span className="text-xs text-stone-500">
+                          Identified traffic origins and channels.
+                        </span>
+                      </div>
+
+                      {trafficEntries.length === 0 ? (
+                        <div className="py-6 text-center text-xs text-stone-400">
+                          No traffic source events recorded yet.
+                        </div>
+                      ) : (
+                        <div className="space-y-2.5">
+                          {trafficEntries.map(([source, count], idx) => {
+                            const sourcePct = totalTrafficEvents > 0 ? Math.round((count / totalTrafficEvents) * 100) : 0;
+                            return (
+                              <div key={idx} className="flex items-center justify-between p-3 bg-stone-50 rounded-xl border border-stone-200/80 text-xs">
+                                <div className="flex items-center gap-2">
+                                  <Compass className="w-3.5 h-3.5 text-[#C6A15B]" />
+                                  <span className="font-bold text-[#103C2E] uppercase">{source}</span>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  <span className="font-bold text-stone-700">{count} visits</span>
+                                  <span className="text-[10px] bg-stone-200 text-stone-700 px-2 py-0.5 rounded-full font-bold">
+                                    {sourcePct}%
+                                  </span>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Real-Time Visitor Activity Stream */}
+                <div className="bg-white rounded-3xl border border-stone-200 shadow-sm overflow-hidden space-y-4 p-6 sm:p-7">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-stone-100 pb-4">
+                    <div>
+                      <h4 className="font-['Manrope'] font-black text-base text-[#103C2E] uppercase flex items-center gap-2">
+                        <Activity className="w-4 h-4 text-[#C6A15B]" />
+                        <span>RECENT VISITOR ACTIVITY (REAL-TIME AUDIT STREAM)</span>
+                      </h4>
+                      <p className="text-xs text-stone-500 mt-0.5">
+                        Live stream of the latest recorded visitor pageviews across the portal.
+                      </p>
+                    </div>
+                    <span className="text-xs font-bold text-[#103C2E] bg-stone-100 px-3 py-1 rounded-full border border-stone-200">
+                      SHOWING LATEST {analyticsStore.recentActivity?.length || 0} EVENTS
+                    </span>
+                  </div>
+
+                  {(!analyticsStore.recentActivity || analyticsStore.recentActivity.length === 0) ? (
+                    <div className="py-12 text-center text-xs text-stone-400 space-y-2">
+                      <Clock className="w-8 h-8 mx-auto text-stone-300" />
+                      <p className="font-medium">No recent visitor activity recorded yet.</p>
+                      <p className="text-[11px] text-stone-400">Events appear here automatically as visitors navigate.</p>
+                    </div>
+                  ) : (
+                    <div className="overflow-x-auto w-full">
+                      <table className="w-full text-left border-collapse text-xs">
+                        <thead>
+                          <tr className="bg-[#103C2E] text-white">
+                            <th className="p-3.5 uppercase text-[11px] font-black tracking-wider">TIMESTAMP</th>
+                            <th className="p-3.5 uppercase text-[11px] font-black tracking-wider">PAGE / SECTION</th>
+                            <th className="p-3.5 uppercase text-[11px] font-black tracking-wider">PATH</th>
+                            <th className="p-3.5 uppercase text-[11px] font-black tracking-wider">DEVICE</th>
+                            <th className="p-3.5 uppercase text-[11px] font-black tracking-wider">TRAFFIC ORIGIN</th>
+                            <th className="p-3.5 uppercase text-[11px] font-black tracking-wider text-right">VISITOR ID</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-stone-200">
+                          {analyticsStore.recentActivity.map((act) => (
+                            <tr key={act.id} className="hover:bg-stone-50 transition">
+                              <td className="p-3.5 font-mono text-stone-500 whitespace-nowrap">
+                                {act.timestamp}
+                              </td>
+                              <td className="p-3.5 font-bold text-[#103C2E] whitespace-nowrap">
+                                {act.title}
+                              </td>
+                              <td className="p-3.5 font-mono text-stone-500">
+                                {act.path}
+                              </td>
+                              <td className="p-3.5">
+                                <span className="px-2.5 py-1 rounded-full text-[10px] font-black uppercase bg-[#103C2E]/10 text-[#103C2E]">
+                                  {act.device}
+                                </span>
+                              </td>
+                              <td className="p-3.5 text-stone-600 font-semibold uppercase text-[11px]">
+                                {act.source}
+                              </td>
+                              <td className="p-3.5 text-right font-mono text-stone-400 text-[11px]">
+                                {act.visitorIdShort}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </div>
+
+                {/* Reset Confirmation Modal */}
+                {showResetConfirm && (
+                  <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm animate-fadeIn">
+                    <div className="bg-white rounded-3xl p-6 sm:p-8 max-w-md w-full border border-rose-300 shadow-2xl space-y-5">
+                      <div className="flex items-center gap-3 text-rose-600">
+                        <AlertCircle className="w-8 h-8 shrink-0" />
+                        <div>
+                          <h4 className="font-['Manrope'] font-black text-lg text-rose-900 uppercase">
+                            CONFIRM ANALYTICS RESET
+                          </h4>
+                          <span className="text-xs text-rose-700">Establish New Zero Baseline</span>
+                        </div>
+                      </div>
+                      <p className="text-xs text-stone-600 leading-relaxed">
+                        Are you sure you want to reset visitor analytics? This will reset all page views, unique visits, and traffic history to a fresh zero baseline starting from this exact moment. All database items (projects, news, applications, and enquiries) remain completely preserved.
+                      </p>
+                      <div className="flex items-center justify-end gap-3 pt-2">
+                        <button
+                          onClick={() => setShowResetConfirm(false)}
+                          className="px-4 py-2 rounded-xl text-xs font-bold text-stone-600 hover:bg-stone-100 transition cursor-pointer uppercase"
+                        >
+                          CANCEL
+                        </button>
+                        <button
+                          onClick={handleResetAnalytics}
+                          className="bg-rose-600 hover:bg-rose-700 text-white px-5 py-2 rounded-xl text-xs font-black transition shadow-sm cursor-pointer uppercase tracking-wider"
+                        >
+                          CONFIRM RESET TO ZERO
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
-            </div>
-          )}
+            );
+          })()}
 
           {/* ========================================================
               TAB 3: PROJECTS
@@ -1503,21 +1946,21 @@ export const AdminDashboard: React.FC<Props> = ({
                           <td className="p-4 text-stone-600">{p.year}</td>
                           <td className="p-4 text-right space-x-2">
                             <button
-                              onClick={() => setEditingProject(p)}
-                              className="inline-flex items-center gap-1 bg-emerald-50 hover:bg-emerald-600 text-emerald-800 hover:text-white px-2.5 py-1.5 rounded-xl border border-emerald-200 transition-all shadow-xs cursor-pointer text-xs font-bold uppercase"
-                              title="Edit Project"
-                            >
-                              <Edit className="w-3.5 h-3.5" />
-                              <span>Edit</span>
-                            </button>
-                            <button
-                              onClick={() => handleDeleteProject(p.id)}
-                              className="inline-flex items-center gap-1 bg-rose-50 hover:bg-rose-600 text-rose-700 hover:text-white px-2.5 py-1.5 rounded-xl border border-rose-200 transition-all shadow-xs cursor-pointer text-xs font-bold uppercase"
-                              title="Delete Project"
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                              <span>Delete</span>
-                            </button>
+                               onClick={() => setEditingProject(p)}
+                               className="inline-flex items-center gap-1 bg-emerald-50 hover:bg-[#103C2E] text-[#103C2E] hover:text-white px-3 py-1.5 rounded-xl border border-emerald-200 transition-all shadow-xs cursor-pointer text-xs font-bold uppercase"
+                               title="Edit Project"
+                             >
+                               <Edit className="w-3.5 h-3.5" />
+                               <span>EDIT</span>
+                             </button>
+                             <button
+                               onClick={() => handleDeleteProject(p.id)}
+                               className="inline-flex items-center gap-1 bg-rose-50 hover:bg-rose-700 text-rose-700 hover:text-white px-3 py-1.5 rounded-xl border border-rose-200 transition-all shadow-xs cursor-pointer text-xs font-bold uppercase"
+                               title="Delete Project"
+                             >
+                               <Trash2 className="w-3.5 h-3.5" />
+                               <span>DELETE</span>
+                             </button>
                           </td>
                         </tr>
                       ))}
@@ -1918,19 +2361,19 @@ export const AdminDashboard: React.FC<Props> = ({
                             <td className="p-4 text-right space-x-2 shrink-0">
                               <button 
                                 onClick={() => setEditingNews(n)} 
-                                className="inline-flex items-center gap-1 bg-emerald-50 hover:bg-emerald-600 text-emerald-800 hover:text-white px-2.5 py-1.5 rounded-xl border border-emerald-200 transition-all shadow-xs cursor-pointer text-xs font-bold uppercase" 
+                                className="inline-flex items-center gap-1 bg-emerald-50 hover:bg-[#103C2E] text-[#103C2E] hover:text-white px-3 py-1.5 rounded-xl border border-emerald-200 transition-all shadow-xs cursor-pointer text-xs font-bold uppercase" 
                                 title="Edit Article"
                               >
                                 <Edit className="w-3.5 h-3.5" />
-                                <span>Edit</span>
+                                <span>EDIT</span>
                               </button>
                               <button 
                                 onClick={() => handleDeleteNews(n.id)} 
-                                className="inline-flex items-center gap-1 bg-rose-50 hover:bg-rose-600 text-rose-700 hover:text-white px-2.5 py-1.5 rounded-xl border border-rose-200 transition-all shadow-xs cursor-pointer text-xs font-bold uppercase" 
+                                className="inline-flex items-center gap-1 bg-rose-50 hover:bg-rose-700 text-rose-700 hover:text-white px-3 py-1.5 rounded-xl border border-rose-200 transition-all shadow-xs cursor-pointer text-xs font-bold uppercase" 
                                 title="Delete Article"
                               >
                                 <Trash2 className="w-3.5 h-3.5" />
-                                <span>Delete</span>
+                                <span>DELETE</span>
                               </button>
                             </td>
                           </tr>
@@ -2052,13 +2495,13 @@ export const AdminDashboard: React.FC<Props> = ({
                           <td className="p-4 text-stone-500 font-mono">{l.date}</td>
                           <td className="p-4 text-right">
                             <button
-                              onClick={() => handleDeleteLegislative(l.id)}
-                              className="inline-flex items-center gap-1 bg-rose-50 hover:bg-rose-600 text-rose-700 hover:text-white px-2.5 py-1.5 rounded-xl border border-rose-200 transition-all shadow-xs cursor-pointer text-xs font-bold uppercase"
-                              title="Delete Parliamentary Activity"
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                              <span>Delete</span>
-                            </button>
+                               onClick={() => handleDeleteLegislative(l.id)}
+                               className="inline-flex items-center gap-1 bg-rose-50 hover:bg-rose-700 text-rose-700 hover:text-white px-3 py-1.5 rounded-xl border border-rose-200 transition-all shadow-xs cursor-pointer text-xs font-bold uppercase"
+                               title="Delete Parliamentary Activity"
+                             >
+                               <Trash2 className="w-3.5 h-3.5" />
+                               <span>DELETE</span>
+                             </button>
                           </td>
                         </tr>
                       ))}
@@ -2208,13 +2651,13 @@ export const AdminDashboard: React.FC<Props> = ({
                               {p.isPublished !== false ? 'Published' : 'Hidden'}
                             </button>
                             <button
-                              onClick={() => handleDeleteProgram(p.id)}
-                              className="inline-flex items-center gap-1 bg-rose-50 hover:bg-rose-600 text-rose-700 hover:text-white px-2.5 py-1.5 rounded-xl border border-rose-200 transition-all shadow-xs cursor-pointer text-xs font-bold uppercase"
-                              title="Delete Programme"
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                              <span>Delete</span>
-                            </button>
+                               onClick={() => handleDeleteProgram(p.id)}
+                               className="inline-flex items-center gap-1 bg-rose-50 hover:bg-rose-700 text-rose-700 hover:text-white px-3 py-1.5 rounded-xl border border-rose-200 transition-all shadow-xs cursor-pointer text-xs font-bold uppercase"
+                               title="Delete Programme"
+                             >
+                               <Trash2 className="w-3.5 h-3.5" />
+                               <span>DELETE</span>
+                             </button>
                           </td>
                         </tr>
                       ))}
@@ -2869,15 +3312,26 @@ export const AdminDashboard: React.FC<Props> = ({
               </div>
             </div>
           )}
+          {/* ========================================================
+               TAB 10: ELECTION RESULTS & AGENTS
+              ======================================================== */}
+          {activeTab === 'election' && (
+            <ElectionTab 
+              agents={agents} 
+              setAgents={setAgents} 
+              electionReports={electionReports} 
+              setElectionReports={setElectionReports} 
+            />
+          )}
 
           {/* ========================================================
-              TAB 10: USER SETTINGS (MANAGEMENT & CONFIGURATION)
+              TAB 11: USER SETTINGS (MANAGEMENT & CONFIGURATION)
              ======================================================== */}
           {activeTab === 'settings' && (
             <div className="w-full min-w-0 space-y-6">
               <div className="border-b border-stone-200 pb-4">
                 <h3 className="font-['Manrope'] font-extrabold text-2xl text-[#103C2E] uppercase">
-                  10. USER SETTINGS & ENTERPRISE CONFIGURATION
+                  11. USER SETTINGS & ENTERPRISE CONFIGURATION
                 </h3>
                 <p className="text-xs text-stone-500 mt-0.5">
                   Manage authorized administrators, portal headline statistics, multilingual translations dictionary, and security controls.

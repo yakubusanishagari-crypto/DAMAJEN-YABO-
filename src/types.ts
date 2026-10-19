@@ -169,3 +169,40 @@ export interface ProgramApplication {
   notes?: string;
   verifiedBy?: string;
 }
+
+export interface PollingUnitAgentLink {
+  id: string;
+  agentName: string;
+  localGovernment: string;
+  ward: string;
+  pollingUnitName: string;
+  pollingUnitCode?: string;
+  phone: string;
+  uniqueToken: string;
+  token?: string;
+  password: string;
+  createdAt: string;
+  isUsed: boolean;
+  status?: 'PENDING' | 'SUBMITTED';
+}
+
+export interface ElectionReport {
+  id: string;
+  linkId: string;
+  agentName: string;
+  ward: string;
+  localGovernment: string;
+  pollingUnitName: string;
+  pollingUnitCode: string;
+  phone: string;
+  totalRegisteredVoters: number;
+  totalAccreditedVoters: number;
+  totalValidVotes: number;
+  rejectedVotes: number;
+  danmajeVotes: number; 
+  opponentVotes: number; 
+  otherPartyVotes: number;
+  notes?: string;
+  submittedAt: string;
+}
+

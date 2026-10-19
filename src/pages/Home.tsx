@@ -423,9 +423,9 @@ export const Home: React.FC<Props> = ({
             <div className="pt-3">
               <button
                 onClick={() => navigateTo('about')}
-                className="bg-[#103C2E] hover:bg-[#09291F] active:scale-[0.98] text-white font-bold px-7 py-3.5 rounded-xl text-xs sm:text-sm transition-all duration-200 shadow-md inline-flex items-center gap-2 border border-[#C6A15B]/30 cursor-pointer"
+                className="bg-[#103C2E] hover:bg-[#09291F] active:scale-[0.98] text-white font-bold px-7 py-3.5 rounded-xl text-xs sm:text-sm transition-all duration-200 shadow-md inline-flex items-center gap-2 border border-[#C6A15B]/30 cursor-pointer uppercase tracking-wider"
               >
-                <span>{t('readFullBio', currentLang, translations)}</span>
+                <span>{t('readFullBio', currentLang, translations).toUpperCase()}</span>
                 <ArrowRight className="w-4 h-4 text-[#C6A15B]" />
               </button>
             </div>
@@ -464,9 +464,9 @@ export const Home: React.FC<Props> = ({
             <div className="pt-6">
               <button
                 onClick={() => navigateTo('legislative')}
-                className="w-full bg-[#103C2E] hover:bg-[#09291F] active:scale-[0.98] text-white px-4 py-3 rounded-xl font-bold text-xs transition-all shadow-sm flex items-center justify-center gap-1.5 cursor-pointer"
+                className="w-full bg-[#103C2E] hover:bg-[#09291F] active:scale-[0.98] text-white px-4 py-3 rounded-xl font-bold text-xs transition-all shadow-sm flex items-center justify-center gap-1.5 cursor-pointer uppercase tracking-wider"
               >
-                <span>View Bills & Motions</span>
+                <span>{t('impactCardLegBtn', currentLang, translations).toUpperCase()}</span>
                 <ChevronRight className="w-4 h-4 text-[#C6A15B]" />
               </button>
             </div>
@@ -488,9 +488,9 @@ export const Home: React.FC<Props> = ({
             <div className="pt-6">
               <button
                 onClick={() => navigateTo('projects')}
-                className="w-full bg-[#103C2E] hover:bg-[#09291F] active:scale-[0.98] text-white px-4 py-3 rounded-xl font-bold text-xs transition-all shadow-sm flex items-center justify-center gap-1.5 cursor-pointer"
+                className="w-full bg-[#103C2E] hover:bg-[#09291F] active:scale-[0.98] text-white px-4 py-3 rounded-xl font-bold text-xs transition-all shadow-sm flex items-center justify-center gap-1.5 cursor-pointer uppercase tracking-wider"
               >
-                <span>Explore Project Directory</span>
+                <span>{t('impactCardInfraBtn', currentLang, translations).toUpperCase()}</span>
                 <ChevronRight className="w-4 h-4 text-[#C6A15B]" />
               </button>
             </div>
@@ -512,9 +512,9 @@ export const Home: React.FC<Props> = ({
             <div className="pt-6">
               <button
                 onClick={() => navigateTo('empowerment')}
-                className="w-full bg-[#103C2E] hover:bg-[#09291F] active:scale-[0.98] text-white px-4 py-3 rounded-xl font-bold text-xs transition-all shadow-sm flex items-center justify-center gap-1.5 cursor-pointer"
+                className="w-full bg-[#103C2E] hover:bg-[#09291F] active:scale-[0.98] text-white px-4 py-3 rounded-xl font-bold text-xs transition-all shadow-sm flex items-center justify-center gap-1.5 cursor-pointer uppercase tracking-wider"
               >
-                <span>View Programmes & Apply</span>
+                <span>{t('impactCardWelfareBtn', currentLang, translations).toUpperCase()}</span>
                 <ChevronRight className="w-4 h-4 text-[#C6A15B]" />
               </button>
             </div>
@@ -531,7 +531,7 @@ export const Home: React.FC<Props> = ({
                 Verified Deliverables
               </span>
               <h2 className="text-3xl sm:text-4xl font-extrabold font-['Manrope'] text-[#103C2E] mt-1">
-                Featured Constituency Projects
+                FEATURED CONSTITUENCY PROJECTS
               </h2>
               <p className="text-xs sm:text-sm text-stone-500 mt-1">
                 Direct evidence of infrastructure, water, and human capacity projects across Yabo and Shagari.
@@ -539,9 +539,9 @@ export const Home: React.FC<Props> = ({
             </div>
             <button
               onClick={() => navigateTo('projects')}
-              className="bg-[#C6A15B] hover:bg-[#b59048] active:scale-[0.98] text-[#09291F] font-bold px-7 py-3 rounded-xl text-xs sm:text-sm transition-all shadow flex items-center gap-2 cursor-pointer border border-[#C6A15B]"
+              className="bg-[#C6A15B] hover:bg-[#b59048] active:scale-[0.98] text-[#09291F] font-bold px-7 py-3 rounded-xl text-xs sm:text-sm transition-all shadow flex items-center gap-2 cursor-pointer border border-[#C6A15B] uppercase tracking-wider"
             >
-              <span>{t('viewAllProjects', currentLang, translations)}</span>
+              <span>{t('viewAllProjects', currentLang, translations).toUpperCase()}</span>
               <ArrowRight className="w-4 h-4" />
             </button>
           </div>
@@ -553,13 +553,13 @@ export const Home: React.FC<Props> = ({
               <button
                 key={cat}
                 onClick={() => setProjectSectorFilter(cat)}
-                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer uppercase tracking-wider ${
                   projectSectorFilter === cat
                     ? 'bg-[#103C2E] text-white shadow-sm'
                     : 'bg-white text-stone-600 border border-stone-200 hover:bg-stone-100'
                 }`}
               >
-                {cat === 'All' ? 'All Interventions' : cat}
+                {cat === 'All' ? 'ALL INTERVENTIONS' : cat.toUpperCase()}
               </button>
             ))}
           </div>
@@ -612,9 +612,9 @@ export const Home: React.FC<Props> = ({
                 <div className="px-6 pb-6 pt-2">
                   <button
                     onClick={() => setActiveProject(project)}
-                    className="w-full bg-[#103C2E] hover:bg-[#09291F] active:scale-[0.98] text-white py-3 rounded-xl font-bold text-xs transition-all shadow-sm text-center flex items-center justify-center gap-1.5 cursor-pointer"
+                    className="w-full bg-[#103C2E] hover:bg-[#09291F] active:scale-[0.98] text-white py-3 rounded-xl font-bold text-xs transition-all shadow-sm text-center flex items-center justify-center gap-1.5 cursor-pointer uppercase tracking-wider"
                   >
-                    <span>{t('viewDetails', currentLang, translations)}</span>
+                    <span>{t('viewDetails', currentLang, translations).toUpperCase()}</span>
                     <ArrowRight className="w-3.5 h-3.5 text-[#C6A15B]" />
                   </button>
                 </div>
@@ -640,9 +640,9 @@ export const Home: React.FC<Props> = ({
           </div>
           <button
             onClick={() => navigateTo('legislative')}
-            className="bg-[#103C2E] hover:bg-[#09291F] active:scale-[0.98] text-white font-bold px-7 py-3 rounded-xl text-xs sm:text-sm transition-all shadow flex items-center gap-2 cursor-pointer border border-[#C6A15B]/30"
+            className="bg-[#103C2E] hover:bg-[#09291F] active:scale-[0.98] text-white font-bold px-7 py-3 rounded-xl text-xs sm:text-sm transition-all shadow flex items-center gap-2 cursor-pointer border border-[#C6A15B]/30 uppercase tracking-wider"
           >
-            <span>{t('viewAllLegislative', currentLang, translations)}</span>
+            <span>{t('viewAllLegislative', currentLang, translations).toUpperCase()}</span>
             <ArrowRight className="w-4 h-4 text-[#C6A15B]" />
           </button>
         </div>
@@ -704,10 +704,10 @@ export const Home: React.FC<Props> = ({
                 onClick={() => {
                   setActiveVideoTheater(featuredVideo);
                 }}
-                className="bg-gradient-to-r from-[#D4AF37] via-[#C6A15B] to-[#B38F44] hover:brightness-110 active:scale-[0.98] text-[#09291F] font-extrabold px-6 py-3 rounded-xl shadow-lg transition-all flex items-center gap-2 text-xs sm:text-sm cursor-pointer border border-[#E5C16C]"
+                className="bg-gradient-to-r from-[#D4AF37] via-[#C6A15B] to-[#B38F44] hover:brightness-110 active:scale-[0.98] text-[#09291F] font-extrabold px-6 py-3 rounded-xl shadow-lg transition-all flex items-center gap-2 text-xs sm:text-sm cursor-pointer border border-[#E5C16C] uppercase tracking-wider"
               >
                 <Play className="w-4 h-4 fill-current" />
-                <span>Watch with Comments & Reactions</span>
+                <span>WATCH WITH COMMENTS & REACTIONS</span>
               </button>
 
               <button
@@ -801,11 +801,11 @@ export const Home: React.FC<Props> = ({
                   onClick={() => {
                     setActiveVideoTheater(featuredVideo);
                   }}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-[#0A261E] hover:bg-[#103C2E] text-[#D4AF37] border border-[#C6A15B]/50 transition cursor-pointer shadow-sm"
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-[#0A261E] hover:bg-[#103C2E] text-[#D4AF37] border border-[#C6A15B]/50 transition cursor-pointer shadow-sm uppercase tracking-wider"
                   title="View and post comments"
                 >
                   <MessageSquare className="w-3.5 h-3.5 text-[#C6A15B]" />
-                  <span>Citizen Reactions</span>
+                  <span>CITIZEN REACTIONS</span>
                 </button>
               </div>
 
@@ -814,9 +814,9 @@ export const Home: React.FC<Props> = ({
                 onClick={() => {
                   setActiveVideoTheater(featuredVideo);
                 }}
-                className="text-[11px] font-bold text-[#D4AF37] hover:underline flex items-center gap-1 cursor-pointer"
+                className="text-[11px] font-bold text-[#D4AF37] hover:underline flex items-center gap-1 cursor-pointer uppercase tracking-wider"
               >
-                <span>Full Interactive Discussion</span>
+                <span>FULL INTERACTIVE DISCUSSION</span>
                 <ChevronRight className="w-3 h-3" />
               </button>
             </div>
@@ -841,9 +841,9 @@ export const Home: React.FC<Props> = ({
             </div>
             <button
               onClick={() => navigateTo('empowerment')}
-              className="bg-[#C6A15B] hover:bg-[#b59048] active:scale-[0.98] text-[#09291F] font-bold px-7 py-3 rounded-xl text-xs sm:text-sm transition-all shadow flex items-center gap-2 cursor-pointer border border-[#C6A15B]"
+              className="bg-[#C6A15B] hover:bg-[#b59048] active:scale-[0.98] text-[#09291F] font-bold px-7 py-3 rounded-xl text-xs sm:text-sm transition-all shadow flex items-center gap-2 cursor-pointer border border-[#C6A15B] uppercase tracking-wider"
             >
-              <span>{t('viewAllEmpowerment', currentLang, translations)}</span>
+              <span>{t('viewAllEmpowerment', currentLang, translations).toUpperCase()}</span>
               <ArrowRight className="w-4 h-4" />
             </button>
           </div>
@@ -877,9 +877,9 @@ export const Home: React.FC<Props> = ({
                       setAppReceipt(null);
                       setAppError('');
                     }}
-                    className="bg-[#103C2E] hover:bg-[#09291F] active:scale-[0.98] text-white px-6 py-3 rounded-xl font-bold text-xs transition shadow flex items-center justify-center gap-1.5 cursor-pointer"
+                    className="bg-[#103C2E] hover:bg-[#09291F] active:scale-[0.98] text-white px-6 py-3 rounded-xl font-bold text-xs transition shadow flex items-center justify-center gap-1.5 cursor-pointer uppercase tracking-wider"
                   >
-                    <span>{t('applyNow', currentLang, translations)}</span>
+                    <span>{t('applyNow', currentLang, translations).toUpperCase()}</span>
                     <ArrowRight className="w-3.5 h-3.5 text-[#C6A15B]" />
                   </button>
 
@@ -904,14 +904,14 @@ export const Home: React.FC<Props> = ({
               Editorial Desk
             </span>
             <h2 className="text-3xl sm:text-4xl font-extrabold font-['Manrope'] text-[#103C2E] mt-1">
-              Latest News & Official Announcements
+              LATEST NEWS & OFFICIAL ANNOUNCEMENTS
             </h2>
           </div>
           <button
             onClick={() => navigateTo('news')}
-            className="bg-[#103C2E] hover:bg-[#09291F] active:scale-[0.98] text-white font-bold px-7 py-3 rounded-xl text-xs sm:text-sm transition-all shadow flex items-center gap-2 cursor-pointer border border-[#C6A15B]/30"
+            className="bg-[#103C2E] hover:bg-[#09291F] active:scale-[0.98] text-white font-bold px-7 py-3 rounded-xl text-xs sm:text-sm transition-all shadow flex items-center gap-2 cursor-pointer border border-[#C6A15B]/30 uppercase tracking-wider"
           >
-            <span>All News & Releases</span>
+            <span>VIEW ALL NEWS</span>
             <ArrowRight className="w-4 h-4 text-[#C6A15B]" />
           </button>
         </div>
@@ -990,9 +990,9 @@ export const Home: React.FC<Props> = ({
             <div className="pt-2 flex flex-wrap gap-4">
               <button
                 onClick={() => navigateTo('contact')}
-                className="bg-[#D4AF37] hover:bg-[#C6A15B] active:scale-[0.98] text-[#09291F] font-bold px-8 py-4 rounded-xl shadow-lg transition-all transform hover:-translate-y-0.5 text-sm sm:text-base border border-[#D4AF37] cursor-pointer"
+                className="bg-[#D4AF37] hover:bg-[#C6A15B] active:scale-[0.98] text-[#09291F] font-bold px-8 py-4 rounded-xl shadow-lg transition-all transform hover:-translate-y-0.5 text-sm sm:text-base border border-[#D4AF37] cursor-pointer uppercase tracking-wider"
               >
-                <span>{t('submitEnquiryBtn', currentLang, translations)}</span>
+                <span>{t('submitEnquiryBtn', currentLang, translations).toUpperCase()}</span>
               </button>
               <button
                 onClick={() => navigateTo('empowerment')}
@@ -1310,9 +1310,9 @@ export const Home: React.FC<Props> = ({
 
                   <button
                     onClick={() => setApplyProgram(null)}
-                    className="w-full bg-[#103C2E] hover:bg-[#09291F] text-white py-3 rounded-xl font-bold text-xs transition cursor-pointer"
+                    className="w-full bg-[#103C2E] hover:bg-[#09291F] text-white py-3 rounded-xl font-bold text-xs transition cursor-pointer uppercase tracking-wider"
                   >
-                    Close & Finish
+                    CLOSE & FINISH
                   </button>
                 </div>
               ) : (
@@ -1400,13 +1400,13 @@ export const Home: React.FC<Props> = ({
                     <button
                       type="submit"
                       disabled={appSubmitting}
-                      className="w-full bg-[#103C2E] hover:bg-[#09291F] disabled:opacity-50 text-white py-3.5 rounded-xl font-bold text-xs sm:text-sm shadow flex items-center justify-center gap-2 cursor-pointer transition"
+                      className="w-full bg-[#103C2E] hover:bg-[#09291F] disabled:opacity-50 text-white py-3.5 rounded-xl font-bold text-xs sm:text-sm shadow flex items-center justify-center gap-2 cursor-pointer transition uppercase tracking-wider"
                     >
                       {appSubmitting ? (
-                        <span>Submitting Application...</span>
+                        <span>SUBMITTING APPLICATION...</span>
                       ) : (
                         <>
-                          <span>Submit Verified Application</span>
+                          <span>SUBMIT VERIFIED APPLICATION</span>
                           <ArrowRight className="w-4 h-4 text-[#C6A15B]" />
                         </>
                       )}

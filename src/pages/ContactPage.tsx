@@ -192,9 +192,9 @@ export const ContactPage: React.FC<Props> = ({ currentLang = 'en', translations 
                 </p>
                 <button
                   onClick={() => setSuccess(false)}
-                  className="bg-[#103C2E] hover:bg-[#09291F] text-white px-7 py-3 rounded-xl font-bold text-sm shadow transition cursor-pointer"
+                  className="bg-[#103C2E] hover:bg-[#09291F] text-white px-7 py-3 rounded-xl font-bold text-sm shadow transition cursor-pointer uppercase tracking-wider"
                 >
-                  {currentLang === 'ha' ? 'Aika Wani Sakon' : currentLang === 'ar' ? 'إرسال رسالة أخرى' : 'Send Another Message'}
+                  {currentLang === 'ha' ? 'AIKA WANI SAKON' : currentLang === 'ar' ? 'إرسال رسالة أخرى' : 'SEND ANOTHER MESSAGE'}
                 </button>
               </div>
             ) : (
@@ -288,13 +288,13 @@ export const ContactPage: React.FC<Props> = ({ currentLang = 'en', translations 
                   <button
                     type="submit"
                     disabled={submitting}
-                    className="w-full bg-[#103C2E] hover:bg-[#09291F] text-white py-3.5 rounded-xl font-bold text-sm shadow-md transition flex items-center justify-center gap-2 cursor-pointer border border-[#C6A15B]/30"
+                    className="w-full bg-[#103C2E] hover:bg-[#09291F] text-white py-3.5 rounded-xl font-bold text-sm shadow-md transition flex items-center justify-center gap-2 cursor-pointer border border-[#C6A15B]/30 uppercase tracking-wider"
                   >
                     <Send className="w-4 h-4 text-[#C6A15B]" />
                     <span>
                       {submitting 
-                        ? (currentLang === 'ha' ? 'Ana Aika Sako...' : currentLang === 'ar' ? 'جارٍ الإرسال...' : 'Sending Message...')
-                        : (currentLang === 'ha' ? 'Aika Sakon Ofis' : currentLang === 'ar' ? 'إرسال الرسالة الرسمية' : 'Submit Official Message')}
+                        ? (currentLang === 'ha' ? 'ANA AIKA SAKO...' : currentLang === 'ar' ? 'جارٍ الإرسال...' : 'SENDING MESSAGE...')
+                        : (currentLang === 'ha' ? 'AIKA SAKON OFIS' : currentLang === 'ar' ? 'إرسال الرسالة الرسمية' : 'SUBMIT OFFICIAL MESSAGE')}
                     </span>
                   </button>
                 </div>

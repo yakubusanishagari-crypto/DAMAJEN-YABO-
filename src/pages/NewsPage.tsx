@@ -137,9 +137,9 @@ export const NewsPage: React.FC<Props> = ({
             </div>
             <button
               onClick={() => setActiveArticle(featured)}
-              className="bg-[#103C2E] hover:bg-[#09291F] text-white px-6 py-3 rounded-xl font-bold text-sm shadow transition flex items-center justify-center gap-2 w-full sm:w-auto cursor-pointer"
+              className="bg-[#103C2E] hover:bg-[#09291F] text-white px-6 py-3 rounded-xl font-bold text-sm shadow transition flex items-center justify-center gap-2 w-full sm:w-auto cursor-pointer uppercase tracking-wider"
             >
-              <span>{t('readMore', currentLang, translations)}</span> 
+              <span>{t('readMore', currentLang, translations).toUpperCase()}</span> 
               <ArrowRight className={`w-4 h-4 text-[#C6A15B] ${isRtl ? 'rotate-180' : ''}`} />
             </button>
           </div>
@@ -247,9 +247,9 @@ export const NewsPage: React.FC<Props> = ({
             <div className="bg-stone-100 p-4 border-t border-stone-200 flex justify-end">
               <button
                 onClick={() => setActiveArticle(null)}
-                className="bg-[#103C2E] text-white px-6 py-2.5 rounded-xl font-bold text-sm hover:bg-[#09291F] transition cursor-pointer"
+                className="bg-[#103C2E] text-white px-6 py-2.5 rounded-xl font-bold text-sm hover:bg-[#09291F] transition cursor-pointer uppercase tracking-wider"
               >
-                {t('closeBtn', currentLang, translations)}
+                {t('closeBtn', currentLang, translations).toUpperCase()}
               </button>
             </div>
           </div>

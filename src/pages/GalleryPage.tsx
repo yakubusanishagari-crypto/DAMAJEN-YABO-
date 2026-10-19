@@ -88,39 +88,39 @@ export const GalleryPage: React.FC<Props> = ({
         <div className="flex items-center gap-1.5 p-1 bg-stone-100 rounded-xl w-full md:w-auto">
           <button
             onClick={() => setMediaTypeFilter('all')}
-            className={`flex-1 md:flex-initial px-4 py-2 rounded-lg text-xs sm:text-sm font-bold transition flex items-center justify-center gap-1.5 cursor-pointer ${
+            className={`flex-1 md:flex-initial px-4 py-2 rounded-lg text-xs sm:text-sm font-bold transition flex items-center justify-center gap-1.5 cursor-pointer uppercase tracking-wider ${
               mediaTypeFilter === 'all'
                 ? 'bg-[#103C2E] text-white shadow-sm'
                 : 'text-stone-600 hover:text-[#103C2E]'
             }`}
           >
-            <span>{t('allMediaLabel', currentLang, translations)}</span>
+            <span>{t('allMediaLabel', currentLang, translations).toUpperCase()}</span>
             <span className="text-[11px] opacity-80">({gallery.length})</span>
           </button>
 
           <button
             onClick={() => setMediaTypeFilter('video')}
-            className={`flex-1 md:flex-initial px-4 py-2 rounded-lg text-xs sm:text-sm font-bold transition flex items-center justify-center gap-1.5 cursor-pointer ${
+            className={`flex-1 md:flex-initial px-4 py-2 rounded-lg text-xs sm:text-sm font-bold transition flex items-center justify-center gap-1.5 cursor-pointer uppercase tracking-wider ${
               mediaTypeFilter === 'video'
                 ? 'bg-[#103C2E] text-white shadow-sm'
                 : 'text-stone-600 hover:text-[#103C2E]'
             }`}
           >
             <Video className="w-4 h-4 text-[#C6A15B]" />
-            <span>{t('videosOnlyLabel', currentLang, translations)}</span>
+            <span>{t('videosOnlyLabel', currentLang, translations).toUpperCase()}</span>
             <span className="text-[11px] opacity-80">({videoCount})</span>
           </button>
 
           <button
             onClick={() => setMediaTypeFilter('photo')}
-            className={`flex-1 md:flex-initial px-4 py-2 rounded-lg text-xs sm:text-sm font-bold transition flex items-center justify-center gap-1.5 cursor-pointer ${
+            className={`flex-1 md:flex-initial px-4 py-2 rounded-lg text-xs sm:text-sm font-bold transition flex items-center justify-center gap-1.5 cursor-pointer uppercase tracking-wider ${
               mediaTypeFilter === 'photo'
                 ? 'bg-[#103C2E] text-white shadow-sm'
                 : 'text-stone-600 hover:text-[#103C2E]'
             }`}
           >
             <ImageIcon className="w-4 h-4 text-[#C6A15B]" />
-            <span>{t('photosOnlyLabel', currentLang, translations)}</span>
+            <span>{t('photosOnlyLabel', currentLang, translations).toUpperCase()}</span>
             <span className="text-[11px] opacity-80">({photoCount})</span>
           </button>
         </div>
@@ -288,9 +288,9 @@ export const GalleryPage: React.FC<Props> = ({
             <div className="p-4 bg-stone-100 border-t border-stone-200 flex justify-end">
               <button
                 onClick={() => setActivePhoto(null)}
-                className="bg-[#103C2E] hover:bg-[#09291F] text-white px-5 py-2 rounded-xl text-xs font-bold cursor-pointer"
+                className="bg-[#103C2E] hover:bg-[#09291F] text-white px-5 py-2 rounded-xl text-xs font-bold cursor-pointer uppercase tracking-wider"
               >
-                {t('closeBtn', currentLang, translations)}
+                {t('closeBtn', currentLang, translations).toUpperCase()}
               </button>
             </div>
           </div>

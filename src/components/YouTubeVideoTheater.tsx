@@ -372,10 +372,10 @@ export const YouTubeVideoTheater: React.FC<Props> = ({
                   <span className="text-[11px] text-stone-400">Moderated official portal</span>
                   <button
                     type="submit"
-                    className="bg-[#D4AF37] hover:bg-[#C6A15B] text-[#09291F] font-bold px-4 py-1.5 rounded-xl text-xs flex items-center gap-1.5 transition cursor-pointer shadow-md"
+                    className="bg-[#D4AF37] hover:bg-[#C6A15B] text-[#09291F] font-bold px-4 py-1.5 rounded-xl text-xs flex items-center gap-1.5 transition cursor-pointer shadow-md uppercase tracking-wider"
                   >
                     <Send className="w-3.5 h-3.5" />
-                    <span>Post Comment</span>
+                    <span>POST COMMENT</span>
                   </button>
                 </div>
               </form>

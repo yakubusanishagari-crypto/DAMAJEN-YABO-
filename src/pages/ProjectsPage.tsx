@@ -182,7 +182,7 @@ export const ProjectsPage: React.FC<Props> = ({
 
                 <button
                   onClick={() => setActiveProject(project)}
-                  className="bg-[#103C2E] hover:bg-[#09291F] text-white px-4 py-2 rounded-xl text-xs font-bold transition shadow flex items-center gap-1 cursor-pointer"
+                  className="bg-[#103C2E] hover:bg-[#09291F] text-white px-4 py-2 rounded-xl text-xs font-bold transition shadow flex items-center gap-1 cursor-pointer uppercase tracking-wider"
                 >
                   <span>{t('viewDetails', currentLang, translations).toUpperCase()}</span>
                   <ChevronRight className={`w-3.5 h-3.5 text-[#C6A15B] ${isRtl ? 'rotate-180' : ''}`} />
@@ -293,18 +293,18 @@ export const ProjectsPage: React.FC<Props> = ({
                     setCurrentTab('contact');
                     window.scrollTo({ top: 0, behavior: 'smooth' });
                   }}
-                  className="bg-[#C6A15B] hover:bg-[#b59048] text-[#09291F] px-4 py-2 rounded-xl font-bold text-xs shadow flex items-center gap-1 cursor-pointer"
+                  className="bg-[#C6A15B] hover:bg-[#b59048] text-[#09291F] px-4 py-2 rounded-xl font-bold text-xs shadow flex items-center gap-1 cursor-pointer uppercase tracking-wider"
                 >
-                  <span>{currentLang === 'ha' ? 'Aika Tambaya Kan Wannan Aiki' : currentLang === 'ar' ? 'إرسال استفسار بشأن هذا المشروع' : 'Submit Inquiry Regarding This Project'}</span>
+                  <span>{currentLang === 'ha' ? 'AIKA TAMBAYA KAN WANNAN AIKI' : currentLang === 'ar' ? 'إرسال استفسار بشأن هذا المشروع' : 'SUBMIT INQUIRY REGARDING THIS PROJECT'}</span>
                   <ArrowRight className={`w-3.5 h-3.5 ${isRtl ? 'rotate-180' : ''}`} />
                 </button>
               )}
 
               <button
                 onClick={() => setActiveProject(null)}
-                className="bg-[#103C2E] text-white px-5 py-2 rounded-xl font-bold text-xs hover:bg-[#09291F] transition cursor-pointer ml-auto"
+                className="bg-[#103C2E] text-white px-5 py-2 rounded-xl font-bold text-xs hover:bg-[#09291F] transition cursor-pointer ml-auto uppercase tracking-wider"
               >
-                {t('closeBtn', currentLang, translations)}
+                {t('closeBtn', currentLang, translations).toUpperCase()}
               </button>
             </div>
           </div>
