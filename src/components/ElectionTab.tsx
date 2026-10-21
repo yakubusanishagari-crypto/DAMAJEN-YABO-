@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { PollingUnitAgentLink, ElectionReport } from '../types';
-import { Plus, X, Trash2, Copy, Printer } from 'lucide-react';
+import { Plus, X, Trash2, Copy, Printer, MessageCircle, CheckCircle2, ExternalLink, ShieldCheck } from 'lucide-react';
 
 interface Props {
   agents: PollingUnitAgentLink[];
@@ -11,6 +11,7 @@ interface Props {
 
 export const ElectionTab: React.FC<Props> = ({ agents, setAgents, electionReports, setElectionReports }) => {
   const [showNewAgentModal, setShowNewAgentModal] = useState(false);
+  const [justCreatedAgent, setJustCreatedAgent] = useState<PollingUnitAgentLink | null>(null);
   const [newLGA, setNewLGA] = useState('');
   const [newWard, setNewWard] = useState('');
   const [newPUName, setNewPUName] = useState('');
@@ -27,6 +28,46 @@ export const ElectionTab: React.FC<Props> = ({ agents, setAgents, electionReport
   const totalOpponentVotes = electionReports.reduce((acc, r) => acc + r.opponentVotes, 0);
   const netMargin = totalDanmajeVotes - totalOpponentVotes;
   const totalValid = electionReports.reduce((acc, r) => acc + r.totalValidVotes, 0);
+
+  const getAgentWhatsAppUrl = (agent: PollingUnitAgentLink) => {
+    const rawPhone = (agent.phone || '').replace(/[^0-9]/g, '');
+    let formattedPhone = rawPhone;
+    if (formattedPhone.startsWith('0')) {
+      formattedPhone = '234' + formattedPhone.slice(1);
+    } else if (formattedPhone.startsWith('8') || formattedPhone.startsWith('7') || formattedPhone.startsWith('9')) {
+      formattedPhone = '234' + formattedPhone;
+    }
+    const tokenVal = agent.token || agent.uniqueToken;
+    const directLink = `${window.location.origin}/?agent_token=${encodeURIComponent(tokenVal)}&pwd=${encodeURIComponent(agent.password)}`;
+
+    const text = 
+`*FEDERAL REPUBLIC OF NIGERIA • 10TH NATIONAL ASSEMBLY*
+*CAMPAIGN & ELECTION TRANSMISSION DESK*
+*OFFICE OF HON. (DR.) UMAR YUSUF (DAN MAJEN YABO)*
+
+Dear Accredited Agent: *${agent.agentName.toUpperCase()}*,
+
+You have been officially accredited as the Polling Unit Transmission Officer for:
+🏛️ *Polling Unit:* ${agent.pollingUnitName}
+📍 *PU Code:* ${agent.pollingUnitCode || 'PU Code Verified'}
+📍 *Ward / LGA:* ${agent.ward || agent.wardName} • ${agent.localGovernment}
+
+🔐 *YOUR SECURE ACCESS CREDENTIALS:*
+• *Agent ID / Token:* ${tokenVal}
+• *Password:* ${agent.password}
+
+📲 *1-CLICK INSTANT LOGIN LINK:*
+${directLink}
+
+_INSTRUCTIONS:_
+1. Click the 1-Click link above to automatically log into your transmission desk.
+2. Enter accredited voter counts, vote tallies, and capture the authentic Form EC8A result sheet photo.
+3. Transmit immediately as soon as counting concludes.
+
+_Strictly Confidential • Assigned to ${agent.agentName}_`;
+
+    return `https://wa.me/${formattedPhone}?text=${encodeURIComponent(text)}`;
+  };
 
   const handleCreateAgent = (e: React.FormEvent) => {
     e.preventDefault();
@@ -57,6 +98,7 @@ export const ElectionTab: React.FC<Props> = ({ agents, setAgents, electionReport
     setAgents(updatedAgents);
     localStorage.setItem('danmaje_agent_links', JSON.stringify(updatedAgents));
     localStorage.setItem('danmaje_agents', JSON.stringify(updatedAgents));
+    setJustCreatedAgent(newAg);
     setShowNewAgentModal(false);
     setNewLGA('');
     setNewWard('');
@@ -262,12 +304,102 @@ export const ElectionTab: React.FC<Props> = ({ agents, setAgents, electionReport
         </div>
       )}
 
+      {/* Generated Agent Credentials & WhatsApp Instant Dispatch Modal */}
+      {justCreatedAgent && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm animate-fadeIn">
+          <div className="bg-white rounded-3xl max-w-lg w-full p-6 sm:p-8 space-y-5 shadow-2xl border-2 border-[#25D366]">
+            <div className="flex justify-between items-center border-b border-stone-100 pb-3">
+              <div className="flex items-center gap-2.5">
+                <div className="w-10 h-10 rounded-full bg-emerald-100 text-emerald-800 flex items-center justify-center font-bold">
+                  <CheckCircle2 className="w-5 h-5 text-emerald-600" />
+                </div>
+                <div>
+                  <h4 className="font-['Manrope'] font-extrabold text-[#103C2E] text-base uppercase">
+                    Agent Credentials Generated
+                  </h4>
+                  <span className="text-[11px] text-stone-500 font-medium">Ready for direct WhatsApp DM transmission</span>
+                </div>
+              </div>
+              <button onClick={() => setJustCreatedAgent(null)} className="text-stone-400 hover:text-stone-700 cursor-pointer">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="bg-stone-50 p-4 rounded-2xl border border-stone-200 space-y-2.5 text-xs">
+              <div className="flex justify-between items-center">
+                <span className="text-stone-500 font-bold uppercase text-[10px]">Accredited Agent:</span>
+                <span className="font-extrabold text-[#103C2E] text-sm">{justCreatedAgent.agentName}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-stone-500 font-bold uppercase text-[10px]">Phone Number:</span>
+                <span className="font-mono font-bold text-stone-800">{justCreatedAgent.phone}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-stone-500 font-bold uppercase text-[10px]">Polling Unit:</span>
+                <span className="font-bold text-stone-800">{justCreatedAgent.pollingUnitName}</span>
+              </div>
+              <div className="flex justify-between items-center">
+                <span className="text-stone-500 font-bold uppercase text-[10px]">Ward & LGA:</span>
+                <span className="text-stone-700">{justCreatedAgent.ward} • {justCreatedAgent.localGovernment}</span>
+              </div>
+              <div className="pt-2 border-t border-stone-200 flex justify-between items-center">
+                <div>
+                  <span className="text-stone-500 text-[10px] uppercase font-bold block">Assigned Token & Password:</span>
+                  <span className="font-mono text-emerald-800 font-bold text-xs select-all">
+                    {justCreatedAgent.token} / {justCreatedAgent.password}
+                  </span>
+                </div>
+                <button
+                  onClick={() => copyDirectAgentLink(justCreatedAgent)}
+                  className="bg-stone-200 hover:bg-stone-300 text-stone-800 px-3 py-1.5 rounded-lg font-bold text-[10px] uppercase cursor-pointer"
+                >
+                  Copy Link
+                </button>
+              </div>
+            </div>
+
+            {/* Direct WhatsApp Transmission Action */}
+            <div className="space-y-3 pt-1">
+              <a
+                href={getAgentWhatsAppUrl(justCreatedAgent)}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={(e) => {
+                  window.open(getAgentWhatsAppUrl(justCreatedAgent), '_blank');
+                  e.preventDefault();
+                }}
+                className="w-full bg-[#25D366] hover:bg-[#1EBE5D] text-white py-4 px-4 rounded-2xl font-black text-xs sm:text-sm uppercase flex items-center justify-center gap-2.5 shadow-xl transition active:scale-[0.98] cursor-pointer tracking-wider border-2 border-white/40"
+              >
+                <MessageCircle className="w-5 h-5 fill-current shrink-0" />
+                <span className="text-center">SEND LINK & LOGIN CREDENTIALS DIRECTLY TO AGENT'S WHATSAPP DM ({justCreatedAgent.phone})</span>
+              </a>
+
+              <div className="flex gap-2">
+                <button
+                  onClick={() => copyDirectAgentLink(justCreatedAgent)}
+                  className="flex-1 bg-stone-100 hover:bg-stone-200 text-stone-800 py-2.5 px-4 rounded-xl font-bold text-xs uppercase transition cursor-pointer flex items-center justify-center gap-1.5"
+                >
+                  <Copy className="w-3.5 h-3.5 text-stone-600" />
+                  <span>Copy 1-Click Link Only</span>
+                </button>
+                <button
+                  onClick={() => setJustCreatedAgent(null)}
+                  className="bg-[#103C2E] hover:bg-[#09291F] text-white py-2.5 px-5 rounded-xl font-bold text-xs uppercase transition cursor-pointer"
+                >
+                  Close & View Table
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Assigned Agents Table */}
       <div className="bg-white rounded-3xl shadow-sm border border-stone-200 overflow-hidden space-y-4 p-6">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 border-b border-stone-100 pb-3">
           <div>
             <h4 className="font-bold text-[#103C2E] text-base uppercase">Polling Unit Agents & Secure Submission Links</h4>
-            <span className="text-xs text-stone-500 font-medium">Click copy 1-click link to send directly to your agent via WhatsApp or SMS.</span>
+            <span className="text-xs text-stone-500 font-medium">Click WhatsApp DM to send credentials directly to your agent or copy 1-click link.</span>
           </div>
           <span className="text-xs bg-emerald-50 text-emerald-800 border border-emerald-200 px-3 py-1 rounded-full font-bold">
             Master Campaign Key: <code>DANMAJE2026</code>
@@ -282,7 +414,7 @@ export const ElectionTab: React.FC<Props> = ({ agents, setAgents, electionReport
                 <th className="p-3.5">Agent Details</th>
                 <th className="p-3.5">Access Credentials</th>
                 <th className="p-3.5">Status</th>
-                <th className="p-3.5">1-Click Submission Link</th>
+                <th className="p-3.5">1-Click Submission & WhatsApp</th>
                 <th className="p-3.5 text-right">Actions</th>
               </tr>
             </thead>
@@ -349,10 +481,21 @@ export const ElectionTab: React.FC<Props> = ({ agents, setAgents, electionReport
                       )}
                     </td>
                     <td className="p-3.5">
-                      <div className="space-y-1">
+                      <div className="space-y-1.5">
+                        <a
+                          href={getAgentWhatsAppUrl(ag)}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="bg-[#25D366] hover:bg-[#1EBE5D] text-white px-3 py-1.5 rounded-xl font-bold text-[11px] flex items-center gap-1.5 shadow-sm transition inline-flex w-fit cursor-pointer uppercase tracking-wider"
+                          title="Open WhatsApp chat and send login credentials directly in DM"
+                        >
+                          <MessageCircle className="w-3.5 h-3.5 fill-current" />
+                          <span>WHATSAPP DM</span>
+                        </a>
+
                         <button
                           onClick={() => copyDirectAgentLink(ag)}
-                          className="bg-emerald-700 hover:bg-emerald-800 active:scale-95 text-white px-3 py-1.5 rounded-xl font-bold text-[11px] flex items-center gap-1.5 shadow-xs transition cursor-pointer"
+                          className="bg-emerald-700 hover:bg-emerald-800 active:scale-95 text-white px-3 py-1.5 rounded-xl font-bold text-[11px] flex items-center gap-1.5 shadow-xs transition cursor-pointer w-fit"
                           title="Copy Direct Link with Credentials Pre-loaded for WhatsApp/SMS"
                         >
                           <Copy className="w-3.5 h-3.5 text-[#D4AF37]" />

@@ -18,6 +18,7 @@ import {
 import { ApplicationSlipModal } from '../components/ApplicationSlipModal';
 import { CongratulationOfferModal } from '../components/CongratulationOfferModal';
 import { ElectionTab } from '../components/ElectionTab';
+import { CybersecurityTab } from '../components/CybersecurityTab';
 import { 
   extractYouTubeId, 
   getYouTubeThumbnailUrl, 
@@ -65,6 +66,7 @@ export type DashboardTab =
   | 'gallery' 
   | 'enquiries' 
   | 'election'
+  | 'cybersecurity'
   | 'settings';
 
 export const AdminDashboard: React.FC<Props> = ({
@@ -395,6 +397,19 @@ export const AdminDashboard: React.FC<Props> = ({
     updates: []
   });
   const [editingProject, setEditingProject] = useState<Project | null>(null);
+
+  const handleProjectImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 8 * 1024 * 1024) return;
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const result = reader.result as string;
+        setNewProj(prev => ({ ...prev, images: [result] }));
+      };
+      reader.readAsDataURL(file);
+    }
+  };
 
   const handleCreateProject = (e: React.FormEvent) => {
     e.preventDefault();
@@ -953,7 +968,7 @@ export const AdminDashboard: React.FC<Props> = ({
     }
   };
 
-  // Exact 10 Nav items
+  // Navigation items with Cybersecurity Command Center
   const navItems: { id: DashboardTab; label: string; icon: any; count?: number }[] = [
     { id: 'overview', label: '1. SYSTEM OVERVIEW', icon: Activity },
     { id: 'analytics', label: '2. VISITORS ANALYTICS', icon: BarChart3 },
@@ -965,7 +980,8 @@ export const AdminDashboard: React.FC<Props> = ({
     { id: 'gallery', label: '8. PHOTOS & VIDEOS', icon: Film, count: gallery.length },
     { id: 'enquiries', label: '9. ENQUIRIES', icon: Mail, count: contacts.length },
     { id: 'election', label: '10. ELECTION RESULTS & AGENTS', icon: CheckSquare },
-    { id: 'settings', label: '11. USER SETTINGS', icon: Settings },
+    { id: 'cybersecurity', label: '11. CYBERSECURITY & THREAT DEFENSE', icon: Shield },
+    { id: 'settings', label: '12. USER SETTINGS', icon: Settings },
   ];
 
   // LOGIN SCREEN
@@ -1946,6 +1962,51 @@ export const AdminDashboard: React.FC<Props> = ({
                     className="w-full px-4 py-2.5 bg-stone-50 border border-stone-200 rounded-xl text-xs sm:text-sm"
                   ></textarea>
 
+                  {/* Project Photo Attachment */}
+                  <div className="space-y-3 bg-stone-50 p-4 rounded-2xl border border-stone-200">
+                    <label className="text-xs font-bold text-[#103C2E] block uppercase tracking-wider">
+                      Attach Project Site Photo / Progress Evidence
+                    </label>
+                    <div className="flex flex-wrap items-center gap-3">
+                      <label className="cursor-pointer bg-[#103C2E] hover:bg-[#09291F] text-white px-4 py-2.5 rounded-xl text-xs font-bold flex items-center gap-2 shadow-sm transition">
+                        <Camera className="w-4 h-4 text-[#C6A15B]" />
+                        <span>Upload Photo File</span>
+                        <input type="file" accept="image/*" onChange={handleProjectImageUpload} className="hidden" />
+                      </label>
+                      <span className="text-[11px] text-stone-500 font-medium">Supports JPG, PNG, WEBP (Direct Camera or Gallery)</span>
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="text-[11px] text-stone-500 font-semibold uppercase">Or Image URL</label>
+                      <input
+                        type="url"
+                        placeholder="https://images.unsplash.com/... or direct image link"
+                        value={newProj.images[0] || ''}
+                        onChange={(e) => setNewProj({...newProj, images: [e.target.value]})}
+                        className="w-full px-3 py-2 bg-white border border-stone-200 rounded-xl text-xs font-mono"
+                      />
+                    </div>
+
+                    {newProj.images[0] && (
+                      <div className="flex items-center gap-3 pt-1">
+                        <div className="w-20 h-14 rounded-xl overflow-hidden border border-stone-300 bg-stone-100 shadow-sm shrink-0">
+                          <img 
+                            src={newProj.images[0]} 
+                            alt="Project Preview" 
+                            className="w-full h-full object-cover"
+                            onError={(e) => {
+                              (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1541888946425-d0fbb18f764c?auto=format&fit=crop&q=80&w=200';
+                            }}
+                          />
+                        </div>
+                        <div className="text-xs">
+                          <span className="font-bold text-emerald-800 block">Photo Attached</span>
+                          <span className="text-stone-500 text-[11px]">Will display on project card & detailed transparency modal</span>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
                   <div className="flex justify-end gap-3 pt-2">
                     <button
                       type="button"
@@ -1959,6 +2020,152 @@ export const AdminDashboard: React.FC<Props> = ({
                       className="px-6 py-2 bg-[#103C2E] hover:bg-[#09291F] text-white rounded-xl text-xs font-bold uppercase cursor-pointer shadow"
                     >
                       Save Project
+                    </button>
+                  </div>
+                </form>
+              )}
+
+              {/* Edit Project Form */}
+              {editingProject && (
+                <form onSubmit={handleUpdateProject} className="bg-emerald-50/70 p-6 sm:p-8 rounded-3xl shadow-lg border-2 border-[#103C2E] space-y-4">
+                  <div className="flex justify-between items-center border-b border-emerald-200 pb-3">
+                    <h4 className="font-['Manrope'] font-bold text-[#103C2E] text-base uppercase">
+                      EDIT PROJECT: {editingProject.title}
+                    </h4>
+                    <button onClick={() => setEditingProject(null)} className="text-stone-400 hover:text-stone-700 cursor-pointer">
+                      <X className="w-5 h-5" />
+                    </button>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div className="space-y-1">
+                      <label className="text-xs font-bold text-[#103C2E] uppercase">Project Title</label>
+                      <input
+                        type="text"
+                        required
+                        value={editingProject.title}
+                        onChange={(e) => setEditingProject({...editingProject, title: e.target.value})}
+                        className="w-full px-4 py-2.5 bg-white border border-stone-300 rounded-xl text-xs sm:text-sm font-semibold"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-xs font-bold text-[#103C2E] uppercase">Location</label>
+                      <input
+                        type="text"
+                        required
+                        value={editingProject.location}
+                        onChange={(e) => setEditingProject({...editingProject, location: e.target.value})}
+                        className="w-full px-4 py-2.5 bg-white border border-stone-300 rounded-xl text-xs sm:text-sm"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-xs font-bold text-[#103C2E] uppercase">Status</label>
+                      <select
+                        value={editingProject.status}
+                        onChange={(e) => setEditingProject({...editingProject, status: e.target.value as any})}
+                        className="w-full px-4 py-2.5 bg-white border border-stone-300 rounded-xl text-xs sm:text-sm font-bold"
+                      >
+                        <option value="Ongoing">Ongoing</option>
+                        <option value="Completed">Completed</option>
+                        <option value="Proposed">Proposed</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div className="space-y-1">
+                      <label className="text-xs font-bold text-[#103C2E] uppercase">Category</label>
+                      <select
+                        value={editingProject.category}
+                        onChange={(e) => setEditingProject({...editingProject, category: e.target.value as any})}
+                        className="w-full px-4 py-2.5 bg-white border border-stone-300 rounded-xl text-xs sm:text-sm"
+                      >
+                        <option value="Water & Sanitation">Water & Sanitation</option>
+                        <option value="Education">Education</option>
+                        <option value="Roads & Infrastructure">Roads & Infrastructure</option>
+                        <option value="Healthcare">Healthcare</option>
+                        <option value="Youth Development">Youth Development</option>
+                        <option value="Agriculture">Agriculture</option>
+                      </select>
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-xs font-bold text-[#103C2E] uppercase">Year</label>
+                      <input
+                        type="text"
+                        value={editingProject.year}
+                        onChange={(e) => setEditingProject({...editingProject, year: e.target.value})}
+                        className="w-full px-4 py-2.5 bg-white border border-stone-300 rounded-xl text-xs sm:text-sm"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-xs font-bold text-[#103C2E] uppercase">Expenditure / Budget</label>
+                      <input
+                        type="text"
+                        value={editingProject.expenditure || ''}
+                        onChange={(e) => setEditingProject({...editingProject, expenditure: e.target.value})}
+                        className="w-full px-4 py-2.5 bg-white border border-stone-300 rounded-xl text-xs sm:text-sm"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-xs font-bold text-[#103C2E] uppercase">Description</label>
+                    <textarea
+                      rows={3}
+                      value={editingProject.description}
+                      onChange={(e) => setEditingProject({...editingProject, description: e.target.value})}
+                      className="w-full px-4 py-2.5 bg-white border border-stone-300 rounded-xl text-xs sm:text-sm"
+                    ></textarea>
+                  </div>
+
+                  {/* Photo attachment for Edit */}
+                  <div className="space-y-3 bg-white p-4 rounded-2xl border border-stone-300">
+                    <label className="text-xs font-bold text-[#103C2E] block uppercase tracking-wider">
+                      Update Project Site Photo
+                    </label>
+                    <div className="flex flex-wrap items-center gap-3">
+                      <label className="cursor-pointer bg-[#103C2E] hover:bg-[#09291F] text-white px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2 shadow-sm transition">
+                        <Camera className="w-4 h-4 text-[#C6A15B]" />
+                        <span>Upload New Photo</span>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) {
+                              const reader = new FileReader();
+                              reader.onloadend = () => {
+                                setEditingProject(prev => prev ? ({ ...prev, images: [reader.result as string] }) : null);
+                              };
+                              reader.readAsDataURL(file);
+                            }
+                          }}
+                          className="hidden"
+                        />
+                      </label>
+                    </div>
+                    <input
+                      type="url"
+                      placeholder="Or update image URL"
+                      value={editingProject.images?.[0] || ''}
+                      onChange={(e) => setEditingProject({...editingProject, images: [e.target.value]})}
+                      className="w-full px-3 py-2 bg-stone-50 border border-stone-300 rounded-xl text-xs font-mono"
+                    />
+                  </div>
+
+                  <div className="flex justify-end gap-3 pt-2">
+                    <button
+                      type="button"
+                      onClick={() => setEditingProject(null)}
+                      className="px-5 py-2.5 bg-stone-200 hover:bg-stone-300 rounded-xl text-xs font-bold uppercase cursor-pointer"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="submit"
+                      className="px-6 py-2.5 bg-[#103C2E] hover:bg-[#09291F] text-white rounded-xl text-xs font-bold uppercase cursor-pointer shadow"
+                    >
+                      Save Changes
                     </button>
                   </div>
                 </form>
@@ -3748,13 +3955,20 @@ export const AdminDashboard: React.FC<Props> = ({
           )}
 
           {/* ========================================================
-              TAB 11: USER SETTINGS (MANAGEMENT & CONFIGURATION)
+               TAB 11: CYBERSECURITY COMMAND CENTER & DEFENSE
+              ======================================================== */}
+          {activeTab === 'cybersecurity' && (
+            <CybersecurityTab currentAdminEmail={email} />
+          )}
+
+          {/* ========================================================
+              TAB 12: USER SETTINGS (MANAGEMENT & CONFIGURATION)
              ======================================================== */}
           {activeTab === 'settings' && (
             <div className="w-full min-w-0 space-y-6">
               <div className="border-b border-stone-200 pb-4">
                 <h3 className="font-['Manrope'] font-extrabold text-2xl text-[#103C2E] uppercase">
-                  11. USER SETTINGS & ENTERPRISE CONFIGURATION
+                  12. USER SETTINGS & ENTERPRISE CONFIGURATION
                 </h3>
                 <p className="text-xs text-stone-500 mt-0.5">
                   Manage authorized administrators, portal headline statistics, multilingual translations dictionary, and security controls.
@@ -4036,8 +4250,21 @@ export const AdminDashboard: React.FC<Props> = ({
 
               {/* Sub-Tab 4: Security & Session */}
               {settingsTab === 'security' && (
-                <div className="bg-white rounded-3xl shadow-sm border border-stone-200 p-6 sm:p-8 space-y-4">
-                  <h4 className="font-bold text-[#103C2E] text-base uppercase">Session & Password Security</h4>
+                <div className="bg-white rounded-3xl shadow-sm border border-stone-200 p-6 sm:p-8 space-y-5">
+                  <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-stone-100 pb-4">
+                    <div>
+                      <h4 className="font-bold text-[#103C2E] text-base uppercase">Session & Password Security</h4>
+                      <p className="text-xs text-stone-500">Active authentication parameters and site-wide cyber protection.</p>
+                    </div>
+                    <button
+                      onClick={() => setActiveTab('cybersecurity')}
+                      className="bg-[#103C2E] hover:bg-[#09291F] text-white px-5 py-2.5 rounded-xl font-bold text-xs uppercase shadow flex items-center gap-2 cursor-pointer transition"
+                    >
+                      <Shield className="w-4 h-4 text-emerald-300" />
+                      <span>LAUNCH FULL CYBERSECURITY SUITE</span>
+                    </button>
+                  </div>
+
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
                     <div className="p-4 bg-stone-50 rounded-2xl border border-stone-200 space-y-1">
                       <span className="text-stone-400 text-[10px] uppercase font-bold block">Current Session User</span>
@@ -4047,8 +4274,8 @@ export const AdminDashboard: React.FC<Props> = ({
 
                     <div className="p-4 bg-stone-50 rounded-2xl border border-stone-200 space-y-1">
                       <span className="text-stone-400 text-[10px] uppercase font-bold block">Security Standard</span>
-                      <strong className="text-[#103C2E] text-sm block">TLS / HTTPS • Local Storage Encrypted</strong>
-                      <span className="text-stone-500 font-medium">Session valid for current browser window</span>
+                      <strong className="text-[#103C2E] text-sm block">TLS 1.3 / HTTPS • Cryptographic SHA-256 Hashing</strong>
+                      <span className="text-stone-500 font-medium">Session protected with anti-tamper token rotation</span>
                     </div>
                   </div>
                 </div>
