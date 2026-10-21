@@ -24,6 +24,10 @@ import { Language, Translations, DEFAULT_TRANSLATIONS } from './utils/i18n';
 import { sanitizeGalleryList } from './utils/youtube';
 import { recordPageView } from './utils/analytics';
 import { AgentElectionPortal } from './components/AgentElectionPortal';
+import { ConstituencyGISMap } from './components/ConstituencyGISMap';
+import { TownHallWidget } from './components/TownHallWidget';
+import { PetitionTrackerWidget } from './components/PetitionTrackerWidget';
+import { ParliamentaryGazetteExporter } from './components/ParliamentaryGazetteExporter';
 
 export interface ConstituencyStats {
   projectsCount: string;
@@ -295,6 +299,18 @@ export default function App() {
             currentLang={currentLang}
             translations={translations}
           />
+        )}
+        {currentTab === 'gis-map' && (
+          <ConstituencyGISMap projects={projects} currentLang={currentLang} />
+        )}
+        {currentTab === 'townhall' && (
+          <TownHallWidget currentLang={currentLang} />
+        )}
+        {currentTab === 'petitions' && (
+          <PetitionTrackerWidget currentLang={currentLang} />
+        )}
+        {currentTab === 'gazette' && (
+          <ParliamentaryGazetteExporter legislative={legislative} projects={projects} programs={programs} currentLang={currentLang} />
         )}
         {(currentTab === 'privacy' || currentTab === 'terms' || currentTab === 'accessibility') && (
           <LegalPage

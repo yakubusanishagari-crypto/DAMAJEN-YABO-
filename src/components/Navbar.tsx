@@ -23,6 +23,7 @@ export const Navbar: React.FC<Props> = ({
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [langDropdownOpen, setLangDropdownOpen] = useState(false);
   const [legalDropdownOpen, setLegalDropdownOpen] = useState(false);
+  const [expertDropdownOpen, setExpertDropdownOpen] = useState(false);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -47,7 +48,14 @@ export const Navbar: React.FC<Props> = ({
     { id: 'contact', labelKey: 'contact' },
   ];
 
-  // Legal & Policy Navigation Pages (Clean text-only without decorative icons per user request)
+  const expertNavItems = [
+    { id: 'gis-map', label: 'GIS Constituency Map' },
+    { id: 'townhall', label: 'Town Hall & Civic Debates' },
+    { id: 'petitions', label: 'Petition & Ticket Tracker' },
+    { id: 'gazette', label: 'Parliamentary Gazette Exporter' },
+  ];
+
+  // Legal & Policy Navigation Pages
   const legalNavItems = [
     { id: 'privacy', labelKey: 'privacyPolicy' },
     { id: 'terms', labelKey: 'termsOfUse' },
@@ -58,6 +66,7 @@ export const Navbar: React.FC<Props> = ({
     setCurrentTab(id);
     setMobileMenuOpen(false);
     setLegalDropdownOpen(false);
+    setExpertDropdownOpen(false);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
@@ -109,6 +118,46 @@ export const Navbar: React.FC<Props> = ({
               </button>
             );
           })}
+
+          {/* Expert Enterprise Features Dropdown */}
+          <div className="relative">
+            <button
+              onClick={() => setExpertDropdownOpen(!expertDropdownOpen)}
+              className={`px-2.5 py-1.5 rounded-lg text-xs font-bold tracking-wider uppercase transition flex items-center gap-1 cursor-pointer ${
+                ['gis-map', 'townhall', 'petitions', 'gazette'].includes(currentTab)
+                  ? 'bg-emerald-600 text-white font-extrabold shadow-sm'
+                  : 'text-[#D4AF37] hover:bg-white/10 hover:text-[#F3E5AB]'
+              }`}
+            >
+              <span>EXPERT FEATURES</span>
+              <ChevronDown className={`w-3.5 h-3.5 transition-transform ${expertDropdownOpen ? 'rotate-180' : ''}`} />
+            </button>
+
+            {expertDropdownOpen && (
+              <div className="absolute right-0 mt-2 w-72 bg-[#0A261E] rounded-xl shadow-2xl border border-emerald-700/50 py-2 z-50 animate-fadeIn">
+                <div className="px-3 py-1 text-[10px] font-extrabold uppercase tracking-widest text-[#D4AF37] border-b border-white/10 mb-1">
+                  ADVANCED CONSTITUENCY MODULES
+                </div>
+                {expertNavItems.map((item) => {
+                  const active = currentTab === item.id;
+                  return (
+                    <button
+                      key={item.id}
+                      onClick={() => handleNavClick(item.id)}
+                      className={`w-full text-left px-3.5 py-2.5 text-xs font-bold tracking-wider uppercase transition cursor-pointer flex items-center justify-between ${
+                        active 
+                          ? 'bg-emerald-600 text-white' 
+                          : 'text-white/90 hover:bg-white/10 hover:text-emerald-300'
+                      }`}
+                    >
+                      <span>{item.label}</span>
+                      {active && <span className="w-2 h-2 rounded-full bg-[#D4AF37]"></span>}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
 
           {/* Legal / Policy Dropdown in Navigation (Clean Text-Only) */}
           <div className="relative">
@@ -295,6 +344,30 @@ export const Navbar: React.FC<Props> = ({
                 }`}
               >
                 {t(item.labelKey, currentLang, translations).toUpperCase()}
+              </button>
+            );
+          })}
+
+          <div className="pt-2 pb-1 border-t border-white/10 my-1">
+            <span className="text-[10px] font-extrabold uppercase tracking-widest text-[#D4AF37] px-4">
+              EXPERT ENTERPRISE FEATURES
+            </span>
+          </div>
+
+          {expertNavItems.map((item) => {
+            const active = currentTab === item.id;
+            return (
+              <button
+                key={item.id}
+                onClick={() => handleNavClick(item.id)}
+                className={`w-full text-left px-4 py-2.5 rounded-xl text-xs font-extrabold tracking-wider uppercase transition cursor-pointer flex items-center justify-between ${
+                  active
+                    ? 'bg-emerald-600 text-white'
+                    : 'text-[#D4AF37] hover:bg-white/10 hover:text-[#F3E5AB]'
+                }`}
+              >
+                <span>{item.label}</span>
+                {active && <span className="w-2 h-2 rounded-full bg-[#D4AF37]"></span>}
               </button>
             );
           })}
