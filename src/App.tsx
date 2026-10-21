@@ -18,6 +18,7 @@ import { ContactPage } from './pages/ContactPage';
 import { LegalPage } from './pages/LegalPage';
 import { AdminDashboard } from './pages/AdminDashboard';
 import { INITIAL_PROJECTS, INITIAL_LEGISLATIVE, INITIAL_PROGRAMS, INITIAL_NEWS, INITIAL_GALLERY, INITIAL_CONTACTS } from './data/initialData';
+import { INITIAL_AGENTS } from './data/initialAgents';
 import { Project, LegislativeRecord, EmpowermentProgram, NewsArticle, GalleryItem, ContactSubmission, PollingUnitAgentLink, ElectionReport } from './types';
 import { Language, Translations, DEFAULT_TRANSLATIONS } from './utils/i18n';
 import { sanitizeGalleryList } from './utils/youtube';
@@ -128,23 +129,39 @@ export default function App() {
   });
 
   const [agents, setAgents] = useState<PollingUnitAgentLink[]>(() => {
-    const saved = localStorage.getItem('danmaje_agents');
-    return saved ? JSON.parse(saved) : [
-      { id: 'ag-1', token: 'yabo-central-001', wardName: 'Yabo Central Ward', pollingUnitName: 'Town Hall Polling Unit 001', pollingUnitCode: '01/05/02/001', agentName: 'Aliyu Dan-Yabo', phone: '+234 803 456 7890', status: 'SUBMITTED', createdAt: '2026-10-18 08:00' },
-      { id: 'ag-2', token: 'yabo-central-002', wardName: 'Yabo Central Ward', pollingUnitName: 'Primary School Gate PU 002', pollingUnitCode: '01/05/02/002', agentName: 'Sani Shehu', phone: '+234 802 333 4455', status: 'SUBMITTED', createdAt: '2026-10-18 08:15' },
-      { id: 'ag-3', token: 'kuchi-001', wardName: 'Kuchi Ward', pollingUnitName: 'Market Square PU 001', pollingUnitCode: '01/05/01/001', agentName: 'Musa Garba Kuchi', phone: '+234 805 111 2233', status: 'SUBMITTED', createdAt: '2026-10-18 08:30' },
-      { id: 'ag-4', token: 'kilgori-001', wardName: 'Kilgori Ward', pollingUnitName: 'Dispensary PU 003', pollingUnitCode: '01/05/03/003', agentName: 'Hassan Kilgori', phone: '+234 809 888 7766', status: 'PENDING', createdAt: '2026-10-18 09:00' },
-      { id: 'ag-5', token: 'shagari-south-001', wardName: 'Shagari South Ward', pollingUnitName: 'Magajin Gari Open Space', pollingUnitCode: '01/06/01/001', agentName: 'Garba Shagari', phone: '+234 803 999 1122', status: 'SUBMITTED', createdAt: '2026-10-18 08:45' }
-    ];
+    const saved = localStorage.getItem('danmaje_agents') || localStorage.getItem('danmaje_agent_links');
+    if (saved) {
+      try {
+        const parsed: PollingUnitAgentLink[] = JSON.parse(saved);
+        if (parsed && parsed.length > 0) {
+          return parsed.map((ag, idx) => {
+            const initial = INITIAL_AGENTS.find(i => i.id === ag.id || i.token === ag.token);
+            const token = ag.uniqueToken || ag.token || initial?.token || `agent-${idx + 1}`;
+            return {
+              ...ag,
+              token,
+              uniqueToken: token,
+              password: ag.password || initial?.password || 'DANMAJE2026',
+              ward: ag.ward || ag.wardName || initial?.ward || 'Constituency Ward',
+              wardName: ag.wardName || ag.ward || initial?.ward || 'Constituency Ward',
+              localGovernment: ag.localGovernment || initial?.localGovernment || 'Yabo'
+            };
+          });
+        }
+      } catch {
+        // Fallback
+      }
+    }
+    return INITIAL_AGENTS;
   });
 
   const [electionReports, setElectionReports] = useState<ElectionReport[]>(() => {
     const saved = localStorage.getItem('danmaje_election_reports');
     return saved ? JSON.parse(saved) : [
-      { id: 'rep-1', linkId: 'ag-1', agentName: 'Aliyu Dan-Yabo', wardName: 'Yabo Central Ward', pollingUnitName: 'Town Hall Polling Unit 001', pollingUnitCode: '01/05/02/001', phone: '+234 803 456 7890', totalRegisteredVoters: 1250, totalAccreditedVoters: 780, totalValidVotes: 760, rejectedVotes: 20, danmajeVotes: 495, opponentVotes: 240, otherPartyVotes: 25, notes: 'Peaceful voting process. High turnout recorded. All party agents present during count.', submittedAt: '2026-10-18 15:30' },
-      { id: 'rep-2', linkId: 'ag-2', agentName: 'Sani Shehu', wardName: 'Yabo Central Ward', pollingUnitName: 'Primary School Gate PU 002', pollingUnitCode: '01/05/02/002', phone: '+234 802 333 4455', totalRegisteredVoters: 980, totalAccreditedVoters: 620, totalValidVotes: 610, rejectedVotes: 10, danmajeVotes: 380, opponentVotes: 200, otherPartyVotes: 30, notes: 'Smooth exercise. Zero incident reported.', submittedAt: '2026-10-18 16:05' },
-      { id: 'rep-3', linkId: 'ag-3', agentName: 'Musa Garba Kuchi', wardName: 'Kuchi Ward', pollingUnitName: 'Market Square PU 001', pollingUnitCode: '01/05/01/001', phone: '+234 805 111 2233', totalRegisteredVoters: 1400, totalAccreditedVoters: 890, totalValidVotes: 875, rejectedVotes: 15, danmajeVotes: 560, opponentVotes: 285, otherPartyVotes: 30, notes: 'Voters came out en masse. Result signed by INEC official and all agents.', submittedAt: '2026-10-18 16:40' },
-      { id: 'rep-4', linkId: 'ag-5', agentName: 'Garba Shagari', wardName: 'Shagari South Ward', pollingUnitName: 'Magajin Gari Open Space', pollingUnitCode: '01/06/01/001', phone: '+234 803 999 1122', totalRegisteredVoters: 1100, totalAccreditedVoters: 700, totalValidVotes: 685, rejectedVotes: 15, danmajeVotes: 430, opponentVotes: 225, otherPartyVotes: 30, notes: 'Collation completed successfully. Hon. Umar Yusuf leads comfortably.', submittedAt: '2026-10-18 17:10' }
+      { id: 'rep-1', linkId: 'yabo-central-001', agentName: 'Aliyu Dan-Yabo', ward: 'Yabo Central Ward', wardName: 'Yabo Central Ward', localGovernment: 'Yabo', pollingUnitName: 'Town Hall Polling Unit 001', pollingUnitCode: '01/05/02/001', phone: '+234 803 456 7890', totalRegisteredVoters: 1250, totalAccreditedVoters: 780, totalValidVotes: 760, rejectedVotes: 20, danmajeVotes: 495, opponentVotes: 240, otherPartyVotes: 25, notes: 'Peaceful voting process. High turnout recorded. All party agents present during count.', submittedAt: '2026-10-18 15:30' },
+      { id: 'rep-2', linkId: 'yabo-central-002', agentName: 'Sani Shehu', ward: 'Yabo Central Ward', wardName: 'Yabo Central Ward', localGovernment: 'Yabo', pollingUnitName: 'Primary School Gate PU 002', pollingUnitCode: '01/05/02/002', phone: '+234 802 333 4455', totalRegisteredVoters: 980, totalAccreditedVoters: 620, totalValidVotes: 610, rejectedVotes: 10, danmajeVotes: 380, opponentVotes: 200, otherPartyVotes: 30, notes: 'Smooth exercise. Zero incident reported.', submittedAt: '2026-10-18 16:05' },
+      { id: 'rep-3', linkId: 'kuchi-001', agentName: 'Musa Garba Kuchi', ward: 'Kuchi Ward', wardName: 'Kuchi Ward', localGovernment: 'Yabo', pollingUnitName: 'Market Square PU 001', pollingUnitCode: '01/05/01/001', phone: '+234 805 111 2233', totalRegisteredVoters: 1400, totalAccreditedVoters: 890, totalValidVotes: 875, rejectedVotes: 15, danmajeVotes: 560, opponentVotes: 285, otherPartyVotes: 30, notes: 'Voters came out en masse. Result signed by INEC official and all agents.', submittedAt: '2026-10-18 16:40' },
+      { id: 'rep-4', linkId: 'shagari-south-001', agentName: 'Garba Shagari', ward: 'Shagari South Ward', wardName: 'Shagari South Ward', localGovernment: 'Shagari', pollingUnitName: 'Magajin Gari Open Space', pollingUnitCode: '01/06/01/001', phone: '+234 803 999 1122', totalRegisteredVoters: 1100, totalAccreditedVoters: 700, totalValidVotes: 685, rejectedVotes: 15, danmajeVotes: 430, opponentVotes: 225, otherPartyVotes: 30, notes: 'Collation completed successfully. Hon. Umar Yusuf leads comfortably.', submittedAt: '2026-10-18 17:10' }
     ];
   });
 
@@ -181,11 +198,22 @@ export default function App() {
     localStorage.setItem('danmaje_election_reports', JSON.stringify(electionReports));
   }, [electionReports]);
 
-  if (agentToken) {
+  const isAgentPortalRoute = 
+    Boolean(agentToken) || 
+    urlParams.get('portal') === 'agent' || 
+    urlParams.get('agent') === 'true' || 
+    window.location.pathname.includes('agent');
+
+  if (isAgentPortalRoute) {
     return (
       <AgentElectionPortal
+        initialToken={agentToken || ''}
         currentLang={currentLang}
         translations={translations}
+        onBackToHome={() => {
+          setCurrentTab('home');
+          window.history.replaceState({}, '', '/');
+        }}
       />
     );
   }

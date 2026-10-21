@@ -13,9 +13,10 @@ import {
   Upload, Video, Film, Play, Check, Search, Filter, ChevronRight, CheckCircle2,
   Clock, Printer, ExternalLink, FileCheck, Star, Sparkles, RefreshCw, Menu,
   Send, Calendar, MapPin, Sliders, ChevronDown, Landmark, Smartphone, Monitor, Laptop,
-  Tablet, Compass, CheckSquare, BarChart2, Share2, Copy
+  Tablet, Compass, CheckSquare, BarChart2, Share2, Copy, User, Camera, ExternalLink as ExtLink
 } from 'lucide-react';
 import { ApplicationSlipModal } from '../components/ApplicationSlipModal';
+import { CongratulationOfferModal } from '../components/CongratulationOfferModal';
 import { ElectionTab } from '../components/ElectionTab';
 import { 
   extractYouTubeId, 
@@ -124,14 +125,23 @@ export const AdminDashboard: React.FC<Props> = ({
 
   const [selectedAppForReview, setSelectedAppForReview] = useState<ProgramApplication | null>(null);
   const [slipModalApp, setSlipModalApp] = useState<ProgramApplication | null>(null);
+  const [offerModalApp, setOfferModalApp] = useState<ProgramApplication | null>(null);
+  const [previewDocModal, setPreviewDocModal] = useState<any | null>(null);
   const [appSearchQuery, setAppSearchQuery] = useState('');
   const [appStatusFilter, setAppStatusFilter] = useState('ALL');
   const [appProgramFilter, setAppProgramFilter] = useState('ALL');
   const [reviewStatusInput, setReviewStatusInput] = useState<ApplicationStatus>('SUBMITTED');
   const [reviewInternalNote, setReviewInternalNote] = useState('');
   const [reviewPublicFeedback, setReviewPublicFeedback] = useState('');
+  const [reviewAwardPackage, setReviewAwardPackage] = useState('');
 
-  const handleAdvanceApplicationStage = (appId: string, newStage: ApplicationStatus, internalNote: string, publicFeedback: string) => {
+  const handleAdvanceApplicationStage = (
+    appId: string, 
+    newStage: ApplicationStatus, 
+    internalNote: string, 
+    publicFeedback: string,
+    awardPackage?: string
+  ) => {
     const now = new Date();
     const timeStr = `${now.toISOString().split('T')[0]} ${now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
     const updated = applications.map(a => {
@@ -156,6 +166,7 @@ export const AdminDashboard: React.FC<Props> = ({
           ...a,
           status: newStage,
           currentStage: newStage,
+          awardGrantPackage: awardPackage || a.awardGrantPackage || reviewAwardPackage,
           notes: internalNote !== undefined ? internalNote : a.notes,
           publicFeedback: publicFeedback !== undefined ? publicFeedback : a.publicFeedback,
           timeline: [...oldTimeline, newEvent]
@@ -613,18 +624,49 @@ export const AdminDashboard: React.FC<Props> = ({
     slotsAvailable: 500,
     status: 'Active' as EmpowermentProgram['status'],
     eligibility: 'Yabo and Shagari Indigenes',
+    targetLGA: 'All Federal Constituency (Yabo & Shagari)',
+    grantPackage: '₦150,000 Direct Seed Capital + Vocational Starter Kit',
     startDate: new Date().toISOString().split('T')[0],
     deadline: '2026-12-31',
     isPublished: true,
-    requirements: ['National ID / Voter Card', 'Indigene of Yabo or Shagari LGA', 'Committed to training / vocation'],
-    requiredDocs: ['National Identity Card (NIN)', 'LGA Indigene Certificate', 'Educational / Trade Credential']
+    requirePassportPhoto: true,
+    requireNIN: true,
+    requireIndigene: true,
+    requireQualifications: true,
+    submissionInstructions: 'Complete all steps of the online form. Upload a recent passport photo and your National Identity Number (NIN). Print and preserve your official application slip for constituency physical accreditation.',
+    requirementsText: 'Applicant must be an indigene of Yabo or Shagari LGA\nMust possess a valid National Identity Number (NIN)\nCommitted to designated training, trade, or farming activity'
   });
 
   const handleCreateProgram = (e: React.FormEvent) => {
     e.preventDefault();
+    const requirements = newProg.requirementsText
+      .split('\n')
+      .map(r => r.trim())
+      .filter(Boolean);
+
+    const requiredDocs: string[] = [];
+    if (newProg.requirePassportPhoto) requiredDocs.push('Biometric Passport Photograph');
+    if (newProg.requireNIN) requiredDocs.push('National Identity Card (NIN)');
+    if (newProg.requireIndigene) requiredDocs.push('LGA Indigene Certificate');
+    if (newProg.requireQualifications) requiredDocs.push('Educational / Trade Credential');
+
     const created: EmpowermentProgram = {
       id: `prog-${Date.now()}`,
-      ...newProg
+      title: newProg.title,
+      category: newProg.category,
+      description: newProg.description,
+      targetBeneficiaries: newProg.targetBeneficiaries,
+      slotsAvailable: newProg.slotsAvailable,
+      status: newProg.status,
+      eligibility: `${newProg.eligibility} (${newProg.targetLGA})`,
+      startDate: newProg.startDate,
+      deadline: newProg.deadline,
+      isPublished: newProg.isPublished,
+      grantPackage: newProg.grantPackage,
+      requirePassportPhoto: newProg.requirePassportPhoto,
+      submissionInstructions: newProg.submissionInstructions,
+      requirements: requirements.length > 0 ? requirements : ['Indigene of Yabo or Shagari LGA', 'Valid NIN'],
+      requiredDocs: requiredDocs.length > 0 ? requiredDocs : ['National Identity Card (NIN)']
     };
     const updated = [created, ...programs];
     setPrograms(updated);
@@ -638,11 +680,17 @@ export const AdminDashboard: React.FC<Props> = ({
       slotsAvailable: 500,
       status: 'Active',
       eligibility: 'Yabo and Shagari Indigenes',
+      targetLGA: 'All Federal Constituency (Yabo & Shagari)',
+      grantPackage: '₦150,000 Direct Seed Capital + Vocational Starter Kit',
       startDate: new Date().toISOString().split('T')[0],
       deadline: '2026-12-31',
       isPublished: true,
-      requirements: ['National ID / Voter Card', 'Indigene of Yabo or Shagari LGA', 'Committed to training / vocation'],
-      requiredDocs: ['National Identity Card (NIN)', 'LGA Indigene Certificate', 'Educational / Trade Credential']
+      requirePassportPhoto: true,
+      requireNIN: true,
+      requireIndigene: true,
+      requireQualifications: true,
+      submissionInstructions: 'Complete all steps of the online form. Upload a recent passport photo and your National Identity Number (NIN). Print and preserve your official application slip for constituency physical accreditation.',
+      requirementsText: 'Applicant must be an indigene of Yabo or Shagari LGA\nMust possess a valid National Identity Number (NIN)\nCommitted to designated training, trade, or farming activity'
     });
     setActivityLogs(prev => [{
       id: `log-${Date.now()}`,
@@ -2569,29 +2617,141 @@ export const AdminDashboard: React.FC<Props> = ({
                     />
                   </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                     <input
                       type="text"
-                      placeholder="Eligibility (e.g. Yabo and Shagari Indigenes)"
+                      placeholder="Eligibility Criteria (e.g. Registered Constituency Youths)"
                       value={newProg.eligibility}
                       onChange={(e) => setNewProg({...newProg, eligibility: e.target.value})}
                       className="px-4 py-2.5 bg-stone-50 border border-stone-200 rounded-xl text-xs sm:text-sm"
                     />
+                    <select
+                      value={newProg.targetLGA}
+                      onChange={(e) => setNewProg({...newProg, targetLGA: e.target.value})}
+                      className="px-4 py-2.5 bg-stone-50 border border-stone-200 rounded-xl text-xs sm:text-sm font-semibold"
+                    >
+                      <option value="All Federal Constituency (Yabo & Shagari)">All Federal Constituency (Yabo & Shagari)</option>
+                      <option value="Yabo Local Government Only">Yabo Local Government Only</option>
+                      <option value="Shagari Local Government Only">Shagari Local Government Only</option>
+                    </select>
+                    <div>
+                      <label className="text-[10px] font-bold text-stone-500 uppercase block mb-1">Application Deadline</label>
+                      <input
+                        type="date"
+                        value={newProg.deadline}
+                        onChange={(e) => setNewProg({...newProg, deadline: e.target.value})}
+                        className="w-full px-4 py-2.5 bg-stone-50 border border-stone-200 rounded-xl text-xs sm:text-sm"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="text-xs font-bold text-[#103C2E] uppercase block mb-1">
+                      Approved Grant / Empowerment Package Allocation (Will appear on Final Offer Letter) *
+                    </label>
                     <input
-                      type="date"
-                      value={newProg.deadline}
-                      onChange={(e) => setNewProg({...newProg, deadline: e.target.value})}
-                      className="px-4 py-2.5 bg-stone-50 border border-stone-200 rounded-xl text-xs sm:text-sm"
+                      type="text"
+                      required
+                      placeholder="e.g. ₦150,000 Direct Working Capital Grant + MSME Financial Record Book"
+                      value={newProg.grantPackage}
+                      onChange={(e) => setNewProg({...newProg, grantPackage: e.target.value})}
+                      className="w-full px-4 py-2.5 bg-stone-50 border border-stone-200 rounded-xl text-xs sm:text-sm font-bold text-[#103C2E]"
                     />
                   </div>
 
-                  <textarea
-                    rows={3}
-                    placeholder="Programme description, objectives, and training deliverables..."
-                    value={newProg.description}
-                    onChange={(e) => setNewProg({...newProg, description: e.target.value})}
-                    className="w-full px-4 py-2.5 bg-stone-50 border border-stone-200 rounded-xl text-xs sm:text-sm"
-                  ></textarea>
+                  {/* Settle Application Submission Requirements */}
+                  <div className="bg-emerald-50/70 p-4 rounded-2xl border border-emerald-200 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-black uppercase text-[#103C2E] flex items-center gap-1.5">
+                        <CheckSquare className="w-4 h-4 text-[#C6A15B]" />
+                        <span>Settle Mandatory Applicant Submission Requirements:</span>
+                      </span>
+                      <span className="text-[10px] text-stone-500 font-bold uppercase">Screening Rules</span>
+                    </div>
+
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+                      <label className="flex items-center gap-2 font-bold text-[#103C2E] cursor-pointer bg-white p-2.5 rounded-xl border border-emerald-200">
+                        <input
+                          type="checkbox"
+                          checked={newProg.requirePassportPhoto}
+                          onChange={(e) => setNewProg({...newProg, requirePassportPhoto: e.target.checked})}
+                          className="rounded text-emerald-700"
+                        />
+                        <span>Passport Photo</span>
+                      </label>
+
+                      <label className="flex items-center gap-2 font-bold text-[#103C2E] cursor-pointer bg-white p-2.5 rounded-xl border border-emerald-200">
+                        <input
+                          type="checkbox"
+                          checked={newProg.requireNIN}
+                          onChange={(e) => setNewProg({...newProg, requireNIN: e.target.checked})}
+                          className="rounded text-emerald-700"
+                        />
+                        <span>NIN (National ID)</span>
+                      </label>
+
+                      <label className="flex items-center gap-2 font-bold text-[#103C2E] cursor-pointer bg-white p-2.5 rounded-xl border border-emerald-200">
+                        <input
+                          type="checkbox"
+                          checked={newProg.requireIndigene}
+                          onChange={(e) => setNewProg({...newProg, requireIndigene: e.target.checked})}
+                          className="rounded text-emerald-700"
+                        />
+                        <span>Indigene Cert</span>
+                      </label>
+
+                      <label className="flex items-center gap-2 font-bold text-[#103C2E] cursor-pointer bg-white p-2.5 rounded-xl border border-emerald-200">
+                        <input
+                          type="checkbox"
+                          checked={newProg.requireQualifications}
+                          onChange={(e) => setNewProg({...newProg, requireQualifications: e.target.checked})}
+                          className="rounded text-emerald-700"
+                        />
+                        <span>Trade / Certificate</span>
+                      </label>
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="text-[11px] font-bold text-[#103C2E] uppercase">
+                        Application Instructions & Guidance (Visible to Constituents):
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="e.g. Complete all form sections. Print official slip and bring to constituency liaison office..."
+                        value={newProg.submissionInstructions}
+                        onChange={(e) => setNewProg({...newProg, submissionInstructions: e.target.value})}
+                        className="w-full px-3 py-2 bg-white border border-stone-200 rounded-xl text-xs text-stone-700"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="text-[11px] font-bold text-[#103C2E] uppercase block mb-1">
+                        Programme Description & Objectives
+                      </label>
+                      <textarea
+                        rows={3}
+                        placeholder="Programme description, objectives, and training deliverables..."
+                        value={newProg.description}
+                        onChange={(e) => setNewProg({...newProg, description: e.target.value})}
+                        className="w-full px-4 py-2.5 bg-stone-50 border border-stone-200 rounded-xl text-xs sm:text-sm"
+                      ></textarea>
+                    </div>
+
+                    <div>
+                      <label className="text-[11px] font-bold text-[#103C2E] uppercase block mb-1">
+                        Eligibility Criteria (One Per Line)
+                      </label>
+                      <textarea
+                        rows={3}
+                        placeholder="Applicant must be resident in Yabo/Shagari&#10;Commitment to agricultural training..."
+                        value={newProg.requirementsText}
+                        onChange={(e) => setNewProg({...newProg, requirementsText: e.target.value})}
+                        className="w-full px-4 py-2.5 bg-stone-50 border border-stone-200 rounded-xl text-xs sm:text-sm font-mono"
+                      ></textarea>
+                    </div>
+                  </div>
 
                   <div className="flex justify-end gap-3 pt-2">
                     <button
@@ -2801,6 +2961,7 @@ export const AdminDashboard: React.FC<Props> = ({
                                   setReviewStatusInput(app.status);
                                   setReviewInternalNote(app.notes || '');
                                   setReviewPublicFeedback(app.publicFeedback || '');
+                                  setReviewAwardPackage(app.awardGrantPackage || '1x Complete Starter Kit + Direct Financial Empowerment Grant');
                                 }}
                                 className="inline-flex items-center gap-1 bg-[#103C2E] hover:bg-[#09291F] text-white px-3 py-1.5 rounded-xl text-xs font-bold cursor-pointer uppercase shadow-xs transition"
                               >
@@ -2814,6 +2975,16 @@ export const AdminDashboard: React.FC<Props> = ({
                                 <Printer className="w-3.5 h-3.5" />
                                 <span>Slip</span>
                               </button>
+                              {app.status === 'APPROVED' && (
+                                <button
+                                  onClick={() => setOfferModalApp(app)}
+                                  className="inline-flex items-center gap-1 bg-gradient-to-r from-[#D4AF37] to-[#B38F44] text-[#09291F] px-2.5 py-1.5 rounded-xl transition-all shadow-xs cursor-pointer text-xs font-black uppercase"
+                                  title="View Official Congratulation Offer"
+                                >
+                                  <Award className="w-3.5 h-3.5" />
+                                  <span>Offer</span>
+                                </button>
+                              )}
                               <button
                                 onClick={() => handleDeleteApp(app.id)}
                                 className="inline-flex items-center gap-1 bg-rose-50 hover:bg-rose-600 text-rose-700 hover:text-white px-2.5 py-1.5 rounded-xl border border-rose-200 transition-all shadow-xs cursor-pointer text-xs font-bold uppercase"
@@ -2832,109 +3003,361 @@ export const AdminDashboard: React.FC<Props> = ({
 
               {/* Dossier Review Modal */}
               {selectedAppForReview && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 overflow-y-auto">
-                  <div className="bg-white rounded-3xl max-w-3xl w-full p-6 sm:p-8 space-y-6 shadow-2xl my-8 border border-stone-200">
-                    <div className="flex justify-between items-start border-b border-stone-100 pb-4">
-                      <div>
-                        <span className="text-[10px] font-black uppercase tracking-wider text-[#C6A15B]">
-                          BENEFICIARY DOSSIER REVIEW
-                        </span>
-                        <h3 className="font-['Manrope'] font-bold text-xl text-[#103C2E] uppercase">
-                          {selectedAppForReview.applicantName.toUpperCase()}
-                        </h3>
-                        <p className="text-xs text-stone-500 font-mono">
-                          Ref: {selectedAppForReview.referenceNumber} • {selectedAppForReview.programTitle}
-                        </p>
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-xs p-4 overflow-y-auto">
+                  <div className="bg-white rounded-3xl max-w-4xl w-full p-6 sm:p-8 space-y-6 shadow-2xl my-8 border border-stone-200 max-h-[92vh] overflow-y-auto">
+                    
+                    {/* Header with Applicant Biometric Passport & Info */}
+                    <div className="flex flex-col sm:flex-row items-center sm:items-start justify-between gap-4 border-b border-stone-100 pb-5">
+                      <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4 text-center sm:text-left">
+                        {/* Biometric Passport Frame */}
+                        <div className="w-24 h-32 rounded-xl overflow-hidden border-2 border-[#103C2E] bg-stone-100 shrink-0 shadow-md flex flex-col items-center justify-center relative">
+                          {selectedAppForReview.passportPhoto ? (
+                            <img
+                              src={selectedAppForReview.passportPhoto}
+                              alt={selectedAppForReview.applicantName}
+                              className="w-full h-full object-cover"
+                            />
+                          ) : (
+                            <div className="text-center p-2 text-stone-400">
+                              <User className="w-10 h-10 mx-auto text-stone-300" />
+                              <span className="text-[9px] font-bold uppercase mt-1 block">No Passport</span>
+                            </div>
+                          )}
+                          <div className="absolute bottom-0 inset-x-0 bg-[#103C2E] text-[#D4AF37] text-[8px] font-black py-0.5 text-center uppercase tracking-widest">
+                            Official Photo
+                          </div>
+                        </div>
+
+                        <div className="space-y-1">
+                          <span className="text-[10px] font-black uppercase tracking-wider text-[#C6A15B] bg-[#C6A15B]/15 px-2.5 py-0.5 rounded-full border border-[#C6A15B]/30 inline-block">
+                            CONSTITUENCY BENEFICIARY DOSSIER
+                          </span>
+                          <h3 className="font-['Manrope'] font-black text-2xl text-[#103C2E] uppercase">
+                            {selectedAppForReview.applicantName}
+                          </h3>
+                          <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2 text-xs text-stone-600 font-mono">
+                            <span className="font-bold text-[#103C2E]">REF: {selectedAppForReview.referenceNumber}</span>
+                            <span>•</span>
+                            <span className="font-sans font-medium text-stone-500">{selectedAppForReview.programTitle}</span>
+                          </div>
+                          <div className="pt-1 flex flex-wrap items-center justify-center sm:justify-start gap-2">
+                            <span className={`px-3 py-0.5 rounded-full text-[11px] font-black uppercase tracking-wider ${
+                              selectedAppForReview.status === 'APPROVED' ? 'bg-emerald-100 text-emerald-800 border border-emerald-300' :
+                              selectedAppForReview.status === 'REJECTED' ? 'bg-rose-100 text-rose-800' :
+                              'bg-amber-100 text-amber-800 border border-amber-300'
+                            }`}>
+                              STATUS: {selectedAppForReview.status}
+                            </span>
+                            {selectedAppForReview.lga && (
+                              <span className="bg-stone-100 text-stone-700 px-2.5 py-0.5 rounded-full text-[11px] font-bold">
+                                LGA: {selectedAppForReview.lga}
+                              </span>
+                            )}
+                          </div>
+                        </div>
                       </div>
-                      <button 
-                        onClick={() => setSelectedAppForReview(null)} 
-                        className="bg-stone-100 hover:bg-rose-600 text-stone-600 hover:text-white p-2 rounded-xl border border-stone-200 transition shadow-xs cursor-pointer"
-                        title="Close Review"
-                      >
-                        <X className="w-5 h-5" />
-                      </button>
+
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => setSlipModalApp(selectedAppForReview)}
+                          className="bg-stone-100 hover:bg-stone-200 text-[#103C2E] px-3 py-1.5 rounded-xl text-xs font-bold uppercase transition flex items-center gap-1.5"
+                          title="Print official application slip"
+                        >
+                          <Printer className="w-3.5 h-3.5" />
+                          <span>Slip</span>
+                        </button>
+                        <button 
+                          onClick={() => setSelectedAppForReview(null)} 
+                          className="bg-stone-100 hover:bg-rose-600 text-stone-600 hover:text-white p-2 rounded-xl border border-stone-200 transition shadow-xs cursor-pointer"
+                          title="Close Review"
+                        >
+                          <X className="w-5 h-5" />
+                        </button>
+                      </div>
                     </div>
 
-                    <div className="space-y-4 text-xs">
-                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 bg-stone-50 p-4 rounded-2xl border border-stone-200">
-                        <div>
-                          <span className="text-stone-500 text-[10px] uppercase font-bold block">Phone</span>
-                          <strong className="text-[#103C2E]">{selectedAppForReview.phone}</strong>
-                        </div>
-                        <div>
-                          <span className="text-stone-500 text-[10px] uppercase font-bold block">Email</span>
-                          <strong className="text-[#103C2E]">{selectedAppForReview.email || 'None'}</strong>
-                        </div>
-                        <div>
-                          <span className="text-stone-500 text-[10px] uppercase font-bold block">Ward / Town</span>
-                          <strong className="text-[#103C2E]">{selectedAppForReview.wardOrTown}</strong>
-                        </div>
-                        <div>
-                          <span className="text-stone-500 text-[10px] uppercase font-bold block">Current Stage</span>
-                          <strong className="text-emerald-700">{selectedAppForReview.status}</strong>
+                    <div className="space-y-5 text-xs">
+                      
+                      {/* Section 1: Detailed Personal Bio */}
+                      <div className="space-y-2">
+                        <h4 className="font-black text-xs uppercase tracking-wider text-[#103C2E] flex items-center gap-1.5 border-b border-stone-200 pb-1">
+                          <span className="w-2 h-2 rounded-full bg-[#C6A15B]"></span>
+                          1. APPLICANT BIO-DATA & RESIDENCY
+                        </h4>
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 bg-stone-50 p-4 rounded-2xl border border-stone-200">
+                          <div>
+                            <span className="text-stone-500 text-[10px] uppercase font-bold block">National ID (NIN)</span>
+                            <strong className="text-[#103C2E] font-mono text-sm">{selectedAppForReview.nin || 'On File'}</strong>
+                          </div>
+                          <div>
+                            <span className="text-stone-500 text-[10px] uppercase font-bold block">Phone Number</span>
+                            <strong className="text-[#103C2E] font-mono">{selectedAppForReview.phone}</strong>
+                          </div>
+                          <div>
+                            <span className="text-stone-500 text-[10px] uppercase font-bold block">Email Address</span>
+                            <strong className="text-[#103C2E]">{selectedAppForReview.email || 'None Provided'}</strong>
+                          </div>
+                          <div>
+                            <span className="text-stone-500 text-[10px] uppercase font-bold block">LGA / Ward</span>
+                            <strong className="text-[#103C2E]">{selectedAppForReview.lga || 'Constituency'} • {selectedAppForReview.wardOrTown}</strong>
+                          </div>
+                          <div>
+                            <span className="text-stone-500 text-[10px] uppercase font-bold block">Gender</span>
+                            <strong className="text-[#103C2E]">{selectedAppForReview.gender || 'Not Specified'}</strong>
+                          </div>
+                          <div>
+                            <span className="text-stone-500 text-[10px] uppercase font-bold block">Date of Birth</span>
+                            <strong className="text-[#103C2E] font-mono">{selectedAppForReview.dob || 'Not Provided'}</strong>
+                          </div>
+                          <div>
+                            <span className="text-stone-500 text-[10px] uppercase font-bold block">Residential Address</span>
+                            <strong className="text-[#103C2E] truncate block">{selectedAppForReview.residentialAddress || selectedAppForReview.wardOrTown}</strong>
+                          </div>
+                          <div>
+                            <span className="text-stone-500 text-[10px] uppercase font-bold block">Submission Date</span>
+                            <strong className="text-stone-700 font-mono">{selectedAppForReview.date}</strong>
+                          </div>
                         </div>
                       </div>
 
+                      {/* Section 2: Education, Vocation & Disbursement Bank */}
+                      <div className="space-y-2">
+                        <h4 className="font-black text-xs uppercase tracking-wider text-[#103C2E] flex items-center gap-1.5 border-b border-stone-200 pb-1">
+                          <span className="w-2 h-2 rounded-full bg-[#C6A15B]"></span>
+                          2. EDUCATION, VOCATION & DISBURSEMENT ACCOUNT
+                        </h4>
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 bg-stone-50 p-4 rounded-2xl border border-stone-200">
+                          <div>
+                            <span className="text-stone-500 text-[10px] uppercase font-bold block">Education</span>
+                            <strong className="text-[#103C2E]">{selectedAppForReview.highestEducation || 'SSCE / Primary'}</strong>
+                          </div>
+                          <div>
+                            <span className="text-stone-500 text-[10px] uppercase font-bold block">Current Employment</span>
+                            <strong className="text-[#103C2E]">{selectedAppForReview.employmentStatus || 'Unemployed / Youth'}</strong>
+                          </div>
+                          <div>
+                            <span className="text-stone-500 text-[10px] uppercase font-bold block">Disbursement Bank</span>
+                            <strong className="text-[#103C2E]">{selectedAppForReview.bankName || 'Awaiting Account Details'}</strong>
+                          </div>
+                          <div>
+                            <span className="text-stone-500 text-[10px] uppercase font-bold block">Account Number</span>
+                            <strong className="text-[#103C2E] font-mono">{selectedAppForReview.accountNumber || 'None'}</strong>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Section 3: Applicant Uploaded Documents Review */}
+                      <div className="space-y-2">
+                        <h4 className="font-black text-xs uppercase tracking-wider text-[#103C2E] flex items-center justify-between border-b border-stone-200 pb-1">
+                          <span className="flex items-center gap-1.5">
+                            <span className="w-2 h-2 rounded-full bg-[#C6A15B]"></span>
+                            <span>3. APPLICANT SUPPORTING DOCUMENTS & CREDENTIALS</span>
+                          </span>
+                          <span className="text-[10px] font-bold text-stone-500">
+                            {selectedAppForReview.documents ? selectedAppForReview.documents.length : 0} Document(s) Attached
+                          </span>
+                        </h4>
+
+                        {selectedAppForReview.documents && selectedAppForReview.documents.length > 0 ? (
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            {selectedAppForReview.documents.map((doc, idx) => (
+                              <div key={doc.id || idx} className="bg-stone-50 p-3.5 rounded-xl border border-stone-200 flex items-center justify-between gap-3">
+                                <div className="flex items-center gap-3 min-w-0">
+                                  <div className="w-9 h-9 rounded-lg bg-emerald-100 text-emerald-800 flex items-center justify-center shrink-0 font-bold">
+                                    <FileText className="w-5 h-5" />
+                                  </div>
+                                  <div className="min-w-0">
+                                    <span className="font-bold text-[#103C2E] text-xs block truncate">{doc.type || 'Supporting Document'}</span>
+                                    <span className="text-[10px] text-stone-500 block truncate">{doc.name} {doc.size ? `(${doc.size})` : ''}</span>
+                                  </div>
+                                </div>
+                                <button
+                                  type="button"
+                                  onClick={() => setPreviewDocModal(doc)}
+                                  className="bg-[#103C2E] hover:bg-[#09291F] text-white px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase transition shrink-0 cursor-pointer flex items-center gap-1"
+                                >
+                                  <Eye className="w-3 h-3 text-[#C6A15B]" />
+                                  <span>Review</span>
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <div className="bg-stone-50 p-4 rounded-xl border border-stone-200 text-stone-500 text-center space-y-1">
+                            <FileText className="w-6 h-6 mx-auto text-stone-400" />
+                            <p className="text-xs font-semibold">Physical credentials presented during in-person constituency screening.</p>
+                            <span className="text-[10px] text-stone-400 block">NIN and residency certificates verified via parliamentary register.</span>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Section 4: Statement of Purpose */}
                       <div className="space-y-1">
-                        <span className="text-[10px] font-bold uppercase text-stone-500 block">Statement of Purpose / Need:</span>
-                        <div className="bg-stone-50 p-4 rounded-xl border border-stone-200 italic text-stone-700">
-                          "{selectedAppForReview.statement}"
+                        <span className="text-[10px] font-bold uppercase text-stone-500 block">Applicant Statement of Purpose / Socio-Economic Need:</span>
+                        <div className="bg-stone-50 p-3.5 rounded-xl border border-stone-200 italic text-stone-700 leading-relaxed">
+                          "{selectedAppForReview.statement || 'Applicant committed to participating fully in constituency empowerment activities.'}"
                         </div>
                       </div>
 
-                      {/* Transition Form */}
-                      <div className="bg-emerald-50/60 p-5 rounded-2xl border border-emerald-200 space-y-3">
-                        <h4 className="font-bold text-[#103C2E] uppercase text-xs">Advance Application Stage</h4>
+                      {/* Transition Form & Award Settlement */}
+                      <div className="bg-emerald-50/70 p-5 rounded-2xl border-2 border-emerald-300 space-y-4">
+                        <div className="flex items-center justify-between">
+                          <h4 className="font-black text-[#103C2E] uppercase text-xs flex items-center gap-1.5">
+                            <Shield className="w-4 h-4 text-emerald-700" />
+                            <span>Advance Application Stage & Settle Allocation</span>
+                          </h4>
+                          {selectedAppForReview.status === 'APPROVED' && (
+                            <button
+                              type="button"
+                              onClick={() => setOfferModalApp(selectedAppForReview)}
+                              className="bg-gradient-to-r from-[#D4AF37] to-[#B38F44] text-[#09291F] px-3 py-1 rounded-lg text-[10px] font-black uppercase shadow-xs flex items-center gap-1 cursor-pointer"
+                            >
+                              <Award className="w-3.5 h-3.5" />
+                              <span>Preview Congratulation Offer Letter</span>
+                            </button>
+                          )}
+                        </div>
+
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                           <div>
-                            <label className="text-[11px] font-bold text-[#103C2E] block uppercase">Select Stage</label>
+                            <label className="text-[11px] font-bold text-[#103C2E] block uppercase mb-1">Select Stage</label>
                             <select
                               value={reviewStatusInput}
                               onChange={(e) => setReviewStatusInput(e.target.value as ApplicationStatus)}
-                              className="w-full px-3 py-2 bg-white border border-stone-300 rounded-xl text-xs font-bold"
+                              className="w-full px-3 py-2 bg-white border border-stone-300 rounded-xl text-xs font-bold text-[#103C2E]"
                             >
                               <option value="SUBMITTED">1. SUBMITTED</option>
                               <option value="INITIAL REVIEW">2. INITIAL REVIEW</option>
                               <option value="DOCUMENT VERIFICATION">3. DOCUMENT VERIFICATION</option>
                               <option value="ELIGIBILITY ASSESSMENT">4. ELIGIBILITY ASSESSMENT</option>
                               <option value="FINAL REVIEW">5. FINAL REVIEW</option>
-                              <option value="APPROVED">6. APPROVED</option>
+                              <option value="APPROVED">6. APPROVED (Award Official Congratulatory Offer)</option>
                               <option value="WAITLISTED">WAITLISTED</option>
                               <option value="REJECTED">REJECTED</option>
                             </select>
                           </div>
+
                           <div>
-                            <label className="text-[11px] font-bold text-[#103C2E] block uppercase">Public Feedback Note</label>
+                            <label className="text-[11px] font-bold text-[#103C2E] block uppercase mb-1">Public Feedback (Visible to Applicant on Tracker)</label>
                             <input
                               type="text"
-                              placeholder="e.g. Approved for physical credential screening..."
+                              placeholder="e.g. Approved. Please bring printed slip and NIN for physical handover..."
                               value={reviewPublicFeedback}
                               onChange={(e) => setReviewPublicFeedback(e.target.value)}
-                              className="w-full px-3 py-2 bg-white border border-stone-300 rounded-xl text-xs"
+                              className="w-full px-3 py-2 bg-white border border-stone-300 rounded-xl text-xs text-stone-800"
                             />
                           </div>
                         </div>
 
-                        <div className="flex justify-end gap-2 pt-2">
-                          <button
-                            type="button"
-                            onClick={() => setSelectedAppForReview(null)}
-                            className="px-4 py-2 bg-stone-200 hover:bg-stone-300 rounded-xl text-xs font-bold uppercase cursor-pointer"
-                          >
-                            Close
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => handleAdvanceApplicationStage(selectedAppForReview.id, reviewStatusInput, reviewInternalNote, reviewPublicFeedback)}
-                            className="bg-[#103C2E] hover:bg-[#09291F] text-white px-5 py-2 rounded-xl text-xs font-bold uppercase shadow cursor-pointer"
-                          >
-                            Save Stage Transition
-                          </button>
+                        {/* Grant Package Allocation Field (crucial when approving) */}
+                        <div className="bg-white p-3.5 rounded-xl border border-emerald-300 space-y-1">
+                          <label className="text-[11px] font-black text-[#103C2E] uppercase block flex items-center justify-between">
+                            <span>Approved Award Package / Allocation (Printed on Congratulation Offer Letter):</span>
+                            <span className="text-[10px] text-emerald-700 font-bold">Official Allocation</span>
+                          </label>
+                          <input
+                            type="text"
+                            placeholder="e.g. 1x Complete Solar Irrigation Pumping Unit + Industrial Hose + ₦50,000 Agricultural Seed Fund"
+                            value={reviewAwardPackage}
+                            onChange={(e) => setReviewAwardPackage(e.target.value)}
+                            className="w-full px-3 py-2 bg-emerald-50/40 border border-emerald-200 rounded-lg text-xs font-bold text-[#103C2E]"
+                          />
+                        </div>
+
+                        <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-emerald-200/80">
+                          <div className="text-[10px] text-stone-500 font-medium">
+                            Approved applicants can immediately view and download their official Congratulatory Offer letter.
+                          </div>
+
+                          <div className="flex items-center gap-2">
+                            <button
+                              type="button"
+                              onClick={() => setSelectedAppForReview(null)}
+                              className="px-4 py-2 bg-stone-200 hover:bg-stone-300 rounded-xl text-xs font-bold uppercase cursor-pointer"
+                            >
+                              Close
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleAdvanceApplicationStage(selectedAppForReview.id, reviewStatusInput, reviewInternalNote, reviewPublicFeedback, reviewAwardPackage)}
+                              className="bg-[#103C2E] hover:bg-[#09291F] text-white px-5 py-2 rounded-xl text-xs font-bold uppercase shadow cursor-pointer flex items-center gap-1.5"
+                            >
+                              <CheckCircle className="w-4 h-4 text-[#C6A15B]" />
+                              <span>Save & Commit Stage</span>
+                            </button>
+                          </div>
                         </div>
                       </div>
                     </div>
                   </div>
                 </div>
+              )}
+
+              {/* Document Preview Modal */}
+              {previewDocModal && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-xs p-4">
+                  <div className="bg-white rounded-3xl max-w-xl w-full p-6 space-y-4 shadow-2xl border border-stone-200 animate-fadeIn">
+                    <div className="flex justify-between items-center border-b border-stone-100 pb-3">
+                      <div>
+                        <span className="text-[10px] font-black uppercase text-[#C6A15B]">DOCUMENT PREVIEW</span>
+                        <h4 className="font-bold text-base text-[#103C2E]">{previewDocModal.type || 'Supporting Document'}</h4>
+                      </div>
+                      <button
+                        onClick={() => setPreviewDocModal(null)}
+                        className="p-1.5 hover:bg-stone-100 rounded-lg text-stone-500 cursor-pointer"
+                      >
+                        <X className="w-5 h-5" />
+                      </button>
+                    </div>
+
+                    <div className="bg-stone-50 p-6 rounded-2xl border border-stone-200 text-center space-y-3">
+                      {previewDocModal.dataUrl && previewDocModal.dataUrl.startsWith('data:image') ? (
+                        <img
+                          src={previewDocModal.dataUrl}
+                          alt={previewDocModal.name}
+                          className="max-h-80 mx-auto rounded-lg shadow-sm border border-stone-300"
+                        />
+                      ) : (
+                        <div className="space-y-2 py-4">
+                          <FileText className="w-16 h-16 mx-auto text-[#103C2E]" />
+                          <p className="font-bold text-sm text-[#103C2E]">{previewDocModal.name}</p>
+                          <p className="text-xs text-stone-500">{previewDocModal.size || 'Verified Document'} • Uploaded {previewDocModal.uploadedAt || 'During Submission'}</p>
+                          <div className="inline-block bg-emerald-100 text-emerald-800 text-xs font-bold px-3 py-1 rounded-full mt-2">
+                            ✓ Verified Constituency Credential
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="flex justify-end gap-2">
+                      {previewDocModal.dataUrl && (
+                        <a
+                          href={previewDocModal.dataUrl}
+                          download={previewDocModal.name}
+                          className="bg-[#103C2E] hover:bg-[#09291F] text-white px-4 py-2 rounded-xl text-xs font-bold uppercase transition flex items-center gap-1.5 shadow-sm"
+                        >
+                          <Download className="w-4 h-4 text-[#C6A15B]" />
+                          <span>Download File</span>
+                        </a>
+                      )}
+                      <button
+                        onClick={() => setPreviewDocModal(null)}
+                        className="bg-stone-200 hover:bg-stone-300 text-stone-700 px-4 py-2 rounded-xl text-xs font-bold uppercase transition cursor-pointer"
+                      >
+                        Close
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Offer Modal in Admin */}
+              {offerModalApp && (
+                <CongratulationOfferModal
+                  application={offerModalApp}
+                  onClose={() => setOfferModalApp(null)}
+                />
               )}
 
               {/* Slip Modal */}

@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { ProgramApplication } from '../types';
-import { Search, CheckCircle2, Clock, AlertCircle, FileText, ArrowRight, Printer, Shield, ChevronRight, Download, RefreshCw } from 'lucide-react';
+import { Search, CheckCircle2, Clock, AlertCircle, FileText, ArrowRight, Printer, Shield, ChevronRight, Download, RefreshCw, Award, Sparkles } from 'lucide-react';
 import { ApplicationSlipModal } from './ApplicationSlipModal';
+import { CongratulationOfferModal } from './CongratulationOfferModal';
 
 interface Props {
   applications?: ProgramApplication[];
@@ -25,6 +26,7 @@ export const ApplicationTracker: React.FC<Props> = ({ applications = [], initial
   const [currentApp, setCurrentApp] = useState<ProgramApplication | null>(null);
   const [errorMsg, setErrorMsg] = useState('');
   const [showSlipModal, setShowSlipModal] = useState(false);
+  const [showOfferModal, setShowOfferModal] = useState(false);
 
   // Sync if initialRef is passed
   React.useEffect(() => {
@@ -192,6 +194,16 @@ export const ApplicationTracker: React.FC<Props> = ({ applications = [], initial
                 {currentApp.status}
               </span>
 
+              {currentApp.status === 'APPROVED' && (
+                <button
+                  onClick={() => setShowOfferModal(true)}
+                  className="bg-gradient-to-r from-[#D4AF37] to-[#C6A15B] hover:brightness-110 active:scale-95 text-[#09291F] px-4 py-2 rounded-xl text-xs font-black flex items-center gap-1.5 shadow-md cursor-pointer transition uppercase tracking-wider"
+                >
+                  <Award className="w-4 h-4" />
+                  <span>CONGRATULATION OFFER</span>
+                </button>
+              )}
+
               <button
                 onClick={() => setShowSlipModal(true)}
                 className="bg-[#103C2E] hover:bg-[#09291F] text-white px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-1.5 shadow cursor-pointer transition uppercase tracking-wider"
@@ -306,6 +318,16 @@ export const ApplicationTracker: React.FC<Props> = ({ applications = [], initial
               <span>TRACK ANOTHER APPLICATION</span>
             </button>
 
+            {currentApp.status === 'APPROVED' && (
+              <button
+                onClick={() => setShowOfferModal(true)}
+                className="bg-gradient-to-r from-[#D4AF37] to-[#C6A15B] hover:brightness-110 active:scale-95 text-[#09291F] px-5 py-2.5 rounded-xl text-xs font-black flex items-center gap-1.5 shadow-md cursor-pointer transition uppercase tracking-wider"
+              >
+                <Award className="w-4 h-4" />
+                <span>VIEW CONGRATULATION OFFER LETTER</span>
+              </button>
+            )}
+
             <button
               onClick={() => setShowSlipModal(true)}
               className="bg-emerald-600 hover:bg-emerald-500 text-white px-5 py-2.5 rounded-xl text-xs font-bold flex items-center gap-1.5 shadow cursor-pointer transition uppercase tracking-wider"
@@ -322,6 +344,14 @@ export const ApplicationTracker: React.FC<Props> = ({ applications = [], initial
         <ApplicationSlipModal
           application={currentApp}
           onClose={() => setShowSlipModal(false)}
+        />
+      )}
+
+      {/* Congratulation Offer Modal */}
+      {showOfferModal && currentApp && (
+        <CongratulationOfferModal
+          application={currentApp}
+          onClose={() => setShowOfferModal(false)}
         />
       )}
     </div>

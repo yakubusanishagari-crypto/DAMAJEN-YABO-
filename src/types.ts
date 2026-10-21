@@ -59,6 +59,9 @@ export interface EmpowermentProgram {
   slotsAvailable?: number;
   requiredDocs?: string[];
   stages?: string[];
+  grantPackage?: string;
+  requirePassportPhoto?: boolean;
+  submissionInstructions?: string;
 }
 
 export interface NewsArticle {
@@ -137,6 +140,8 @@ export interface ProgramApplication {
   lga?: 'Yabo' | 'Shagari' | 'Other';
   wardOrTown: string;
   residentialAddress?: string;
+  passportPhoto?: string;
+  awardGrantPackage?: string;
 
   // Education & Employment
   highestEducation?: string;
@@ -175,6 +180,7 @@ export interface PollingUnitAgentLink {
   agentName: string;
   localGovernment: string;
   ward: string;
+  wardName?: string;
   pollingUnitName: string;
   pollingUnitCode?: string;
   phone: string;

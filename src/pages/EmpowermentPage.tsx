@@ -3,7 +3,8 @@ import { EmpowermentProgram, ProgramApplication, AttachedDocument } from '../typ
 import { 
   Award, Calendar, Users, CheckCircle, X, Shield, ArrowRight, Download, 
   FileCheck, Info, Upload, Trash2, ArrowLeft, Save, Search, 
-  FileText, Clock, AlertCircle, Sparkles, Printer, CheckCircle2 
+  FileText, Clock, AlertCircle, Sparkles, Printer, CheckCircle2,
+  Camera, User, Image as ImageIcon, Eye
 } from 'lucide-react';
 import { Language, t, Translations } from '../utils/i18n';
 import { ApplicationSlipModal } from '../components/ApplicationSlipModal';
@@ -42,6 +43,7 @@ export const EmpowermentPage: React.FC<Props> = ({
     lga: 'Yabo' as 'Yabo' | 'Shagari' | 'Other',
     wardOrTown: '',
     residentialAddress: '',
+    passportPhoto: '',
 
     // Step 2: Educational & Socio-economic
     highestEducation: 'SSCE / WAEC / NECO',
@@ -73,9 +75,9 @@ export const EmpowermentPage: React.FC<Props> = ({
   const [createdApplication, setCreatedApplication] = useState<ProgramApplication | null>(null);
   const [showSlipModal, setShowSlipModal] = useState(false);
   const [trackedRef, setTrackedRef] = useState('');
+  const [hasSavedDraft, setHasSavedDraft] = useState(false);
 
   // Check for saved draft on mount
-  const [hasSavedDraft, setHasSavedDraft] = useState(false);
   useEffect(() => {
     try {
       const draft = localStorage.getItem('danmaje_app_draft');
@@ -85,7 +87,26 @@ export const EmpowermentPage: React.FC<Props> = ({
     } catch {
       // Ignore
     }
-  }, []);
+
+    try {
+      const targetId = localStorage.getItem('danmaje_target_program');
+      if (targetId) {
+        localStorage.removeItem('danmaje_target_program');
+        setSelectedCategory('All');
+        setActiveMainTab('programs');
+        setTimeout(() => {
+          const el = document.getElementById(`program-card-${targetId}`);
+          if (el) {
+            el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            el.classList.add('ring-4', 'ring-[#C6A15B]', 'scale-[1.01]');
+            setTimeout(() => {
+              el.classList.remove('ring-4', 'ring-[#C6A15B]', 'scale-[1.01]');
+            }, 3000);
+          }
+        }, 300);
+      }
+    } catch {}
+  }, [programs]);
 
   const handleSaveDraft = () => {
     try {
@@ -162,6 +183,42 @@ export const EmpowermentPage: React.FC<Props> = ({
     }));
   };
 
+  const handlePassportPhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      setFormData(prev => ({
+        ...prev,
+        passportPhoto: reader.result as string
+      }));
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleUseSamplePassport = () => {
+    const samplePassportDataUrl = 'data:image/svg+xml;utf8,' + encodeURIComponent(`
+      <svg xmlns="http://www.w3.org/2000/svg" width="300" height="360" viewBox="0 0 300 360">
+        <rect width="300" height="360" fill="#f0f4f2"/>
+        <rect x="8" y="8" width="284" height="344" fill="#e8f0ec" stroke="#103C2E" stroke-width="2"/>
+        <circle cx="150" cy="120" r="50" fill="#c79c5e"/>
+        <path d="M80 270 C80 195, 220 195, 220 270 Z" fill="#103C2E"/>
+        <path d="M105 100 Q150 65 195 100 Q150 85 105 100 Z" fill="#0c2c22" stroke="#D4AF37" stroke-width="2.5"/>
+        <ellipse cx="134" cy="116" rx="5" ry="3" fill="#2d1c0b"/>
+        <ellipse cx="166" cy="116" rx="5" ry="3" fill="#2d1c0b"/>
+        <path d="M150 120 L150 134 L145 136" stroke="#2d1c0b" stroke-width="2" fill="none"/>
+        <path d="M138 147 Q150 153 162 147" stroke="#2d1c0b" stroke-width="2" fill="none"/>
+        <path d="M132 205 L150 240 L168 205" stroke="#D4AF37" stroke-width="2.5" fill="none"/>
+        <rect x="18" y="285" width="264" height="40" rx="6" fill="#103C2E"/>
+        <text x="150" y="310" font-family="Arial, sans-serif" font-size="11" font-weight="bold" fill="#D4AF37" text-anchor="middle" letter-spacing="1">OFFICIAL CITIZEN PASSPORT</text>
+      </svg>
+    `);
+    setFormData(prev => ({
+      ...prev,
+      passportPhoto: samplePassportDataUrl
+    }));
+  };
+
   const categories = [
     'All', 
     'Agricultural Support', 
@@ -232,6 +289,8 @@ export const EmpowermentPage: React.FC<Props> = ({
       lga: formData.lga,
       wardOrTown: formData.wardOrTown,
       residentialAddress: formData.residentialAddress,
+      passportPhoto: formData.passportPhoto || '',
+      awardGrantPackage: selectedProgram.grantPackage || '',
 
       highestEducation: formData.highestEducation,
       institutionName: formData.institutionName,
@@ -564,8 +623,85 @@ export const EmpowermentPage: React.FC<Props> = ({
                       STEP 1: APPLICANT IDENTITY & RESIDENCE
                     </span>
                     <p className="font-light">
-                      Please provide your legal full name matching your National Identity Number (NIN) and voter card.
+                      Please provide your legal full name matching your National Identity Number (NIN) and upload a clear biometric passport photograph.
                     </p>
+                  </div>
+
+                  {/* Passport / Biometric Photograph Upload Box */}
+                  <div className="bg-stone-50 border-2 border-[#C6A15B]/40 rounded-2xl p-4 sm:p-5 space-y-3">
+                    <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4">
+                      {/* Photo Frame */}
+                      <div className="w-28 h-36 rounded-xl overflow-hidden border-2 border-[#103C2E] bg-white shrink-0 shadow-sm flex flex-col items-center justify-center relative">
+                        {formData.passportPhoto ? (
+                          <img
+                            src={formData.passportPhoto}
+                            alt="Passport Photo Preview"
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <div className="text-center p-2 text-stone-400">
+                            <User className="w-10 h-10 mx-auto text-stone-300" />
+                            <span className="text-[10px] font-bold uppercase mt-1 block">No Photo</span>
+                          </div>
+                        )}
+                        <div className="absolute bottom-0 inset-x-0 bg-[#103C2E] text-[#D4AF37] text-[8px] font-bold py-0.5 text-center uppercase tracking-wider">
+                          Passport Photo
+                        </div>
+                      </div>
+
+                      {/* Upload Controls & Instructions */}
+                      <div className="flex-1 space-y-2 text-center sm:text-left">
+                        <div className="space-y-0.5">
+                          <label className="text-xs font-black uppercase text-[#103C2E] block">
+                            APPLICANT BIOMETRIC PASSPORT PHOTOGRAPH *
+                          </label>
+                          <p className="text-[11px] text-stone-500 leading-snug">
+                            Upload a recent, clear color passport photograph with white or plain background. This photo will be officially affixed to your <strong>Constituency Application Slip</strong> and <strong>Congratulatory Offer Letter</strong>.
+                          </p>
+                        </div>
+
+                        <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2.5 pt-1">
+                          <label className="bg-[#103C2E] hover:bg-[#09291F] text-white px-4 py-2 rounded-xl text-xs font-bold cursor-pointer transition flex items-center gap-1.5 shadow-sm uppercase">
+                            <Camera className="w-3.5 h-3.5 text-[#C6A15B]" />
+                            <span>{formData.passportPhoto ? 'CHANGE PHOTO' : 'UPLOAD PHOTO'}</span>
+                            <input
+                              type="file"
+                              accept="image/*"
+                              onChange={handlePassportPhotoUpload}
+                              className="hidden"
+                            />
+                          </label>
+
+                          <button
+                            type="button"
+                            onClick={handleUseSamplePassport}
+                            className="bg-emerald-50 hover:bg-emerald-100 text-[#103C2E] border border-emerald-300 px-3 py-2 rounded-xl text-xs font-bold cursor-pointer transition uppercase shadow-xs flex items-center gap-1"
+                          >
+                            <Sparkles className="w-3.5 h-3.5 text-[#C6A15B]" />
+                            <span>+ USE VERIFIED SAMPLE PHOTO</span>
+                          </button>
+
+                          {formData.passportPhoto && (
+                            <button
+                              type="button"
+                              onClick={() => setFormData(prev => ({ ...prev, passportPhoto: '' }))}
+                              className="text-rose-600 hover:text-rose-800 p-2 text-xs font-bold cursor-pointer flex items-center gap-1"
+                              title="Remove uploaded photo"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                              <span className="hidden sm:inline">Remove</span>
+                            </button>
+                          )}
+                        </div>
+
+                        {formData.passportPhoto && (
+                          <div className="inline-flex items-center gap-1.5 text-[11px] font-bold text-emerald-800 bg-emerald-100/70 px-2.5 py-1 rounded-lg">
+                            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-700" />
+                            <span>Biometric photo attached & validated</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
                   </div>
 
                   <div className="space-y-1">
@@ -888,6 +1024,71 @@ export const EmpowermentPage: React.FC<Props> = ({
                     <p className="font-light">
                       Upload clear photo copies or PDF scans of your credentials. You can also attach files directly from your device.
                     </p>
+                  </div>
+
+                  {/* Document 0: Biometric Passport Photo */}
+                  <div className="bg-white p-4 rounded-2xl border border-stone-200 space-y-3">
+                    <div className="flex justify-between items-center">
+                      <div>
+                        <span className="text-xs font-black uppercase text-[#103C2E] block">
+                          BIOMETRIC PASSPORT PHOTOGRAPH *
+                        </span>
+                        <span className="text-[11px] text-stone-500">Official facial portrait for identity accreditation & award slip</span>
+                      </div>
+                      {formData.passportPhoto ? (
+                        <span className="bg-emerald-100 text-emerald-800 text-[10px] font-black px-2.5 py-0.5 rounded-full flex items-center gap-1">
+                          <CheckCircle2 className="w-3 h-3" /> AFFIXED
+                        </span>
+                      ) : (
+                        <span className="bg-amber-100 text-amber-800 text-[10px] font-black px-2.5 py-0.5 rounded-full flex items-center gap-1">
+                          <AlertCircle className="w-3 h-3" /> PENDING
+                        </span>
+                      )}
+                    </div>
+
+                    {formData.passportPhoto ? (
+                      <div className="flex items-center justify-between p-3 bg-stone-50 rounded-xl border border-stone-200 text-xs">
+                        <div className="flex items-center gap-3">
+                          <img
+                            src={formData.passportPhoto}
+                            alt="Passport Preview"
+                            className="w-10 h-12 object-cover rounded-md border border-[#103C2E]"
+                          />
+                          <div>
+                            <span className="font-bold text-[#103C2E] block">Biometric Passport Photo</span>
+                            <span className="text-[10px] text-stone-500">Ready to affix on official slip & award letter</span>
+                          </div>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => setFormData(prev => ({ ...prev, passportPhoto: '' }))}
+                          className="text-rose-600 hover:text-rose-800 p-1 cursor-pointer"
+                          title="Remove photo"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="flex flex-wrap items-center gap-3">
+                        <label className="bg-[#103C2E] hover:bg-[#09291F] text-white px-4 py-2 rounded-xl text-xs font-bold cursor-pointer transition flex items-center gap-1.5 uppercase">
+                          <Upload className="w-3.5 h-3.5" />
+                          <span>UPLOAD PASSPORT PHOTO</span>
+                          <input
+                            type="file"
+                            accept="image/*"
+                            onChange={handlePassportPhotoUpload}
+                            className="hidden"
+                          />
+                        </label>
+                        <button
+                          type="button"
+                          onClick={handleUseSamplePassport}
+                          className="text-[#103C2E] border border-emerald-300 bg-emerald-50 hover:bg-emerald-100 px-3 py-2 rounded-xl text-xs font-bold cursor-pointer transition uppercase shadow-xs"
+                        >
+                          + ATTACH VERIFIED SAMPLE PHOTO
+                        </button>
+                      </div>
+                    )}
                   </div>
 
                   {/* Document 1: Identification */}

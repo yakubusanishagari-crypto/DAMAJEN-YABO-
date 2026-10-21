@@ -164,7 +164,7 @@ export const Home: React.FC<Props> = ({
   return (
     <div className="space-y-20 pb-20 overflow-x-hidden">
       {/* 1. PROFESSIONAL HERO SECTION */}
-      <section className="relative bg-[#0A3D2E] text-white">
+      <section className="relative bg-gradient-to-br from-[#0B3B2C] via-[#0E4A38] to-[#072B20] text-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-8 py-16 sm:py-24 relative z-10 grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
           
           <div className="lg:col-span-7 space-y-6">
@@ -397,7 +397,7 @@ export const Home: React.FC<Props> = ({
             </div>
             
             <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold font-['Manrope'] text-[#103C2E] leading-snug">
-              {t('aboutBriefSubtitle', currentLang, translations)}
+              {t('aboutBriefSubtitle', currentLang, translations).toUpperCase()}
             </h2>
 
             <p className="text-sm sm:text-base text-stone-600 leading-relaxed font-normal">
@@ -440,7 +440,7 @@ export const Home: React.FC<Props> = ({
             {t('areasOfImpact', currentLang, translations)}
           </span>
           <h2 className="text-3xl sm:text-4xl font-extrabold font-['Manrope'] text-[#103C2E]">
-            {t('grassrootsTransformation', currentLang, translations)}
+            {t('grassrootsTransformation', currentLang, translations).toUpperCase()}
           </h2>
           <p className="text-stone-600 text-sm sm:text-base">
             Focused interventions across vital development sectors touching every community.
@@ -632,7 +632,7 @@ export const Home: React.FC<Props> = ({
               National Assembly Record
             </span>
             <h2 className="text-3xl sm:text-4xl font-extrabold font-['Manrope'] text-[#103C2E] mt-1">
-              {t('legislativeSectionTitle', currentLang, translations)}
+              {t('legislativeSectionTitle', currentLang, translations).toUpperCase()}
             </h2>
             <p className="text-xs sm:text-sm text-stone-500 mt-1 max-w-2xl">
               {t('legislativeSectionDesc', currentLang, translations)}
@@ -833,7 +833,7 @@ export const Home: React.FC<Props> = ({
                 Grassroots Opportunities
               </span>
               <h2 className="text-3xl sm:text-4xl font-extrabold font-['Manrope'] text-[#103C2E] mt-1">
-                {t('empowermentSectionTitle', currentLang, translations)}
+                {t('empowermentSectionTitle', currentLang, translations).toUpperCase()}
               </h2>
               <p className="text-xs sm:text-sm text-stone-600 mt-1 max-w-2xl">
                 {t('empowermentSectionDesc', currentLang, translations)}
@@ -870,24 +870,25 @@ export const Home: React.FC<Props> = ({
                   </p>
                 </div>
 
-                <div className="pt-3 flex items-center gap-3">
+                <div className="pt-3">
                   <button
                     onClick={() => {
-                      setApplyProgram(prog);
-                      setAppReceipt(null);
-                      setAppError('');
+                      try {
+                        localStorage.setItem('danmaje_target_program', prog.id);
+                      } catch {}
+                      navigateTo('empowerment');
                     }}
-                    className="bg-[#103C2E] hover:bg-[#09291F] active:scale-[0.98] text-white px-6 py-3 rounded-xl font-bold text-xs transition shadow flex items-center justify-center gap-1.5 cursor-pointer uppercase tracking-wider"
+                    className="w-full bg-[#103C2E] hover:bg-[#09291F] active:scale-[0.98] text-[#D4AF37] hover:text-white border border-[#C6A15B]/50 px-6 py-3.5 rounded-xl font-black text-xs transition-all shadow-md flex items-center justify-center gap-2 cursor-pointer uppercase tracking-wider"
+                    title="View full guidelines and apply on empowerment portal"
                   >
-                    <span>{t('applyNow', currentLang, translations).toUpperCase()}</span>
-                    <ArrowRight className="w-3.5 h-3.5 text-[#C6A15B]" />
-                  </button>
-
-                  <button
-                    onClick={() => navigateTo('empowerment')}
-                    className="bg-amber-50 hover:bg-[#D4AF37] text-amber-950 hover:text-[#09291F] border border-amber-300 px-4 py-3 rounded-xl text-xs font-bold shadow-xs transition-all uppercase tracking-wider cursor-pointer"
-                  >
-                    VIEW GUIDELINES
+                    <span>
+                      {currentLang === 'ha' 
+                        ? "DUBA KA'IDOJI" 
+                        : currentLang === 'ar' 
+                        ? 'عرض الشروط والإرشادات' 
+                        : 'VIEW GUIDANCE'}
+                    </span>
+                    <ArrowRight className="w-4 h-4 text-[#C6A15B]" />
                   </button>
                 </div>
               </div>

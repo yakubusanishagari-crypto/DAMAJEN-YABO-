@@ -17,7 +17,9 @@ export const ElectionTab: React.FC<Props> = ({ agents, setAgents, electionReport
   const [newPUCode, setNewPUCode] = useState('');
   const [newAgentName, setNewAgentName] = useState('');
   const [newAgentPhone, setNewAgentPhone] = useState('');
+  const [newPassword, setNewPassword] = useState('');
   const [copiedToken, setCopiedToken] = useState('');
+  const [copiedType, setCopiedType] = useState('');
 
   const totalAssigned = agents.length;
   const totalReported = electionReports.length;
@@ -29,26 +31,32 @@ export const ElectionTab: React.FC<Props> = ({ agents, setAgents, electionReport
   const handleCreateAgent = (e: React.FormEvent) => {
     e.preventDefault();
     if (!newLGA || !newWard || !newPUName || !newAgentName) return;
-    const token = `${newWard.toLowerCase().replace(/\s+/g, '-')}-${Math.random().toString(36).substring(2, 7)}`;
-    const password = Math.random().toString(36).substring(2, 10);
+    const cleanWard = newWard.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+    const randCode = Math.random().toString(36).substring(2, 6);
+    const token = `${cleanWard || 'pu'}-${randCode}`;
+    const password = newPassword.trim() || `DAN${Math.floor(1000 + Math.random() * 9000)}`;
+
     const newAg: PollingUnitAgentLink = {
       id: `ag-${Date.now()}`,
       uniqueToken: token,
       token,
       password,
-      localGovernment: newLGA,
-      ward: newWard,
-      pollingUnitName: newPUName,
-      pollingUnitCode: newPUCode || '01/05/00/000',
-      agentName: newAgentName,
-      phone: newAgentPhone || '+234 803 000 0000',
+      localGovernment: newLGA.trim(),
+      ward: newWard.trim(),
+      wardName: newWard.trim(),
+      pollingUnitName: newPUName.trim(),
+      pollingUnitCode: newPUCode.trim() || '01/05/00/000',
+      agentName: newAgentName.trim(),
+      phone: newAgentPhone.trim() || '+234 803 000 0000',
       status: 'PENDING',
       isUsed: false,
       createdAt: new Date().toLocaleString()
     };
+
     const updatedAgents = [newAg, ...agents];
     setAgents(updatedAgents);
     localStorage.setItem('danmaje_agent_links', JSON.stringify(updatedAgents));
+    localStorage.setItem('danmaje_agents', JSON.stringify(updatedAgents));
     setShowNewAgentModal(false);
     setNewLGA('');
     setNewWard('');
@@ -56,13 +64,33 @@ export const ElectionTab: React.FC<Props> = ({ agents, setAgents, electionReport
     setNewPUCode('');
     setNewAgentName('');
     setNewAgentPhone('');
+    setNewPassword('');
   };
 
-  const copyAgentLink = (token: string) => {
-    const link = `${window.location.origin}/?agent_token=${token}`;
+  const copyDirectAgentLink = (agent: PollingUnitAgentLink) => {
+    const link = `${window.location.origin}/?agent_token=${encodeURIComponent(agent.token || agent.uniqueToken)}&pwd=${encodeURIComponent(agent.password)}`;
     navigator.clipboard.writeText(link);
-    setCopiedToken(token);
-    setTimeout(() => setCopiedToken(''), 3000);
+    setCopiedToken(agent.token || agent.uniqueToken);
+    setCopiedType('link');
+    setTimeout(() => {
+      setCopiedToken('');
+      setCopiedType('');
+    }, 3000);
+  };
+
+  const copyCredential = (text: string, id: string, type: string) => {
+    navigator.clipboard.writeText(text);
+    setCopiedToken(id);
+    setCopiedType(type);
+    setTimeout(() => {
+      setCopiedToken('');
+      setCopiedType('');
+    }, 2500);
+  };
+
+  const handleTestLogin = (agent: PollingUnitAgentLink) => {
+    const targetUrl = `/?agent_token=${encodeURIComponent(agent.token || agent.uniqueToken)}&pwd=${encodeURIComponent(agent.password)}`;
+    window.location.href = targetUrl;
   };
 
   return (
@@ -176,7 +204,7 @@ export const ElectionTab: React.FC<Props> = ({ agents, setAgents, electionReport
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="font-bold text-[#103C2E] block mb-1 uppercase">Agent Full Name</label>
+                  <label className="font-bold text-[#103C2E] block mb-1 uppercase">Agent Full Name *</label>
                   <input
                     type="text"
                     required
@@ -197,19 +225,36 @@ export const ElectionTab: React.FC<Props> = ({ agents, setAgents, electionReport
                   />
                 </div>
               </div>
+
+              <div>
+                <label className="font-bold text-[#103C2E] block mb-1 uppercase">
+                  Agent Access Password (Optional - leave blank to auto-generate)
+                </label>
+                <input
+                  type="text"
+                  placeholder="e.g. 123456 or leave blank for secure auto-code"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  className="w-full px-3 py-2.5 bg-stone-50 border border-stone-200 rounded-xl font-medium font-mono text-xs"
+                />
+                <span className="text-[10px] text-stone-500 mt-0.5 block">
+                  You can set an easy memorable password for the polling unit agent or leave blank.
+                </span>
+              </div>
+
               <div className="flex justify-end gap-2 pt-3">
                 <button
                   type="button"
                   onClick={() => setShowNewAgentModal(false)}
-                  className="bg-stone-100 hover:bg-stone-200 text-stone-700 px-4 py-2.5 rounded-xl font-bold uppercase"
+                  className="bg-stone-100 hover:bg-stone-200 text-stone-700 px-4 py-2.5 rounded-xl font-bold uppercase cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="bg-[#103C2E] hover:bg-[#09291F] text-white px-6 py-2.5 rounded-xl font-bold uppercase shadow"
+                  className="bg-[#103C2E] hover:bg-[#09291F] text-white px-6 py-2.5 rounded-xl font-bold uppercase shadow cursor-pointer"
                 >
-                  Generate Agent Link
+                  Generate Agent Credentials & Link
                 </button>
               </div>
             </form>
@@ -219,74 +264,122 @@ export const ElectionTab: React.FC<Props> = ({ agents, setAgents, electionReport
 
       {/* Assigned Agents Table */}
       <div className="bg-white rounded-3xl shadow-sm border border-stone-200 overflow-hidden space-y-4 p-6">
-        <div className="flex justify-between items-center border-b border-stone-100 pb-3">
-          <h4 className="font-bold text-[#103C2E] text-base uppercase">Polling Unit Agents & Secure Submission Links</h4>
-          <span className="text-xs text-stone-500 font-medium">Click copy link to send directly to your agent via WhatsApp or SMS.</span>
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 border-b border-stone-100 pb-3">
+          <div>
+            <h4 className="font-bold text-[#103C2E] text-base uppercase">Polling Unit Agents & Secure Submission Links</h4>
+            <span className="text-xs text-stone-500 font-medium">Click copy 1-click link to send directly to your agent via WhatsApp or SMS.</span>
+          </div>
+          <span className="text-xs bg-emerald-50 text-emerald-800 border border-emerald-200 px-3 py-1 rounded-full font-bold">
+            Master Campaign Key: <code>DANMAJE2026</code>
+          </span>
         </div>
 
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs">
-            <thead className="bg-stone-50 text-stone-500 uppercase font-bold border-b border-stone-200">
+            <thead className="bg-[#103C2E] text-white uppercase font-bold">
               <tr>
-                <th className="p-3">Location</th>
-                <th className="p-3">Agent</th>
-                <th className="p-3">Credentials</th>
-                <th className="p-3">Status</th>
-                <th className="p-3">Link</th>
-                <th className="p-3 text-right">Actions</th>
+                <th className="p-3.5">Location & PU</th>
+                <th className="p-3.5">Agent Details</th>
+                <th className="p-3.5">Access Credentials</th>
+                <th className="p-3.5">Status</th>
+                <th className="p-3.5">1-Click Submission Link</th>
+                <th className="p-3.5 text-right">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-stone-100">
               {agents.map(ag => {
-                const hasReport = electionReports.find(r => r.linkId === ag.token);
+                const tokenVal = ag.token || ag.uniqueToken;
+                const hasReport = electionReports.find(r => r.linkId === tokenVal || r.linkId === ag.id);
                 return (
-                  <tr key={ag.id} className="hover:bg-stone-50">
-                    <td className="p-3">
-                      <strong className="text-[#103C2E] block">{ag.pollingUnitName}</strong>
-                      <span className="text-stone-500 text-[11px]">{ag.ward} • {ag.pollingUnitCode}</span>
+                  <tr key={ag.id} className="hover:bg-stone-50 transition">
+                    <td className="p-3.5">
+                      <strong className="text-[#103C2E] text-xs block">{ag.pollingUnitName}</strong>
+                      <span className="text-stone-500 text-[11px] block">{ag.localGovernment} • {ag.ward || ag.wardName}</span>
+                      <span className="font-mono text-[10px] text-emerald-800 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200/60 inline-block mt-0.5">
+                        Code: {ag.pollingUnitCode}
+                      </span>
                     </td>
-                    <td className="p-3">
-                      <span className="font-bold text-stone-800 block">{ag.agentName}</span>
-                      <span className="text-stone-500 text-[11px]">{ag.phone}</span>
+                    <td className="p-3.5">
+                      <span className="font-bold text-stone-900 block text-xs">{ag.agentName}</span>
+                      <span className="text-stone-500 text-[11px] font-mono">{ag.phone}</span>
                     </td>
-                    <td className="p-3">
-                      <span className="font-mono text-[10px] text-stone-600">User: {ag.token}</span><br/>
-                      <span className="font-mono text-[10px] text-stone-600">Pass: {ag.password}</span>
-                    </td>
-                    <td className="p-3">
-                      {hasReport ? (
-                        <span className="px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-800 font-bold text-[10px] uppercase">
-                          Submitted
-                        </span>
-                      ) : (
-                        <span className="px-2.5 py-1 rounded-full bg-amber-100 text-amber-800 font-bold text-[10px] uppercase">
-                          Pending
-                        </span>
-                      )}
-                    </td>
-                    <td className="p-3 font-mono text-[11px] text-stone-600">
-                      <div className="flex items-center gap-1.5">
-                        <span className="truncate max-w-[120px]">/?agent_token={ag.token || ''}</span>
-                        <button
-                          onClick={() => copyAgentLink(ag.token || '')}
-                          className="p-1.5 bg-stone-100 hover:bg-[#103C2E] hover:text-white rounded-lg transition-all"
-                          title="Copy Agent Link"
-                        >
-                          <Copy className="w-3.5 h-3.5" />
-                        </button>
-                        {copiedToken === ag.token && (
-                          <span className="text-[10px] text-emerald-700 font-bold">Copied!</span>
+                    <td className="p-3.5">
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-1.5 bg-stone-100 px-2 py-1 rounded font-mono text-[10px]">
+                          <span className="text-stone-500">User:</span>
+                          <strong className="text-stone-900 select-all">{tokenVal}</strong>
+                          <button
+                            onClick={() => copyCredential(tokenVal, ag.id, 'user')}
+                            className="p-1 hover:bg-stone-200 rounded cursor-pointer ml-auto"
+                            title="Copy Username/Token"
+                          >
+                            <Copy className="w-3 h-3 text-stone-600" />
+                          </button>
+                        </div>
+
+                        <div className="flex items-center gap-1.5 bg-emerald-50 px-2 py-1 rounded border border-emerald-200/80 font-mono text-[10px]">
+                          <span className="text-emerald-700">Pass:</span>
+                          <strong className="text-emerald-950 select-all">{ag.password}</strong>
+                          <button
+                            onClick={() => copyCredential(ag.password, ag.id, 'pass')}
+                            className="p-1 hover:bg-emerald-200 rounded cursor-pointer ml-auto"
+                            title="Copy Password"
+                          >
+                            <Copy className="w-3 h-3 text-emerald-700" />
+                          </button>
+                        </div>
+                        {copiedToken === ag.id && (
+                          <span className="text-[10px] text-emerald-700 font-bold block">
+                            {copiedType === 'user' ? 'Token Copied!' : 'Password Copied!'}
+                          </span>
                         )}
                       </div>
                     </td>
-                    <td className="p-3 text-right space-x-2">
+                    <td className="p-3.5">
+                      {hasReport ? (
+                        <span className="px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-800 font-bold text-[10px] uppercase inline-flex items-center gap-1">
+                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-600"></span>
+                          Reported
+                        </span>
+                      ) : (
+                        <span className="px-2.5 py-1 rounded-full bg-amber-100 text-amber-800 font-bold text-[10px] uppercase inline-flex items-center gap-1">
+                          <span className="w-1.5 h-1.5 rounded-full bg-amber-600"></span>
+                          Awaiting
+                        </span>
+                      )}
+                    </td>
+                    <td className="p-3.5">
+                      <div className="space-y-1">
+                        <button
+                          onClick={() => copyDirectAgentLink(ag)}
+                          className="bg-emerald-700 hover:bg-emerald-800 active:scale-95 text-white px-3 py-1.5 rounded-xl font-bold text-[11px] flex items-center gap-1.5 shadow-xs transition cursor-pointer"
+                          title="Copy Direct Link with Credentials Pre-loaded for WhatsApp/SMS"
+                        >
+                          <Copy className="w-3.5 h-3.5 text-[#D4AF37]" />
+                          <span>COPY 1-CLICK LINK</span>
+                        </button>
+                        {copiedToken === tokenVal && copiedType === 'link' && (
+                          <span className="text-[10px] text-emerald-700 font-bold block">
+                            1-Click Link Copied to Clipboard!
+                          </span>
+                        )}
+                      </div>
+                    </td>
+                    <td className="p-3.5 text-right space-x-1.5">
+                      <button
+                        onClick={() => handleTestLogin(ag)}
+                        className="bg-[#103C2E] hover:bg-[#09291F] text-white px-2.5 py-1.5 rounded-xl text-[10px] font-bold uppercase transition cursor-pointer shadow-xs inline-flex items-center gap-1"
+                        title="Directly test agent portal login for this polling unit"
+                      >
+                        <span>Test Portal</span>
+                      </button>
                       <button
                         onClick={() => {
                           setAgents(agents.filter(a => a.id !== ag.id));
-                          setElectionReports(electionReports.filter(r => r.linkId !== ag.token));
+                          setElectionReports(electionReports.filter(r => r.linkId !== tokenVal && r.linkId !== ag.id));
                         }}
-                        className="text-rose-600 hover:text-rose-800 p-1"
-                        title="Delete Agent"
+                        className="text-rose-600 hover:text-rose-800 p-1.5 hover:bg-rose-50 rounded-lg transition"
+                        title="Delete Agent Link"
                       >
                         <Trash2 className="w-4 h-4 inline" />
                       </button>

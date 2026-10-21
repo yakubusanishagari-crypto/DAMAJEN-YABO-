@@ -66,7 +66,7 @@ export const ContactPage: React.FC<Props> = ({ currentLang = 'en', translations 
           </span>
         </div>
         <h1 className="text-3xl sm:text-5xl font-extrabold font-['Manrope'] text-white">
-          {t('contactOffice', currentLang, translations)}
+          {t('contactOffice', currentLang, translations).toUpperCase()}
         </h1>
         <p className="text-stone-300 text-sm sm:text-base max-w-2xl leading-relaxed font-light">
           {currentLang === 'ha'
@@ -82,7 +82,7 @@ export const ContactPage: React.FC<Props> = ({ currentLang = 'en', translations 
         <div className="lg:col-span-5 space-y-6">
           <div className="bg-white p-8 rounded-3xl shadow-xl border border-stone-200/80 space-y-6">
             <h3 className="font-['Manrope'] font-bold text-2xl text-[#103C2E]">
-              {t('officeLocationsTitle', currentLang, translations)}
+              {t('officeLocationsTitle', currentLang, translations).toUpperCase()}
             </h3>
             
             <ul className="space-y-6 text-sm text-[#242824]">
@@ -174,7 +174,7 @@ export const ContactPage: React.FC<Props> = ({ currentLang = 'en', translations 
         <div className="lg:col-span-7">
           <div className="bg-white p-8 sm:p-10 rounded-3xl shadow-xl border border-stone-200/80 space-y-6">
             <h3 className="font-['Manrope'] font-bold text-2xl text-[#103C2E]">
-              {currentLang === 'ha' ? 'Aika Sako ko Korafi' : currentLang === 'ar' ? 'إرسال رسالة أو تقديم طلب' : 'Send Official Message or Petition'}
+              {currentLang === 'ha' ? 'Aika Sako ko Korafi' : currentLang === 'ar' ? 'إرسال رسالة أو تقديم طلب' : 'SEND OFFICIAL MESSAGE OR PETITION'}
             </h3>
             
             {success ? (

@@ -1,6 +1,7 @@
-import React, { useRef } from 'react';
+import React, { useRef, useState } from 'react';
 import { ProgramApplication } from '../types';
-import { Printer, Download, X, CheckCircle2, ShieldCheck, QrCode, FileText, ArrowRight } from 'lucide-react';
+import { Printer, Download, X, CheckCircle2, ShieldCheck, QrCode, FileText, ArrowRight, Award, Sparkles, User } from 'lucide-react';
+import { CongratulationOfferModal } from './CongratulationOfferModal';
 
 interface Props {
   application: ProgramApplication;
@@ -10,6 +11,7 @@ interface Props {
 
 export const ApplicationSlipModal: React.FC<Props> = ({ application, onClose, onTrack }) => {
   const slipRef = useRef<HTMLDivElement>(null);
+  const [showCongratOffer, setShowCongratOffer] = useState(false);
 
   const handlePrint = () => {
     window.print();
@@ -84,31 +86,38 @@ export const ApplicationSlipModal: React.FC<Props> = ({ application, onClose, on
     </div>
   </div>
 
-  <div class="section-title">2. APPLICANT PERSONAL DETAILS</div>
-  <div class="grid">
-    <div class="field">
-      <div class="field-label">Full Name</div>
-      <div class="field-value">${application.applicantName}</div>
+  <div class="section-title">2. APPLICANT PERSONAL DETAILS & BIOMETRIC IDENTIFICATION</div>
+  <div style="display: flex; gap: 15px; margin-bottom: 12px; align-items: flex-start;">
+    <div style="flex: 1;">
+      <div class="grid">
+        <div class="field">
+          <div class="field-label">Full Name</div>
+          <div class="field-value">${application.applicantName}</div>
+        </div>
+        <div class="field">
+          <div class="field-label">National Identity Number (NIN)</div>
+          <div class="field-value">${application.nin || 'Submitted with Credentials'}</div>
+        </div>
+        <div class="field">
+          <div class="field-label">Primary Telephone Number</div>
+          <div class="field-value">${application.phone}</div>
+        </div>
+        <div class="field">
+          <div class="field-label">Email Address</div>
+          <div class="field-value">${application.email || 'N/A'}</div>
+        </div>
+        <div class="field">
+          <div class="field-label">Local Government Area (LGA)</div>
+          <div class="field-value">${application.lga || 'Yabo / Shagari'}</div>
+        </div>
+        <div class="field">
+          <div class="field-label">Constituency Ward / Community</div>
+          <div class="field-value">${application.wardOrTown}</div>
+        </div>
+      </div>
     </div>
-    <div class="field">
-      <div class="field-label">National Identity Number (NIN)</div>
-      <div class="field-value">${application.nin || 'Submitted with Credentials'}</div>
-    </div>
-    <div class="field">
-      <div class="field-label">Primary Telephone Number</div>
-      <div class="field-value">${application.phone}</div>
-    </div>
-    <div class="field">
-      <div class="field-label">Email Address</div>
-      <div class="field-value">${application.email || 'N/A'}</div>
-    </div>
-    <div class="field">
-      <div class="field-label">Local Government Area (LGA)</div>
-      <div class="field-value">${application.lga || 'Yabo / Shagari'}</div>
-    </div>
-    <div class="field">
-      <div class="field-label">Constituency Ward / Community</div>
-      <div class="field-value">${application.wardOrTown}</div>
+    <div style="width: 105px; height: 130px; border: 2px solid #C6A15B; background: #faf9f5; padding: 2px; text-align: center; border-radius: 4px; shrink: 0;">
+      ${application.passportPhoto ? `<img src="${application.passportPhoto}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 2px;" alt="Passport" />` : '<div style="display:flex; height:100%; align-items:center; justify-content:center; font-size:9px; color:#888; font-weight:bold; text-transform:uppercase; text-align:center;">OFFICIAL PHOTO AFFIXED</div>'}
     </div>
   </div>
 
@@ -314,6 +323,32 @@ export const ApplicationSlipModal: React.FC<Props> = ({ application, onClose, on
             </div>
           </div>
 
+          {/* Special Congratulatory Offer Notification Banner for Approved Beneficiaries */}
+          {application.status === 'APPROVED' && (
+            <div className="no-print bg-gradient-to-r from-[#103C2E] via-[#09291F] to-[#103C2E] border-2 border-[#D4AF37] p-4 sm:p-5 rounded-2xl flex flex-col sm:flex-row items-center justify-between gap-4 text-white shadow-xl">
+              <div className="flex items-center gap-3.5">
+                <div className="w-11 h-11 rounded-full bg-[#D4AF37]/20 border border-[#D4AF37] flex items-center justify-center text-[#D4AF37] shrink-0">
+                  <Sparkles className="w-6 h-6" />
+                </div>
+                <div>
+                  <h4 className="font-['Manrope'] font-extrabold text-sm sm:text-base text-[#D4AF37] uppercase tracking-wide">
+                    ★ CONGRATULATIONS! SELECTION & AWARD APPROVED ★
+                  </h4>
+                  <p className="text-xs text-emerald-100">
+                    Hon. (Dr.) Umar Yusuf Yabo has approved this dossier. You can now view and print your Official Congratulation Offer & Award Letter.
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowCongratOffer(true)}
+                className="bg-gradient-to-r from-[#D4AF37] to-[#C6A15B] hover:brightness-110 active:scale-95 text-[#09291F] px-5 py-2.5 rounded-xl font-black text-xs uppercase shadow-lg flex items-center gap-2 transition cursor-pointer shrink-0"
+              >
+                <Award className="w-4 h-4" />
+                <span>VIEW CONGRATULATION OFFER</span>
+              </button>
+            </div>
+          )}
+
           {/* Section 1: Programme Details */}
           <div className="space-y-2">
             <h4 className="text-xs font-black uppercase tracking-wider text-[#103C2E] border-b border-stone-200 pb-1 flex items-center gap-1.5">
@@ -332,36 +367,58 @@ export const ApplicationSlipModal: React.FC<Props> = ({ application, onClose, on
             </div>
           </div>
 
-          {/* Section 2: Applicant Information */}
+          {/* Section 2: Applicant Information & Biometric Passport Photo */}
           <div className="space-y-2">
             <h4 className="text-xs font-black uppercase tracking-wider text-[#103C2E] border-b border-stone-200 pb-1 flex items-center gap-1.5">
               <span className="w-2 h-2 rounded-full bg-[#C6A15B]"></span>
-              2. APPLICANT PERSONAL PROFILE
+              2. APPLICANT PERSONAL PROFILE & BIOMETRIC PHOTOGRAPH
             </h4>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs bg-stone-50 p-3.5 rounded-xl border border-stone-200/80">
-              <div>
-                <span className="text-stone-500 block text-[10px] uppercase font-bold">Full Name:</span>
-                <span className="font-bold text-[#103C2E]">{application.applicantName}</span>
+            <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4 bg-stone-50 p-4 rounded-xl border border-stone-200/80">
+              {/* Passport Photograph Box */}
+              <div className="w-24 h-28 sm:w-28 sm:h-32 rounded-xl overflow-hidden border-2 border-[#C6A15B] bg-white shrink-0 shadow-sm flex flex-col items-center justify-center p-0.5 relative">
+                {application.passportPhoto ? (
+                  <img
+                    src={application.passportPhoto}
+                    alt={application.applicantName}
+                    className="w-full h-full object-cover rounded-lg"
+                  />
+                ) : (
+                  <div className="text-center p-2 text-stone-400">
+                    <User className="w-8 h-8 mx-auto" />
+                    <span className="text-[9px] font-bold uppercase mt-1 block">Passport Photo</span>
+                  </div>
+                )}
+                <div className="absolute bottom-0 inset-x-0 bg-[#103C2E]/90 text-[#D4AF37] text-[8px] font-bold py-0.5 text-center uppercase tracking-wider">
+                  Official Photo
+                </div>
               </div>
-              <div>
-                <span className="text-stone-500 block text-[10px] uppercase font-bold">National Identity Number (NIN):</span>
-                <span className="font-bold font-mono text-[#103C2E]">{application.nin || 'On file with Committee'}</span>
-              </div>
-              <div>
-                <span className="text-stone-500 block text-[10px] uppercase font-bold">Primary Phone:</span>
-                <span className="font-bold text-[#103C2E]">{application.phone}</span>
-              </div>
-              <div>
-                <span className="text-stone-500 block text-[10px] uppercase font-bold">Email Address:</span>
-                <span className="font-bold text-[#103C2E]">{application.email || 'None Provided'}</span>
-              </div>
-              <div>
-                <span className="text-stone-500 block text-[10px] uppercase font-bold">Local Government Area:</span>
-                <span className="font-bold text-[#103C2E]">{application.lga || 'Yabo / Shagari'}</span>
-              </div>
-              <div>
-                <span className="text-stone-500 block text-[10px] uppercase font-bold">Ward / Community:</span>
-                <span className="font-bold text-[#103C2E]">{application.wardOrTown}</span>
+
+              {/* Data Grid */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 text-xs flex-1 w-full">
+                <div>
+                  <span className="text-stone-500 block text-[10px] uppercase font-bold">Full Name:</span>
+                  <span className="font-bold text-[#103C2E] text-sm">{application.applicantName}</span>
+                </div>
+                <div>
+                  <span className="text-stone-500 block text-[10px] uppercase font-bold">National Identity Number (NIN):</span>
+                  <span className="font-bold font-mono text-[#103C2E]">{application.nin || 'On file with Committee'}</span>
+                </div>
+                <div>
+                  <span className="text-stone-500 block text-[10px] uppercase font-bold">Primary Phone:</span>
+                  <span className="font-bold text-[#103C2E]">{application.phone}</span>
+                </div>
+                <div>
+                  <span className="text-stone-500 block text-[10px] uppercase font-bold">Email Address:</span>
+                  <span className="font-bold text-[#103C2E]">{application.email || 'None Provided'}</span>
+                </div>
+                <div>
+                  <span className="text-stone-500 block text-[10px] uppercase font-bold">Local Government Area:</span>
+                  <span className="font-bold text-[#103C2E]">{application.lga || 'Yabo / Shagari'}</span>
+                </div>
+                <div>
+                  <span className="text-stone-500 block text-[10px] uppercase font-bold">Ward / Community:</span>
+                  <span className="font-bold text-[#103C2E]">{application.wardOrTown}</span>
+                </div>
               </div>
             </div>
           </div>
@@ -466,6 +523,14 @@ export const ApplicationSlipModal: React.FC<Props> = ({ application, onClose, on
           </div>
         </div>
       </div>
+
+      {/* Congratulation Offer Modal */}
+      {showCongratOffer && (
+        <CongratulationOfferModal
+          application={application}
+          onClose={() => setShowCongratOffer(false)}
+        />
+      )}
     </div>
   );
 };
