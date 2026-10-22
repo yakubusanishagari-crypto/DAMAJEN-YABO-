@@ -13,19 +13,33 @@ export const ApplicationSlipModal: React.FC<Props> = ({ application, onClose, on
   const slipRef = useRef<HTMLDivElement>(null);
   const [showCongratOffer, setShowCongratOffer] = useState(false);
 
+  const isPetition = Boolean(
+    application.referenceNumber?.startsWith('DAN-PET') ||
+    application.programCategory?.toLowerCase().includes('petition') ||
+    application.programId?.includes('ticket') ||
+    application.programId?.includes('petition')
+  );
+
   const handlePrint = () => {
     window.print();
   };
 
   const handleDownloadSlip = () => {
-    // Generate a standalone, printable HTML document for download
+    const isPetition = Boolean(
+      application.referenceNumber?.startsWith('DAN-PET') ||
+      application.programCategory?.toLowerCase().includes('petition') ||
+      application.programId?.includes('ticket') ||
+      application.programId?.includes('petition')
+    );
+    // Generate a standalone, printable HTML document for download with exact color preservation
     const htmlContent = `
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Application Slip - ${application.referenceNumber}</title>
+  <title>${isPetition ? 'Petition Docket' : 'Application Slip'} - ${application.referenceNumber}</title>
   <style>
+    * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; color-adjust: exact !important; }
     @page { size: A4 portrait; margin: 15mm; }
     body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; color: #1a2e22; background: #fff; margin: 0; padding: 20px; line-height: 1.4; }
     .header { text-align: center; border-bottom: 2px solid #103C2E; padding-bottom: 12px; margin-bottom: 20px; }
@@ -50,53 +64,53 @@ export const ApplicationSlipModal: React.FC<Props> = ({ application, onClose, on
   </style>
 </head>
 <body>
-  <div class="watermark">DAN MAJE EMPOWERMENT</div>
+  <div class="watermark">DAN MAJE CONSTITUENCY</div>
   <div class="header">
     <p class="title-republic">FEDERAL REPUBLIC OF NIGERIA</p>
     <p class="title-nass">HOUSE OF REPRESENTATIVES • NATIONAL ASSEMBLY</p>
     <p class="title-office">Office of Hon. (Dr.) Umar Yusuf Yabo (Dan Majen Yabo)</p>
     <p style="font-size: 11px; color: #4b5e52; margin: 0;">Member Representing Yabo/Shagari Federal Constituency, Sokoto State</p>
-    <div class="title-slip">OFFICIAL APPLICATION & ACKNOWLEDGMENT SLIP</div>
+    <div class="title-slip">${isPetition ? 'OFFICIAL CONSTITUENCY PETITION & SERVICE DOCKET' : 'OFFICIAL APPLICATION & ACKNOWLEDGMENT SLIP'}</div>
   </div>
 
   <div class="ref-box">
     <div>
-      <div class="field-label">APPLICATION REFERENCE CODE</div>
+      <div class="field-label">${isPetition ? 'PETITION REFERENCE CODE' : 'APPLICATION REFERENCE CODE'}</div>
       <div style="font-size: 16px; font-weight: 900; color: #103C2E; font-family: monospace;">${application.referenceNumber}</div>
     </div>
     <div>
-      <div class="field-label">DATE & TIME OF SUBMISSION</div>
+      <div class="field-label">DATE LOGGED</div>
       <div class="field-value">${application.date} ${application.submissionTime || 'WAT'}</div>
     </div>
     <div>
-      <div class="field-label">APPLICATION STATUS</div>
+      <div class="field-label">CURRENT STATUS</div>
       <div style="color: #0d6832; font-weight: 800;">${application.status || 'SUBMITTED'}</div>
     </div>
   </div>
 
-  <div class="section-title">1. PROGRAMME INFORMATION</div>
+  <div class="section-title">1. SUBJECT INFORMATION</div>
   <div class="grid">
     <div class="field">
-      <div class="field-label">Programme Title</div>
+      <div class="field-label">${isPetition ? 'Petition Subject / Title' : 'Programme Title'}</div>
       <div class="field-value">${application.programTitle}</div>
     </div>
     <div class="field">
-      <div class="field-label">Programme Category</div>
-      <div class="field-value">${application.programCategory || 'Constituency Empowerment Scheme'}</div>
+      <div class="field-label">Category</div>
+      <div class="field-value">${application.programCategory || (isPetition ? 'Constituency Petition' : 'Empowerment Scheme')}</div>
     </div>
   </div>
 
-  <div class="section-title">2. APPLICANT PERSONAL DETAILS & BIOMETRIC IDENTIFICATION</div>
+  <div class="section-title">2. ${isPetition ? 'CITIZEN PETITIONER CONTACT DETAILS' : 'APPLICANT PERSONAL DETAILS & BIOMETRIC IDENTIFICATION'}</div>
   <div style="display: flex; gap: 15px; margin-bottom: 12px; align-items: flex-start;">
     <div style="flex: 1;">
       <div class="grid">
         <div class="field">
-          <div class="field-label">Full Name</div>
+          <div class="field-label">${isPetition ? 'Petitioner Full Name' : 'Full Name'}</div>
           <div class="field-value">${application.applicantName}</div>
         </div>
         <div class="field">
-          <div class="field-label">National Identity Number (NIN)</div>
-          <div class="field-value">${application.nin || 'Submitted with Credentials'}</div>
+          <div class="field-label">${isPetition ? 'Identifier / NIN' : 'National Identity Number (NIN)'}</div>
+          <div class="field-value">${application.nin || 'Submitted Record'}</div>
         </div>
         <div class="field">
           <div class="field-label">Primary Telephone Number</div>
@@ -116,54 +130,33 @@ export const ApplicationSlipModal: React.FC<Props> = ({ application, onClose, on
         </div>
       </div>
     </div>
+    ${!isPetition && application.passportPhoto ? `
     <div style="width: 105px; height: 130px; border: 2px solid #C6A15B; background: #faf9f5; padding: 2px; text-align: center; border-radius: 4px; shrink: 0;">
-      ${application.passportPhoto ? `<img src="${application.passportPhoto}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 2px;" alt="Passport" />` : '<div style="display:flex; height:100%; align-items:center; justify-content:center; font-size:9px; color:#888; font-weight:bold; text-transform:uppercase; text-align:center;">OFFICIAL PHOTO AFFIXED</div>'}
-    </div>
+      <img src="${application.passportPhoto}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 2px;" alt="Passport" />
+    </div>` : ''}
   </div>
 
-  <div class="section-title">3. EDUCATIONAL & SOCIO-ECONOMIC INFORMATION</div>
-  <div class="grid">
-    <div class="field">
-      <div class="field-label">Highest Educational Attainment</div>
-      <div class="field-value">${application.highestEducation || 'Verified on Screening'}</div>
-    </div>
-    <div class="field">
-      <div class="field-label">Current Employment / Trade Status</div>
-      <div class="field-value">${application.employmentStatus || 'Artisan / Artisan Candidate'}</div>
-    </div>
-    <div class="field">
-      <div class="field-label">Qualifications & Trade Background</div>
-      <div class="field-value">${application.qualifications}</div>
-    </div>
-    <div class="field">
-      <div class="field-label">Attached Supporting Documents</div>
-      <div class="field-value">${application.documents && application.documents.length > 0 ? `${application.documents.length} verified file(s) attached` : 'Registered Credentials on Record'}</div>
-    </div>
-  </div>
-
-  <div class="section-title">4. STATEMENT OF PURPOSE & SOCIO-ECONOMIC IMPACT</div>
+  <div class="section-title">3. ${isPetition ? 'GRIEVANCE STATEMENT & CITIZEN PLEA' : 'EDUCATIONAL & SOCIO-ECONOMIC INFORMATION'}</div>
   <div class="statement-box">
     "${application.statement}"
   </div>
 
   <div class="instructions">
-    <strong>IMPORTANT INSTRUCTIONS FOR THE APPLICANT:</strong><br/>
-    1. Print and keep this official slip as proof of your application submission.<br/>
-    2. Shortlisted applicants will be invited for physical verification at the Yabo and Shagari constituency liaison offices.<br/>
-    3. You must present this slip alongside your original National Identity Card / NIN slip and Local Government Indigene Certificate.<br/>
-    4. Track your live progress anytime at <strong>danmayeyabo.gov.ng</strong> using your Reference Number: <strong>${application.referenceNumber}</strong>.
+    <strong>OFFICIAL CONSTITUENCY NOTICE:</strong><br/>
+    1. This official document is generated from the National Assembly Constituency Transparency Portal.<br/>
+    2. Track live review progress at <strong>danmayeyabo.gov.ng</strong> using reference: <strong>${application.referenceNumber}</strong>.
   </div>
 
   <div class="footer-seal">
     <div class="stamp">
-      OFFICIALLY REGISTERED<br/>
-      CONSTITUENCY EMPOWERMENT DESK<br/>
+      OFFICIALLY RECORDED<br/>
+      ${isPetition ? 'CONSTITUENCY PETITION DESK' : 'EMPOWERMENT SCREENING DESK'}<br/>
       HON. UMAR YUSUF YABO
     </div>
     <div class="sign-line">
       <div class="sign-line-bar"></div><br/>
-      <strong>Authorized Verification Secretary</strong><br/>
-      Yabo/Shagari Constituency Empowerment Board
+      <strong>Authorized Committee Secretary</strong><br/>
+      Yabo/Shagari Federal Constituency Office
     </div>
   </div>
 </body>
@@ -203,6 +196,11 @@ export const ApplicationSlipModal: React.FC<Props> = ({ application, onClose, on
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-black/80 backdrop-blur-sm overflow-y-auto print:p-0 print:bg-white print:static">
       <style dangerouslySetInnerHTML={{ __html: `
         @media print {
+          * {
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+            color-adjust: exact !important;
+          }
           body * {
             visibility: hidden;
           }
@@ -367,40 +365,42 @@ export const ApplicationSlipModal: React.FC<Props> = ({ application, onClose, on
             </div>
           </div>
 
-          {/* Section 2: Applicant Information & Biometric Passport Photo */}
+          {/* Section 2: Personal / Petitioner Details (Omit photo for petitions) */}
           <div className="space-y-2">
             <h4 className="text-xs font-black uppercase tracking-wider text-[#103C2E] border-b border-stone-200 pb-1 flex items-center gap-1.5">
               <span className="w-2 h-2 rounded-full bg-[#C6A15B]"></span>
-              2. APPLICANT PERSONAL PROFILE & BIOMETRIC PHOTOGRAPH
+              2. {isPetition ? 'CITIZEN PETITIONER IDENTIFICATION & CONTACTS' : 'APPLICANT PERSONAL PROFILE & BIOMETRIC PHOTOGRAPH'}
             </h4>
             <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4 bg-stone-50 p-4 rounded-xl border border-stone-200/80">
-              {/* Passport Photograph Box */}
-              <div className="w-24 h-28 sm:w-28 sm:h-32 rounded-xl overflow-hidden border-2 border-[#C6A15B] bg-white shrink-0 shadow-sm flex flex-col items-center justify-center p-0.5 relative">
-                {application.passportPhoto ? (
-                  <img
-                    src={application.passportPhoto}
-                    alt={application.applicantName}
-                    className="w-full h-full object-cover rounded-lg"
-                  />
-                ) : (
-                  <div className="text-center p-2 text-stone-400">
-                    <User className="w-8 h-8 mx-auto" />
-                    <span className="text-[9px] font-bold uppercase mt-1 block">Passport Photo</span>
+              {/* Passport Photograph Box (Omitted for Petitions) */}
+              {!isPetition && (
+                <div className="w-24 h-28 sm:w-28 sm:h-32 rounded-xl overflow-hidden border-2 border-[#C6A15B] bg-white shrink-0 shadow-sm flex flex-col items-center justify-center p-0.5 relative">
+                  {application.passportPhoto ? (
+                    <img
+                      src={application.passportPhoto}
+                      alt={application.applicantName}
+                      className="w-full h-full object-cover rounded-lg"
+                    />
+                  ) : (
+                    <div className="text-center p-2 text-stone-400">
+                      <User className="w-8 h-8 mx-auto" />
+                      <span className="text-[9px] font-bold uppercase mt-1 block">Passport Photo</span>
+                    </div>
+                  )}
+                  <div className="absolute bottom-0 inset-x-0 bg-[#103C2E]/90 text-[#D4AF37] text-[8px] font-bold py-0.5 text-center uppercase tracking-wider">
+                    Official Photo
                   </div>
-                )}
-                <div className="absolute bottom-0 inset-x-0 bg-[#103C2E]/90 text-[#D4AF37] text-[8px] font-bold py-0.5 text-center uppercase tracking-wider">
-                  Official Photo
                 </div>
-              </div>
+              )}
 
               {/* Data Grid */}
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 text-xs flex-1 w-full">
                 <div>
-                  <span className="text-stone-500 block text-[10px] uppercase font-bold">Full Name:</span>
+                  <span className="text-stone-500 block text-[10px] uppercase font-bold">{isPetition ? 'Petitioner Full Name:' : 'Full Name:'}</span>
                   <span className="font-bold text-[#103C2E] text-sm">{application.applicantName}</span>
                 </div>
                 <div>
-                  <span className="text-stone-500 block text-[10px] uppercase font-bold">National Identity Number (NIN):</span>
+                  <span className="text-stone-500 block text-[10px] uppercase font-bold">{isPetition ? 'Identifier / NIN:' : 'National Identity Number (NIN):'}</span>
                   <span className="font-bold font-mono text-[#103C2E]">{application.nin || 'On file with Committee'}</span>
                 </div>
                 <div>

@@ -4636,7 +4636,11 @@ export const AdminDashboard: React.FC<Props> = ({
                           <button
                             type="button"
                             onClick={() => {
-                              handleAdvanceApplicationStage(selectedAppForReview.id, reviewStatusInput, reviewInternalNote, reviewPublicFeedback, reviewAwardPackage);
+                              if (isPetition) {
+                                handleAdvancePetitionStage(selectedAppForReview.id, reviewStatusInput, reviewInternalNote, reviewPublicFeedback, reviewAwardPackage);
+                              } else {
+                                handleAdvanceApplicationStage(selectedAppForReview.id, reviewStatusInput, reviewInternalNote, reviewPublicFeedback, reviewAwardPackage);
+                              }
                               setSelectedAppForReview(null);
                             }}
                             className="bg-[#103C2E] hover:bg-[#09291F] text-white px-5 py-2 rounded-xl text-xs font-bold uppercase shadow cursor-pointer flex items-center gap-1.5"
