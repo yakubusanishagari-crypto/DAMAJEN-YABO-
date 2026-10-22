@@ -21,13 +21,28 @@ export const ElectionTab: React.FC<Props> = ({ agents, setAgents, electionReport
   const [newPassword, setNewPassword] = useState('');
   const [copiedToken, setCopiedToken] = useState('');
   const [copiedType, setCopiedType] = useState('');
+  const [showCollationDocket, setShowCollationDocket] = useState(false);
+
+  // Deduplicate election reports so that multiple submissions for the same PU code don't cause duplicate tallies
+  const deduplicatedReports = React.useMemo(() => {
+    const map = new Map<string, ElectionReport>();
+    electionReports.forEach(r => {
+      const key = r.pollingUnitCode || r.linkId || r.pollingUnitName || r.id;
+      map.set(key, r);
+    });
+    return Array.from(map.values());
+  }, [electionReports]);
 
   const totalAssigned = agents.length;
-  const totalReported = electionReports.length;
-  const totalDanmajeVotes = electionReports.reduce((acc, r) => acc + r.danmajeVotes, 0);
-  const totalOpponentVotes = electionReports.reduce((acc, r) => acc + r.opponentVotes, 0);
+  const totalReported = deduplicatedReports.length;
+  const totalRegisteredVoters = deduplicatedReports.reduce((acc, r) => acc + (r.totalRegisteredVoters || 0), 0);
+  const totalAccreditedVoters = deduplicatedReports.reduce((acc, r) => acc + (r.totalAccreditedVoters || 0), 0);
+  const totalValid = deduplicatedReports.reduce((acc, r) => acc + (r.totalValidVotes || 0), 0);
+  const totalRejected = deduplicatedReports.reduce((acc, r) => acc + (r.rejectedVotes || 0), 0);
+  const totalDanmajeVotes = deduplicatedReports.reduce((acc, r) => acc + r.danmajeVotes, 0);
+  const totalOpponentVotes = deduplicatedReports.reduce((acc, r) => acc + r.opponentVotes, 0);
+  const totalOtherVotes = deduplicatedReports.reduce((acc, r) => acc + (r.otherPartyVotes || 0), 0);
   const netMargin = totalDanmajeVotes - totalOpponentVotes;
-  const totalValid = electionReports.reduce((acc, r) => acc + r.totalValidVotes, 0);
 
   const getAgentWhatsAppUrl = (agent: PollingUnitAgentLink) => {
     const rawPhone = (agent.phone || '').replace(/[^0-9]/g, '');
@@ -537,61 +552,91 @@ _Strictly Confidential • Assigned to ${agent.agentName}_`;
 
       {/* Submitted Polling Unit Reports Table */}
       <div className="bg-white rounded-3xl shadow-sm border border-stone-200 overflow-hidden space-y-4 p-6">
-        <div className="flex justify-between items-center border-b border-stone-100 pb-3">
-          <h4 className="font-bold text-[#103C2E] text-base uppercase">Compiled Polling Unit Election Results</h4>
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 border-b border-stone-100 pb-3">
+          <div>
+            <h4 className="font-bold text-[#103C2E] text-base uppercase">
+              Compiled Polling Unit Election Results & Agent Transmissions ({deduplicatedReports.length} Polling Units)
+            </h4>
+            <p className="text-xs text-stone-500">
+              Live collation feed with custom candidate party affiliations, voter accreditation tallies, and agent incident inquiries.
+            </p>
+          </div>
           <button
-            onClick={() => window.print()}
-            className="bg-stone-100 hover:bg-stone-200 text-stone-800 px-4 py-2 rounded-xl text-xs font-bold uppercase flex items-center gap-1.5"
+            onClick={() => setShowCollationDocket(true)}
+            className="bg-[#103C2E] hover:bg-[#09291F] text-white px-5 py-2.5 rounded-xl text-xs font-black uppercase flex items-center gap-2 cursor-pointer shadow transition"
           >
-            <Printer className="w-4 h-4" />
-            <span>Print Compiled Result</span>
+            <Printer className="w-4 h-4 text-[#C6A15B]" />
+            <span>Official Collation Docket (Form EC8A)</span>
           </button>
         </div>
 
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs">
-            <thead className="bg-stone-50 text-stone-500 uppercase font-bold border-b border-stone-200">
+            <thead className="bg-[#103C2E] text-white uppercase font-bold">
               <tr>
-                <th className="p-3">Polling Unit & Ward</th>
-                <th className="p-3">Agent</th>
-                <th className="p-3 text-center">Accredited</th>
+                <th className="p-3">Polling Unit & Code</th>
+                <th className="p-3">Agent & Contact</th>
+                <th className="p-3 text-center">Accredited / Reg</th>
                 <th className="p-3 text-center">Hon. Umar Yusuf</th>
                 <th className="p-3 text-center">Opponent</th>
-                <th className="p-3 text-center">Margin</th>
-                <th className="p-3">Remarks</th>
+                <th className="p-3 text-center">Net Margin</th>
+                <th className="p-3">Agent Inquiries & Incident Notes</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-stone-100">
-              {electionReports.map(rep => {
+              {deduplicatedReports.map(rep => {
                 const margin = rep.danmajeVotes - rep.opponentVotes;
+                const danmajeParty = rep.danmajePartyName || 'APC';
+                const opponentParty = rep.opponentPartyName || 'PDP';
                 return (
-                  <tr key={rep.id} className="hover:bg-stone-50">
+                  <tr key={rep.id} className="hover:bg-stone-50 transition">
                     <td className="p-3">
                       <strong className="text-[#103C2E] block">{rep.pollingUnitName}</strong>
-                      <span className="text-stone-500 text-[11px]">{rep.ward} • {rep.pollingUnitCode}</span>
+                      <span className="text-stone-500 text-[11px] font-mono">{rep.ward} • {rep.pollingUnitCode}</span>
                     </td>
                     <td className="p-3">
                       <span className="font-bold text-stone-800 block">{rep.agentName}</span>
-                      <span className="text-stone-500 text-[11px]">{rep.phone}</span>
+                      <span className="text-stone-500 text-[11px] font-mono">{rep.phone}</span>
                     </td>
-                    <td className="p-3 text-center font-bold text-stone-700">{rep.totalAccreditedVoters}</td>
-                    <td className="p-3 text-center font-extrabold text-[#103C2E] text-sm">{rep.danmajeVotes}</td>
-                    <td className="p-3 text-center font-extrabold text-red-700 text-sm">{rep.opponentVotes}</td>
                     <td className="p-3 text-center">
-                      <span className={`px-2.5 py-1 rounded-full font-extrabold text-[11px] ${margin >= 0 ? 'bg-emerald-100 text-emerald-800' : 'bg-red-100 text-red-800'}`}>
+                      <strong className="text-stone-800 block">{rep.totalAccreditedVoters}</strong>
+                      <span className="text-[10px] text-stone-400 font-mono">of {rep.totalRegisteredVoters || 'N/A'}</span>
+                    </td>
+                    <td className="p-3 text-center">
+                      <span className="text-[10px] font-bold text-emerald-800 uppercase block">[{danmajeParty}]</span>
+                      <strong className="text-base font-black text-[#103C2E]">{rep.danmajeVotes}</strong>
+                    </td>
+                    <td className="p-3 text-center">
+                      <span className="text-[10px] font-bold text-rose-800 uppercase block">[{opponentParty}]</span>
+                      <strong className="text-base font-black text-rose-700">{rep.opponentVotes}</strong>
+                    </td>
+                    <td className="p-3 text-center">
+                      <span className={`px-2.5 py-1 rounded-full font-black text-xs ${margin >= 0 ? 'bg-emerald-100 text-emerald-800' : 'bg-red-100 text-red-800'}`}>
                         {margin >= 0 ? `+${margin}` : margin}
                       </span>
                     </td>
-                    <td className="p-3 text-stone-600 text-[11px] italic max-w-xs truncate">
-                      {rep.notes || 'No remarks'}
+                    <td className="p-3 text-stone-600 text-xs max-w-xs space-y-1">
+                      {rep.inquiryDetails && (
+                        <div className="bg-amber-50 p-1.5 rounded border border-amber-200 text-amber-900 text-[11px]">
+                          <strong>Inquiry:</strong> {rep.inquiryDetails}
+                        </div>
+                      )}
+                      {rep.notes && (
+                        <div className="text-[11px] text-stone-600 italic">
+                          <strong>Note:</strong> {rep.notes}
+                        </div>
+                      )}
+                      {!rep.inquiryDetails && !rep.notes && (
+                        <span className="text-stone-400 italic text-[11px]">Certified - Normal conduct</span>
+                      )}
                     </td>
                   </tr>
                 );
               })}
-              {electionReports.length === 0 && (
+              {deduplicatedReports.length === 0 && (
                 <tr>
                   <td colSpan={7} className="p-8 text-center text-stone-500">
-                    No election reports submitted by agents yet.
+                    No election reports submitted by polling unit agents yet.
                   </td>
                 </tr>
               )}
@@ -599,6 +644,215 @@ _Strictly Confidential • Assigned to ${agent.agentName}_`;
           </table>
         </div>
       </div>
+
+      {/* OFFICIAL CERTIFIED ELECTION COLLATION CERTIFICATE & FORM EC8A DOCKET MODAL */}
+      {showCollationDocket && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm overflow-y-auto print:p-0 print:bg-white">
+          <div className="bg-white rounded-3xl max-w-5xl w-full p-6 sm:p-10 space-y-6 shadow-2xl border-4 border-[#103C2E] my-8 max-h-[92vh] overflow-y-auto print:max-h-none print:overflow-visible print:border-none print:shadow-none print:m-0 print:p-4">
+            
+            {/* Modal Controls (Hidden in Print) */}
+            <div className="flex justify-between items-center border-b border-stone-200 pb-4 print:hidden">
+              <span className="text-xs font-black uppercase tracking-wider text-[#103C2E] flex items-center gap-2">
+                <ShieldCheck className="w-4 h-4 text-[#C6A15B]" />
+                <span>OFFICIAL ELECTION COLLATION CERTIFICATE & FORM EC8A SUMMARY</span>
+              </span>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => window.print()}
+                  className="bg-[#103C2E] hover:bg-[#09291F] text-white px-5 py-2 rounded-xl text-xs font-black uppercase flex items-center gap-1.5 shadow cursor-pointer transition"
+                >
+                  <Printer className="w-4 h-4 text-[#C6A15B]" />
+                  <span>PRINT OFFICIAL DOCKET</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowCollationDocket(false)}
+                  className="p-2 hover:bg-stone-100 rounded-xl text-stone-500 cursor-pointer"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+            </div>
+
+            {/* PRINTABLE DOCKET CANVAS */}
+            <div id="printable-election-docket" className="space-y-6 text-[#103C2E]">
+              
+              {/* Header with National Coat of Arms & Constituency Info */}
+              <div className="text-center space-y-2 border-b-2 border-[#103C2E] pb-5">
+                <div className="w-16 h-16 rounded-full border-2 border-[#D4AF37] p-1 mx-auto bg-[#09291F] overflow-hidden">
+                  <img src="/official_logo.png" alt="Official Seal" className="w-full h-full object-contain" />
+                </div>
+                <span className="text-[10px] font-black uppercase tracking-widest text-stone-600 block">
+                  FEDERAL REPUBLIC OF NIGERIA • 10TH NATIONAL ASSEMBLY
+                </span>
+                <h2 className="font-['Manrope'] font-black text-2xl text-[#103C2E] uppercase tracking-wide">
+                  OFFICIAL CONSTITUENCY ELECTION COLLATION CERTIFICATE
+                </h2>
+                <p className="text-xs font-bold text-stone-700 uppercase">
+                  YABO / SHAGARI FEDERAL CONSTITUENCY • SOKOTO STATE
+                </p>
+                <p className="text-[11px] text-stone-500">
+                  Certified Collation of Accredited Polling Unit Agents Transmission Dossiers (Form EC8A Series)
+                </p>
+              </div>
+
+              {/* Collation Summary Metrics Grid */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs bg-stone-50 p-4 rounded-2xl border border-stone-300">
+                <div>
+                  <span className="text-[10px] uppercase font-bold text-stone-500 block">Total Polling Units Collated</span>
+                  <strong className="text-lg font-black text-[#103C2E]">{deduplicatedReports.length} of {totalAssigned}</strong>
+                </div>
+                <div>
+                  <span className="text-[10px] uppercase font-bold text-stone-500 block">Total Registered Voters</span>
+                  <strong className="text-lg font-black text-[#103C2E]">{totalRegisteredVoters.toLocaleString()}</strong>
+                </div>
+                <div>
+                  <span className="text-[10px] uppercase font-bold text-stone-500 block">Total Accredited Voters</span>
+                  <strong className="text-lg font-black text-emerald-800">{totalAccreditedVoters.toLocaleString()}</strong>
+                </div>
+                <div>
+                  <span className="text-[10px] uppercase font-bold text-stone-500 block">Total Valid Ballots Cast</span>
+                  <strong className="text-lg font-black text-[#103C2E]">{totalValid.toLocaleString()}</strong>
+                </div>
+              </div>
+
+              {/* Certified Candidate Tallies */}
+              <div className="bg-[#103C2E] text-white p-5 rounded-2xl flex flex-wrap items-center justify-between gap-4">
+                <div>
+                  <span className="text-[10px] uppercase font-bold text-[#D4AF37] block">Leading Candidate:</span>
+                  <h4 className="text-lg font-black tracking-wide">
+                    HON. UMAR YUSUF (DANMAJE YABO)
+                  </h4>
+                  <span className="text-xs text-emerald-300 font-bold">
+                    Total Votes Cast: {totalDanmajeVotes.toLocaleString()}
+                  </span>
+                </div>
+
+                <div>
+                  <span className="text-[10px] uppercase font-bold text-stone-300 block">Main Opponent:</span>
+                  <h4 className="text-base font-bold text-stone-200">
+                    OPPOSITION CANDIDATE
+                  </h4>
+                  <span className="text-xs text-rose-300 font-bold">
+                    Total Votes Cast: {totalOpponentVotes.toLocaleString()}
+                  </span>
+                </div>
+
+                <div className="bg-white/10 px-4 py-2 rounded-xl border border-white/20">
+                  <span className="text-[10px] uppercase font-bold text-[#D4AF37] block">Certified Lead Margin:</span>
+                  <strong className="text-xl font-black text-[#D4AF37]">
+                    {netMargin >= 0 ? `+${netMargin.toLocaleString()}` : netMargin.toLocaleString()} Votes
+                  </strong>
+                </div>
+              </div>
+
+              {/* Detailed Breakdown of Every Single Polling Unit Report */}
+              <div className="space-y-2">
+                <h4 className="text-xs font-black uppercase text-[#103C2E] tracking-wider border-b border-stone-200 pb-1">
+                  Comprehensive Polling Unit Tally & Inquiries Breakdown
+                </h4>
+                
+                <table className="w-full text-left text-[11px] border-collapse border border-stone-300">
+                  <thead>
+                    <tr className="bg-stone-100 text-stone-700 font-black uppercase border-b border-stone-300">
+                      <th className="p-2 border-r border-stone-300">PU Code & Name</th>
+                      <th className="p-2 border-r border-stone-300">Ward / LGA</th>
+                      <th className="p-2 border-r border-stone-300">Agent</th>
+                      <th className="p-2 text-center border-r border-stone-300">Reg / Acc</th>
+                      <th className="p-2 text-center border-r border-stone-300">Danmaje</th>
+                      <th className="p-2 text-center border-r border-stone-300">Opponent</th>
+                      <th className="p-2 text-center border-r border-stone-300">Margin</th>
+                      <th className="p-2">Agent Inquiries & Incident Remarks</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-stone-200">
+                    {deduplicatedReports.map((rep) => {
+                      const diff = rep.danmajeVotes - rep.opponentVotes;
+                      return (
+                        <tr key={rep.id} className="hover:bg-stone-50">
+                          <td className="p-2 font-mono font-bold border-r border-stone-200">
+                            {rep.pollingUnitCode}
+                            <span className="block font-sans font-normal text-[10px] text-stone-600">{rep.pollingUnitName}</span>
+                          </td>
+                          <td className="p-2 border-r border-stone-200">
+                            {rep.ward}
+                            <span className="block text-[10px] text-stone-500">{rep.localGovernment}</span>
+                          </td>
+                          <td className="p-2 border-r border-stone-200">
+                            <span className="font-bold">{rep.agentName}</span>
+                            <span className="block text-[10px] font-mono text-stone-500">{rep.phone}</span>
+                          </td>
+                          <td className="p-2 text-center border-r border-stone-200 font-mono">
+                            {rep.totalAccreditedVoters} / {rep.totalRegisteredVoters || 'N/A'}
+                          </td>
+                          <td className="p-2 text-center font-bold text-emerald-800 border-r border-stone-200">
+                            {rep.danmajeVotes}
+                            <span className="text-[9px] text-stone-400 block font-normal">[{rep.danmajePartyName || 'APC'}]</span>
+                          </td>
+                          <td className="p-2 text-center font-bold text-rose-800 border-r border-stone-200">
+                            {rep.opponentVotes}
+                            <span className="text-[9px] text-stone-400 block font-normal">[{rep.opponentPartyName || 'PDP'}]</span>
+                          </td>
+                          <td className="p-2 text-center font-black border-r border-stone-200">
+                            {diff >= 0 ? `+${diff}` : diff}
+                          </td>
+                          <td className="p-2 text-[10px] text-stone-700 max-w-xs">
+                            {rep.inquiryDetails && <div className="font-bold text-amber-900">Inquiry: {rep.inquiryDetails}</div>}
+                            {rep.notes && <div>Remarks: {rep.notes}</div>}
+                            {!rep.inquiryDetails && !rep.notes && <span className="text-stone-400 italic">No irregularities</span>}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Official Attestation & Signatures */}
+              <div className="pt-6 border-t-2 border-[#103C2E] space-y-4">
+                <p className="text-[11px] text-stone-600 leading-relaxed italic text-center">
+                  "I hereby solemnly declare and certify that this document is a comprehensive, authentic, and deduplicated 
+                  electoral collation report containing every vote count, agent inquiry, and incident log transmitted from 
+                  the designated Polling Units in Yabo and Shagari Federal Constituency."
+                </p>
+
+                <div className="grid grid-cols-3 gap-6 pt-6 text-center text-xs">
+                  <div className="space-y-1">
+                    <div className="border-b border-stone-800 pb-8 font-serif italic text-stone-400">
+                      Sign: ___________________
+                    </div>
+                    <strong className="block font-bold">ALHAJI MUKHTAR YABO</strong>
+                    <span className="text-[10px] text-stone-500 uppercase">Chief Constituency Collation Officer</span>
+                  </div>
+
+                  <div className="space-y-1">
+                    <div className="border-b border-stone-800 pb-8 font-serif italic text-stone-400">
+                      Sign: ___________________
+                    </div>
+                    <strong className="block font-bold">BARRISTER AMINU SHAGARI</strong>
+                    <span className="text-[10px] text-stone-500 uppercase">Legal & Collation Agent Representative</span>
+                  </div>
+
+                  <div className="space-y-1">
+                    <div className="border-b border-stone-800 pb-8 font-serif italic text-stone-400">
+                      Sign: ___________________
+                    </div>
+                    <strong className="block font-bold">HON. (DR.) UMAR YUSUF (DANMAJE)</strong>
+                    <span className="text-[10px] text-stone-500 uppercase">Member, House of Representatives</span>
+                  </div>
+                </div>
+
+                <div className="text-center pt-4 text-[10px] text-stone-400 font-mono">
+                  Official Security Seal • Timestamp: {new Date().toLocaleString()} • Form EC8A Central Dossier Series
+                </div>
+              </div>
+
+            </div>
+
+          </div>
+        </div>
+      )}
     </div>
   );
 };

