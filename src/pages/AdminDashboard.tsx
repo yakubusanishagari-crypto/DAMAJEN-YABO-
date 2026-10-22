@@ -128,13 +128,51 @@ export const AdminDashboard: React.FC<Props> = ({
     localStorage.setItem('danmaje_applications', JSON.stringify(applications));
   }, [applications]);
 
+  // Petitions Persistence & Review State (100% Independent of Empowerment Applications)
+  const [petitions, setPetitions] = useState<ProgramApplication[]>(() => {
+    const saved = localStorage.getItem('danmaje_petitions');
+    if (saved) {
+      try { return JSON.parse(saved); } catch {}
+    }
+    return [
+      {
+        id: 'pet-1',
+        referenceNumber: 'DAN-PET-2026-99211',
+        programId: 'prog-ticket-1',
+        programTitle: 'Solar Borehole Maintenance & Rehabilitation Request',
+        programCategory: 'Constituency Petition',
+        applicantName: 'Malam Aliyu Dan-Yabo',
+        email: 'aliyu@danmayeyabo.gov.ng',
+        phone: '+234 803 555 7890',
+        wardOrTown: 'Yabo Central Ward',
+        qualifications: 'Community Request',
+        statement: 'Requesting urgent repair of community solar borehole in Yabo Central sector.',
+        date: '2026-10-18',
+        status: 'SUBMITTED',
+        notes: 'Initial committee logging complete.'
+      }
+    ];
+  });
+
+  useEffect(() => {
+    localStorage.setItem('danmaje_petitions', JSON.stringify(petitions));
+  }, [petitions]);
+
   // Sync freshest records when opening petitions or applications
   useEffect(() => {
-    if (activeTab === 'petitions' || activeTab === 'applications') {
+    if (activeTab === 'applications') {
       try {
         const saved = localStorage.getItem('danmaje_applications');
         if (saved) {
           setApplications(JSON.parse(saved));
+        }
+      } catch {}
+    }
+    if (activeTab === 'petitions') {
+      try {
+        const saved = localStorage.getItem('danmaje_petitions');
+        if (saved) {
+          setPetitions(JSON.parse(saved));
         }
       } catch {}
     }
@@ -257,6 +295,99 @@ export const AdminDashboard: React.FC<Props> = ({
     document.body.appendChild(downloadAnchor);
     downloadAnchor.click();
     downloadAnchor.remove();
+  };
+
+  const handleAdvancePetitionStage = (
+    petitionId: string, 
+    newStage: ApplicationStatus, 
+    internalNote: string, 
+    publicFeedback: string,
+    actionPackage?: string
+  ) => {
+    const now = new Date();
+    const timeStr = `${now.toISOString().split('T')[0]} ${now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+    const updated = petitions.map(p => {
+      if (p.id === petitionId) {
+        const oldTimeline = p.timeline || [
+          {
+            stage: 'SUBMITTED',
+            timestamp: `${p.date} 09:00 AM`,
+            title: 'Petition Received',
+            note: 'Petition logged into constituency petition docket',
+            actor: 'Citizen Portal'
+          }
+        ];
+        const newEvent = {
+          stage: newStage,
+          timestamp: timeStr,
+          title: `Stage transitioned to ${newStage}`,
+          note: publicFeedback || internalNote || `Stage updated by ${adminRole || 'Administrator'}`,
+          actor: adminRole || 'Administrator'
+        };
+        return {
+          ...p,
+          status: newStage,
+          currentStage: newStage,
+          awardGrantPackage: actionPackage || p.awardGrantPackage || reviewAwardPackage,
+          notes: internalNote !== undefined ? internalNote : p.notes,
+          publicFeedback: publicFeedback !== undefined ? publicFeedback : p.publicFeedback,
+          timeline: [...oldTimeline, newEvent]
+        };
+      }
+      return p;
+    });
+    setPetitions(updated);
+    try {
+      localStorage.setItem('danmaje_petitions', JSON.stringify(updated));
+    } catch {}
+    if (selectedAppForReview && selectedAppForReview.id === petitionId) {
+      setSelectedAppForReview(updated.find(p => p.id === petitionId) || null);
+    }
+    setActivityLogs(prev => [{
+      id: `log-${Date.now()}`,
+      user: email,
+      action: `Updated petition stage for #${petitionId} to ${newStage}`,
+      timestamp: new Date().toISOString().replace('T', ' ').substring(0, 16),
+      role: adminRole
+    }, ...prev]);
+  };
+
+  const handleDeletePetition = (petitionId: string) => {
+    const updated = petitions.filter(p => p.id !== petitionId);
+    setPetitions(updated);
+    try {
+      localStorage.setItem('danmaje_petitions', JSON.stringify(updated));
+    } catch {}
+    if (selectedAppForReview && selectedAppForReview.id === petitionId) {
+      setSelectedAppForReview(null);
+    }
+  };
+
+  const handleExportPetitionsCSV = () => {
+    const headers = ['Reference Number', 'Applicant Name', 'Email', 'Phone', 'LGA', 'Ward/Town', 'Petition Subject', 'Category', 'Status', 'Date Submitted', 'Grievance / Statement', 'Public Feedback', 'Internal Notes'];
+    const rows = petitions.map(p => [
+      `"${p.referenceNumber}"`,
+      `"${p.applicantName}"`,
+      `"${p.email || ''}"`,
+      `"${p.phone}"`,
+      `"${p.lga || 'Yabo/Shagari'}"`,
+      `"${p.wardOrTown}"`,
+      `"${p.programTitle}"`,
+      `"${p.programCategory || 'Constituency Petition'}"`,
+      `"${p.status}"`,
+      `"${p.date}"`,
+      `"${(p.statement || '').replace(/"/g, '""')}"`,
+      `"${(p.publicFeedback || '').replace(/"/g, '""')}"`,
+      `"${(p.notes || '').replace(/"/g, '""')}"`
+    ]);
+    const csvContent = "data:text/csv;charset=utf-8," + [headers.join(','), ...rows.map(e => e.join(','))].join('\n');
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement('a');
+    link.setAttribute('href', encodedUri);
+    link.setAttribute('download', `danmaje_constituency_petitions_${new Date().toISOString().split('T')[0]}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
 
   // Programme Editing State
@@ -3240,26 +3371,8 @@ export const AdminDashboard: React.FC<Props> = ({
               TAB 8: PETITIONS & SERVICE TICKETS
              ======================================================== */}
           {activeTab === 'petitions' && (() => {
-            const allPetitions = applications.filter(a => 
-              a.referenceNumber?.startsWith('DAN-PET') ||
-              a.programCategory?.toLowerCase().includes('petition') ||
-              a.programId?.includes('ticket') ||
-              a.programId?.includes('petition')
-            );
-
-            const filteredPetitions = applications.filter(app => {
-              const isPet = Boolean(
-                app.referenceNumber?.startsWith('DAN-PET') ||
-                app.programCategory?.toLowerCase().includes('petition') ||
-                app.programId?.includes('ticket') ||
-                app.programId?.includes('petition')
-              );
-
-              if (petitionTypeFilter === 'PETITIONS_ONLY' && !isPet) return false;
-              if (petitionTypeFilter === 'EMPOWERMENT' && isPet) return false;
-
+            const filteredPetitions = petitions.filter(app => {
               if (petitionStatusFilter !== 'ALL' && app.status !== petitionStatusFilter) return false;
-
               if (petitionSearchQuery.trim()) {
                 const q = petitionSearchQuery.toLowerCase();
                 const match =
@@ -3274,9 +3387,9 @@ export const AdminDashboard: React.FC<Props> = ({
               return true;
             });
 
-            const pendingCount = applications.filter(a => a.status === 'SUBMITTED').length;
-            const investigatingCount = applications.filter(a => a.status === 'INITIAL REVIEW' || a.status === 'DOCUMENT VERIFICATION' || a.status === 'ELIGIBILITY ASSESSMENT').length;
-            const approvedCount = applications.filter(a => a.status === 'APPROVED').length;
+            const pendingCount = petitions.filter(a => a.status === 'SUBMITTED').length;
+            const investigatingCount = petitions.filter(a => a.status === 'INITIAL REVIEW' || a.status === 'DOCUMENT VERIFICATION' || a.status === 'ELIGIBILITY ASSESSMENT').length;
+            const approvedCount = petitions.filter(a => a.status === 'APPROVED').length;
 
             return (
               <div className="w-full min-w-0 space-y-6">
@@ -3288,19 +3401,19 @@ export const AdminDashboard: React.FC<Props> = ({
                         8. CONSTITUENCY PETITIONS & SERVICE TICKETS
                       </h3>
                       <span className="bg-[#103C2E] text-[#D4AF37] px-2.5 py-0.5 rounded-full text-xs font-black">
-                        {allPetitions.length > 0 ? allPetitions.length : applications.length} Active Records
+                        {petitions.length} Independent Petitions
                       </span>
                     </div>
                     <p className="text-xs text-stone-500 mt-0.5">
-                      Live docket of citizen grievances, community requests, and service petitions submitted via the transparency portal.
+                      Dedicated docket of citizen grievances, community requests, and service petitions. Fully independent from empowerment records.
                     </p>
                   </div>
                   <div className="flex flex-wrap items-center gap-2">
                     <button
                       onClick={() => {
                         try {
-                          const saved = localStorage.getItem('danmaje_applications');
-                          if (saved) setApplications(JSON.parse(saved));
+                          const saved = localStorage.getItem('danmaje_petitions');
+                          if (saved) setPetitions(JSON.parse(saved));
                         } catch {}
                       }}
                       className="bg-white hover:bg-stone-100 text-[#103C2E] border border-stone-300 px-4 py-2 rounded-xl font-bold text-xs flex items-center gap-1.5 shadow-sm cursor-pointer uppercase transition"
@@ -3310,7 +3423,7 @@ export const AdminDashboard: React.FC<Props> = ({
                       <span>Sync Latest</span>
                     </button>
                     <button
-                      onClick={handleExportCSV}
+                      onClick={handleExportPetitionsCSV}
                       className="bg-[#103C2E] hover:bg-[#09291F] text-white px-4 py-2 rounded-xl font-bold text-xs flex items-center gap-2 shadow cursor-pointer transition uppercase"
                     >
                       <Download className="w-3.5 h-3.5 text-[#C6A15B]" />
@@ -3322,9 +3435,9 @@ export const AdminDashboard: React.FC<Props> = ({
                 {/* Metrics Badges */}
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
                   <div className="p-3.5 bg-stone-50 rounded-2xl border border-stone-200">
-                    <span className="text-stone-400 text-[10px] uppercase font-bold block">Total Citizen Dockets</span>
-                    <strong className="text-xl font-extrabold text-[#103C2E]">{applications.length}</strong>
-                    <span className="text-[11px] text-stone-500 block mt-0.5">{allPetitions.length} Petitions Logged</span>
+                    <span className="text-stone-400 text-[10px] uppercase font-bold block">Total Petitions</span>
+                    <strong className="text-xl font-extrabold text-[#103C2E]">{petitions.length}</strong>
+                    <span className="text-[11px] text-stone-500 block mt-0.5">Dedicated petitions store</span>
                   </div>
                   <div className="p-3.5 bg-amber-50 rounded-2xl border border-amber-200">
                     <span className="text-amber-700 text-[10px] uppercase font-bold block">Pending / Logged</span>
@@ -3345,7 +3458,7 @@ export const AdminDashboard: React.FC<Props> = ({
 
                 {/* Search & Filter Bar */}
                 <div className="bg-white p-4 rounded-2xl border border-stone-200 shadow-sm grid grid-cols-1 sm:grid-cols-12 gap-3 items-center">
-                  <div className="sm:col-span-5 relative">
+                  <div className="sm:col-span-8 relative">
                     <Search className="w-4 h-4 text-stone-400 absolute left-3 top-3" />
                     <input
                       type="text"
@@ -3358,23 +3471,11 @@ export const AdminDashboard: React.FC<Props> = ({
 
                   <div className="sm:col-span-4">
                     <select
-                      value={petitionTypeFilter}
-                      onChange={(e) => setPetitionTypeFilter(e.target.value as any)}
-                      className="w-full px-3 py-2 bg-stone-50 border border-stone-200 rounded-xl text-xs text-stone-700 font-bold"
-                    >
-                      <option value="ALL">Show All Dockets (Petitions + Applications)</option>
-                      <option value="PETITIONS_ONLY">Petitions & Citizen Tickets Only ({allPetitions.length})</option>
-                      <option value="EMPOWERMENT">Empowerment Applications Only</option>
-                    </select>
-                  </div>
-
-                  <div className="sm:col-span-3">
-                    <select
                       value={petitionStatusFilter}
                       onChange={(e) => setPetitionStatusFilter(e.target.value)}
                       className="w-full px-3 py-2 bg-stone-50 border border-stone-200 rounded-xl text-xs text-stone-700 font-bold"
                     >
-                      <option value="ALL">All Statuses ({applications.length})</option>
+                      <option value="ALL">All Petition Statuses ({petitions.length})</option>
                       <option value="SUBMITTED">SUBMITTED</option>
                       <option value="INITIAL REVIEW">INITIAL REVIEW / INVESTIGATION</option>
                       <option value="DOCUMENT VERIFICATION">DOCUMENT VERIFICATION</option>
@@ -3407,11 +3508,9 @@ export const AdminDashboard: React.FC<Props> = ({
                           <tr key={app.id} className="hover:bg-stone-50 transition">
                             <td className="p-4 font-mono font-bold text-[#103C2E]">
                               <span className="block">{app.referenceNumber}</span>
-                              {app.referenceNumber.startsWith('DAN-PET') && (
-                                <span className="inline-block mt-0.5 text-[9px] bg-amber-100 text-amber-800 px-2 py-0.5 rounded-full font-bold">
-                                  Citizen Ticket
-                                </span>
-                              )}
+                              <span className="inline-block mt-0.5 text-[9px] bg-amber-100 text-amber-800 px-2 py-0.5 rounded-full font-bold">
+                                Petition Record
+                              </span>
                             </td>
                             <td className="p-4">
                               <strong className="text-stone-900 block font-bold">{app.applicantName}</strong>
@@ -3465,9 +3564,9 @@ export const AdminDashboard: React.FC<Props> = ({
                                 <span>Slip</span>
                               </button>
                               <button
-                                onClick={() => handleDeleteApp(app.id)}
+                                onClick={() => handleDeletePetition(app.id)}
                                 className="inline-flex items-center gap-1 bg-rose-50 hover:bg-rose-700 text-rose-700 hover:text-white px-2.5 py-1.5 rounded-xl border border-rose-200 transition-all shadow-xs cursor-pointer text-xs font-bold uppercase"
-                                title="Delete Citizen Ticket"
+                                title="Delete Petition"
                               >
                                 <Trash2 className="w-3.5 h-3.5" />
                                 <span>DELETE</span>
@@ -3478,7 +3577,7 @@ export const AdminDashboard: React.FC<Props> = ({
                         {filteredPetitions.length === 0 && (
                           <tr>
                             <td colSpan={7} className="p-8 text-center text-stone-500">
-                              No petitions or citizen tickets match your current filters.
+                              No petitions or service tickets found in the dedicated petition store.
                             </td>
                           </tr>
                         )}

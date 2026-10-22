@@ -27,12 +27,24 @@ export const PetitionTrackerWidget: React.FC<Props> = ({ currentLang }) => {
     if (!searchRef.trim()) return;
 
     setHasSearched(true);
-    const saved = localStorage.getItem('danmaje_applications');
     let found: ProgramApplication | null = null;
-    if (saved) {
+    
+    // Check petitions first, then applications
+    try {
+      const savedPetitions = localStorage.getItem('danmaje_petitions');
+      if (savedPetitions) {
+        const pets: ProgramApplication[] = JSON.parse(savedPetitions);
+        found = pets.find(a => a.referenceNumber.toLowerCase() === searchRef.trim().toLowerCase()) || null;
+      }
+    } catch {}
+
+    if (!found) {
       try {
-        const apps: ProgramApplication[] = JSON.parse(saved);
-        found = apps.find(a => a.referenceNumber.toLowerCase() === searchRef.trim().toLowerCase()) || null;
+        const savedApps = localStorage.getItem('danmaje_applications');
+        if (savedApps) {
+          const apps: ProgramApplication[] = JSON.parse(savedApps);
+          found = apps.find(a => a.referenceNumber.toLowerCase() === searchRef.trim().toLowerCase()) || null;
+        }
       } catch {}
     }
 
@@ -95,11 +107,11 @@ export const PetitionTrackerWidget: React.FC<Props> = ({ currentLang }) => {
       ]
     };
 
-    // Save to localStorage
+    // Save to dedicated danmaje_petitions storage
     try {
-      const existing = JSON.parse(localStorage.getItem('danmaje_applications') || '[]');
+      const existing = JSON.parse(localStorage.getItem('danmaje_petitions') || '[]');
       existing.unshift(newTicket);
-      localStorage.setItem('danmaje_applications', JSON.stringify(existing));
+      localStorage.setItem('danmaje_petitions', JSON.stringify(existing));
     } catch {}
 
     setJustGeneratedRef(refCode);
