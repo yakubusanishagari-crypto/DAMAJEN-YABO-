@@ -42,7 +42,7 @@ async function sendJson<T>(endpoint: string, method: 'POST' | 'PUT' | 'DELETE', 
 // ==================== PROJECTS ====================
 export async function apiFetchProjects(): Promise<Project[] | null> {
   const data = await fetchJson<Project[]>('/projects');
-  if (data && Array.isArray(data) && data.length > 0) {
+  if (data && Array.isArray(data)) {
     safeSetItem('danmaje_projects', JSON.stringify(data));
     return data;
   }
@@ -67,7 +67,7 @@ export async function apiDeleteProject(id: string): Promise<boolean> {
 // ==================== LEGISLATIVE ====================
 export async function apiFetchLegislative(): Promise<LegislativeRecord[] | null> {
   const data = await fetchJson<LegislativeRecord[]>('/legislative');
-  if (data && Array.isArray(data) && data.length > 0) {
+  if (data && Array.isArray(data)) {
     safeSetItem('danmaje_legislative', JSON.stringify(data));
     return data;
   }
@@ -90,7 +90,7 @@ export async function apiDeleteLegislative(id: string): Promise<boolean> {
 // ==================== PROGRAMS ====================
 export async function apiFetchPrograms(): Promise<EmpowermentProgram[] | null> {
   const data = await fetchJson<EmpowermentProgram[]>('/programs');
-  if (data && Array.isArray(data) && data.length > 0) {
+  if (data && Array.isArray(data)) {
     safeSetItem('danmaje_programs', JSON.stringify(data));
     return data;
   }
@@ -113,7 +113,7 @@ export async function apiDeleteProgram(id: string): Promise<boolean> {
 // ==================== NEWS ====================
 export async function apiFetchNews(): Promise<NewsArticle[] | null> {
   const data = await fetchJson<NewsArticle[]>('/news');
-  if (data && Array.isArray(data) && data.length > 0) {
+  if (data && Array.isArray(data)) {
     safeSetItem('danmaje_news', JSON.stringify(data));
     return data;
   }
@@ -136,7 +136,7 @@ export async function apiDeleteNews(id: string): Promise<boolean> {
 // ==================== GALLERY ====================
 export async function apiFetchGallery(): Promise<GalleryItem[] | null> {
   const data = await fetchJson<GalleryItem[]>('/gallery');
-  if (data && Array.isArray(data) && data.length > 0) {
+  if (data && Array.isArray(data)) {
     safeSetItem('danmaje_gallery', JSON.stringify(data));
     return data;
   }
@@ -159,7 +159,7 @@ export async function apiDeleteGallery(id: string): Promise<boolean> {
 // ==================== CONTACTS ====================
 export async function apiFetchContacts(): Promise<ContactSubmission[] | null> {
   const data = await fetchJson<ContactSubmission[]>('/contacts');
-  if (data && Array.isArray(data) && data.length > 0) {
+  if (data && Array.isArray(data)) {
     safeSetItem('danmaje_contacts', JSON.stringify(data));
     return data;
   }
@@ -173,7 +173,7 @@ export async function apiCreateContact(item: Partial<ContactSubmission>): Promis
 // ==================== APPLICATIONS ====================
 export async function apiFetchApplications(): Promise<ProgramApplication[] | null> {
   const data = await fetchJson<ProgramApplication[]>('/applications');
-  if (data && Array.isArray(data) && data.length > 0) {
+  if (data && Array.isArray(data)) {
     safeSetItem('danmaje_applications', JSON.stringify(data));
     return data;
   }

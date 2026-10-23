@@ -123,13 +123,13 @@ export default function App() {
           apiFetchContacts(),
           apiFetchStats()
         ]);
-        if (proj && proj.length > 0) setProjects(proj);
-        if (newsData && newsData.length > 0) setNews(newsData);
-        if (progs && progs.length > 0) setPrograms(progs);
-        if (leg && leg.length > 0) setLegislative(leg);
-        if (gal && gal.length > 0) setGallery(gal);
-        if (con && con.length > 0) setContacts(con);
-        if (st) setStats(st);
+        if (proj !== null) setProjects(proj);
+        if (newsData !== null) setNews(newsData);
+        if (progs !== null) setPrograms(progs);
+        if (leg !== null) setLegislative(leg);
+        if (gal !== null) setGallery(gal);
+        if (con !== null) setContacts(con);
+        if (st !== null) setStats(st);
       } catch (err) {
         console.warn("Backend API sync warning:", err);
       }

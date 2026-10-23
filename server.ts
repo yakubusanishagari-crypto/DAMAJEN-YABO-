@@ -203,7 +203,7 @@ async function startServer() {
     res.json(store.projects);
   });
   app.post('/api/projects', (req, res) => {
-    const newProj: Project = { ...req.body, id: `proj-${Date.now()}` };
+    const newProj: Project = { ...req.body, id: req.body.id || `proj-${Date.now()}` };
     store.projects.unshift(newProj);
     saveStore();
     res.status(201).json(newProj);
@@ -231,7 +231,7 @@ async function startServer() {
     res.json(store.legislative);
   });
   app.post('/api/legislative', (req, res) => {
-    const item: LegislativeRecord = { ...req.body, id: `leg-${Date.now()}` };
+    const item: LegislativeRecord = { ...req.body, id: req.body.id || `leg-${Date.now()}` };
     store.legislative.unshift(item);
     saveStore();
     res.status(201).json(item);
@@ -259,7 +259,7 @@ async function startServer() {
     res.json(store.programs);
   });
   app.post('/api/programs', (req, res) => {
-    const item: EmpowermentProgram = { ...req.body, id: `prog-${Date.now()}` };
+    const item: EmpowermentProgram = { ...req.body, id: req.body.id || `prog-${Date.now()}` };
     store.programs.unshift(item);
     saveStore();
     res.status(201).json(item);
@@ -287,7 +287,7 @@ async function startServer() {
     res.json(store.news);
   });
   app.post('/api/news', (req, res) => {
-    const item: NewsArticle = { ...req.body, id: `news-${Date.now()}` };
+    const item: NewsArticle = { ...req.body, id: req.body.id || `news-${Date.now()}` };
     store.news.unshift(item);
     saveStore();
     res.status(201).json(item);
@@ -315,7 +315,7 @@ async function startServer() {
     res.json(store.gallery);
   });
   app.post('/api/gallery', (req, res) => {
-    const item: GalleryItem = { ...req.body, id: `gal-${Date.now()}` };
+    const item: GalleryItem = { ...req.body, id: req.body.id || `gal-${Date.now()}` };
     store.gallery.unshift(item);
     saveStore();
     res.status(201).json(item);
@@ -345,9 +345,9 @@ async function startServer() {
   app.post('/api/contacts', (req, res) => {
     const item: ContactSubmission = {
       ...req.body,
-      id: `con-${Date.now()}`,
-      date: new Date().toISOString().split('T')[0],
-      status: 'Unread'
+      id: req.body.id || `con-${Date.now()}`,
+      date: req.body.date || new Date().toISOString().split('T')[0],
+      status: req.body.status || 'Unread'
     };
     store.contacts.unshift(item);
     saveStore();
