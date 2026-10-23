@@ -196,3 +196,30 @@ export async function apiFetchStats(): Promise<ConstituencyStats | null> {
 export async function apiUpdateStats(stats: ConstituencyStats): Promise<ConstituencyStats | null> {
   return await sendJson<ConstituencyStats>('/stats', 'PUT', stats);
 }
+
+// ==================== SETTINGS ====================
+export async function apiFetchSettings(): Promise<any | null> {
+  return await fetchJson<any>('/settings');
+}
+
+export async function apiUpdateSettings(settings: any): Promise<any | null> {
+  return await sendJson<any>('/settings', 'PUT', settings);
+}
+
+// ==================== ADMIN USERS & RBAC ====================
+export async function apiFetchAdminUsers(): Promise<any[] | null> {
+  return await fetchJson<any[]>('/admin/users');
+}
+
+export async function apiCreateAdminUser(user: any): Promise<any | null> {
+  return await sendJson<any>('/admin/users', 'POST', user);
+}
+
+export async function apiUpdateAdminUser(id: string, user: any): Promise<any | null> {
+  return await sendJson<any>(`/admin/users/${id}`, 'PUT', user);
+}
+
+export async function apiDeleteAdminUser(id: string): Promise<boolean> {
+  const res = await sendJson<{ success: boolean }>(`/admin/users/${id}`, 'DELETE');
+  return res?.success ?? false;
+}

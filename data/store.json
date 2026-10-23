@@ -412,5 +412,66 @@
     "billsCount": "12+",
     "citizensCount": "4,500+",
     "wardsCount": "22"
-  }
+  },
+  "settings": {
+    "fileSizeLimitMb": 50,
+    "allowedMimeTypes": [
+      "image/jpeg",
+      "image/png",
+      "image/webp",
+      "image/gif",
+      "application/pdf",
+      "video/mp4"
+    ],
+    "maxStorageQuotaMb": 4096,
+    "rateLimitPerMin": 120,
+    "maintenanceMode": false,
+    "systemName": "National Assembly Constituency Portal",
+    "representative": "Hon. (Dr.) Umar Yusuf Yabo (Dan Majen Yabo)"
+  },
+  "users": [
+    {
+      "id": "usr-1",
+      "email": "admin@danmayeyabo.gov.ng",
+      "name": "Chief Administrator",
+      "role": "Super Admin",
+      "status": "Active",
+      "permissions": [
+        "ALL"
+      ]
+    },
+    {
+      "id": "usr-2",
+      "email": "media@danmayeyabo.gov.ng",
+      "name": "Media Officer",
+      "role": "Editor",
+      "status": "Active",
+      "permissions": [
+        "NEWS",
+        "GALLERY"
+      ]
+    },
+    {
+      "id": "usr-3",
+      "email": "projects@danmayeyabo.gov.ng",
+      "name": "Projects Engineer",
+      "role": "Admin",
+      "status": "Active",
+      "permissions": [
+        "PROJECTS",
+        "EMPOWERMENT",
+        "LEGISLATIVE"
+      ]
+    },
+    {
+      "id": "usr-4",
+      "email": "viewer@danmayeyabo.gov.ng",
+      "name": "Audit Inspector",
+      "role": "Viewer",
+      "status": "Active",
+      "permissions": [
+        "READ_ONLY"
+      ]
+    }
+  ]
 }

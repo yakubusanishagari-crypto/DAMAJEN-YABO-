@@ -38,7 +38,9 @@ import {
   apiCreateProgram, apiUpdateProgram, apiDeleteProgram,
   apiCreateLegislative, apiUpdateLegislative, apiDeleteLegislative,
   apiCreateGallery, apiUpdateGallery, apiDeleteGallery,
-  apiUpdateStats, apiUpdateApplication
+  apiUpdateStats, apiUpdateApplication,
+  apiFetchAdminUsers, apiCreateAdminUser, apiUpdateAdminUser, apiDeleteAdminUser,
+  apiFetchSettings, apiUpdateSettings
 } from '../utils/apiSync';
 
 export function getRespectfulPetitionFeedback(status: ApplicationStatus | string): string {
@@ -539,6 +541,8 @@ export const AdminDashboard: React.FC<Props> = ({
     const updated = [newUsr, ...adminUsers];
     setAdminUsers(updated);
     try { localStorage.setItem('danmaje_admin_users', JSON.stringify(updated)); } catch {}
+    apiCreateAdminUser(newUsr).catch((err: unknown) => console.warn('Backend admin user create warn:', err));
+
     setNewAdminEmail('');
     setShowAddAdminModal(false);
     setActivityLogs(prev => [{
@@ -554,12 +558,17 @@ export const AdminDashboard: React.FC<Props> = ({
     const updated = adminUsers.map(u => u.id === id ? { ...u, status: u.status === 'Active' ? 'Inactive' as const : 'Active' as const } : u);
     setAdminUsers(updated);
     try { localStorage.setItem('danmaje_admin_users', JSON.stringify(updated)); } catch {}
+    const updatedUsr = updated.find(u => u.id === id);
+    if (updatedUsr) {
+      apiUpdateAdminUser(id, updatedUsr).catch((err: unknown) => console.warn('Backend admin user update warn:', err));
+    }
   };
 
   const handleDeleteAdmin = (id: string) => {
     const updated = adminUsers.filter(u => u.id !== id);
     setAdminUsers(updated);
     try { localStorage.setItem('danmaje_admin_users', JSON.stringify(updated)); } catch {}
+    apiDeleteAdminUser(id).catch((err: unknown) => console.warn('Backend admin user delete warn:', err));
   };
 
   // Activity Logs State

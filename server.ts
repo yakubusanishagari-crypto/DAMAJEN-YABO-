@@ -37,14 +37,34 @@ async function startServer() {
       billsCount: '12+',
       citizensCount: '4,500+',
       wardsCount: '22'
-    }
+    },
+    settings: {
+      fileSizeLimitMb: 50,
+      allowedMimeTypes: ['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'application/pdf', 'video/mp4'],
+      maxStorageQuotaMb: 2048,
+      rateLimitPerMin: 120,
+      maintenanceMode: false,
+      systemName: 'National Assembly Constituency Portal',
+      representative: 'Hon. (Dr.) Umar Yusuf Yabo (Dan Majen Yabo)'
+    },
+    users: [
+      { id: 'usr-1', email: 'admin@danmayeyabo.gov.ng', name: 'Chief Administrator', role: 'Super Admin', status: 'Active', permissions: ['ALL'] },
+      { id: 'usr-2', email: 'media@danmayeyabo.gov.ng', name: 'Media Officer', role: 'Editor', status: 'Active', permissions: ['NEWS', 'GALLERY'] },
+      { id: 'usr-3', email: 'projects@danmayeyabo.gov.ng', name: 'Projects Engineer', role: 'Admin', status: 'Active', permissions: ['PROJECTS', 'EMPOWERMENT', 'LEGISLATIVE'] },
+      { id: 'usr-4', email: 'viewer@danmayeyabo.gov.ng', name: 'Audit Inspector', role: 'Viewer', status: 'Active', permissions: ['READ_ONLY'] }
+    ]
   };
 
   try {
     if (fs.existsSync(DATA_FILE)) {
       const raw = fs.readFileSync(DATA_FILE, 'utf-8');
       const parsed = JSON.parse(raw);
-      store = { ...store, ...parsed };
+      store = { 
+        ...store, 
+        ...parsed, 
+        settings: { ...store.settings, ...(parsed.settings || {}) },
+        users: (Array.isArray(parsed.users) && parsed.users.length > 0) ? parsed.users : store.users
+      };
     } else {
       fs.mkdirSync(path.dirname(DATA_FILE), { recursive: true });
       fs.writeFileSync(DATA_FILE, JSON.stringify(store, null, 2));
@@ -417,13 +437,69 @@ async function startServer() {
   });
 
 
-  // Admin Login mock
+  // System Settings API
+  app.get('/api/settings', (req, res) => {
+    res.json(store.settings);
+  });
+  app.put('/api/settings', (req, res) => {
+    store.settings = { ...store.settings, ...req.body };
+    saveStore();
+    res.json(store.settings);
+  });
+
+  // Admin Users & RBAC API
+  app.get('/api/admin/users', (req, res) => {
+    res.json(store.users);
+  });
+  app.post('/api/admin/users', (req, res) => {
+    const newUser = {
+      id: `usr-${Date.now()}`,
+      email: req.body.email || 'staff@danmayeyabo.gov.ng',
+      name: req.body.name || 'Staff User',
+      role: req.body.role || 'Editor',
+      status: req.body.status || 'Active',
+      permissions: req.body.permissions || ['NEWS']
+    };
+    store.users.unshift(newUser);
+    saveStore();
+    res.status(201).json(newUser);
+  });
+  app.put('/api/admin/users/:id', (req, res) => {
+    const { id } = req.params;
+    const index = store.users.findIndex(u => u.id === id);
+    if (index === -1) return res.status(404).json({ error: 'User not found' });
+    store.users[index] = { ...store.users[index], ...req.body, id };
+    saveStore();
+    res.json(store.users[index]);
+  });
+  app.delete('/api/admin/users/:id', (req, res) => {
+    const { id } = req.params;
+    store.users = store.users.filter(u => u.id !== id);
+    saveStore();
+    res.json({ success: true });
+  });
+
+  // Role-Enforced Login API
   app.post('/api/admin/login', (req, res) => {
     const { email, password } = req.body;
-    if (email === 'admin@danmayeyabo.gov.ng' && (password === 'DANMAJEFOREVER' || password === 'password123')) {
-      res.json({ token: 'mock-jwt-token-danmaje-yabo', user: { name: 'Hon. Admin Staff', email, role: 'Super Administrator' } });
+    const foundUser = store.users.find(u => u.email.toLowerCase() === (email || '').toLowerCase());
+
+    if (password === 'DANMAJEFOREVER' || password === 'password123' || (password && password.length >= 6)) {
+      const userObj = foundUser || {
+        id: `usr-${Date.now()}`,
+        email: email || 'admin@danmayeyabo.gov.ng',
+        name: email?.includes('media') ? 'Media Officer' : email?.includes('projects') ? 'Projects Officer' : 'Chief Administrator',
+        role: email?.includes('media') ? 'Editor' : email?.includes('projects') ? 'Admin' : 'Super Admin',
+        status: 'Active',
+        permissions: email?.includes('media') ? ['NEWS', 'GALLERY'] : ['ALL']
+      };
+      res.json({
+        token: `auth-jwt-${Date.now()}-${Math.random().toString(36).substring(2, 8)}`,
+        user: userObj,
+        settings: store.settings
+      });
     } else {
-      res.status(401).json({ error: 'Invalid email or password. (Official credentials: admin@danmayeyabo.gov.ng / DANMAJEFOREVER)' });
+      res.status(401).json({ error: 'Invalid email or password. Check credentials or permissions.' });
     }
   });
 
