@@ -32,6 +32,14 @@ import {
 import { getAnalyticsStore, resetAnalyticsBaseline, AnalyticsStore } from '../utils/analytics';
 import { compressImageFile } from '../utils/imageCompressor';
 import { safeSetItem } from '../utils/safeStorage';
+import { 
+  apiCreateProject, apiUpdateProject, apiDeleteProject,
+  apiCreateNews, apiUpdateNews, apiDeleteNews,
+  apiCreateProgram, apiUpdateProgram, apiDeleteProgram,
+  apiCreateLegislative, apiUpdateLegislative, apiDeleteLegislative,
+  apiCreateGallery, apiUpdateGallery, apiDeleteGallery,
+  apiUpdateStats, apiUpdateApplication
+} from '../utils/apiSync';
 
 export function getRespectfulPetitionFeedback(status: ApplicationStatus | string): string {
   switch (status) {
@@ -273,8 +281,12 @@ export const AdminDashboard: React.FC<Props> = ({
     try {
       localStorage.setItem('danmaje_applications', JSON.stringify(updated));
     } catch {}
+    const targetApp = updated.find(a => a.id === appId);
+    if (targetApp) {
+      apiUpdateApplication(appId, targetApp).catch((err: unknown) => console.warn('Backend API application update warn:', err));
+    }
     if (selectedAppForReview && selectedAppForReview.id === appId) {
-      setSelectedAppForReview(updated.find(a => a.id === appId) || null);
+      setSelectedAppForReview(targetApp || null);
     }
     setActivityLogs(prev => [{
       id: `log-${Date.now()}`,
@@ -483,6 +495,8 @@ export const AdminDashboard: React.FC<Props> = ({
     try {
       localStorage.setItem('danmaje_stats', JSON.stringify(editableStats));
     } catch {}
+    apiUpdateStats(editableStats).catch(err => console.warn('Backend API stats update warn:', err));
+
     setStatsSavedMsg(true);
     setTimeout(() => setStatsSavedMsg(false), 3000);
   };
@@ -653,6 +667,8 @@ export const AdminDashboard: React.FC<Props> = ({
     const updated = [created, ...projects];
     setProjects(updated);
     safeSetItem('danmaje_projects', JSON.stringify(updated));
+    apiCreateProject(created).catch(err => console.warn('Backend API project create warn:', err));
+
     setShowAddProj(false);
     setProjectSuccessNotice(`Project "${created.title}" successfully published and live across portal!`);
     setTimeout(() => setProjectSuccessNotice(null), 5000);
@@ -699,6 +715,8 @@ export const AdminDashboard: React.FC<Props> = ({
     const updated = projects.map(p => p.id === sanitizedProject.id ? sanitizedProject : p);
     setProjects(updated);
     safeSetItem('danmaje_projects', JSON.stringify(updated));
+    apiUpdateProject(sanitizedProject.id, sanitizedProject).catch(err => console.warn('Backend API project update warn:', err));
+
     setEditingProject(null);
     setProjectSuccessNotice(`Project "${sanitizedProject.title}" updated successfully!`);
     setTimeout(() => setProjectSuccessNotice(null), 5000);
@@ -715,6 +733,8 @@ export const AdminDashboard: React.FC<Props> = ({
     const updated = projects.filter(p => p.id !== id);
     setProjects(updated);
     safeSetItem('danmaje_projects', JSON.stringify(updated));
+    apiDeleteProject(id).catch(err => console.warn('Backend API project delete warn:', err));
+
     setEditingProject(null);
     setActivityLogs(prev => [{
       id: `log-${Date.now()}`,
@@ -791,6 +811,8 @@ export const AdminDashboard: React.FC<Props> = ({
     const updated = [created, ...news];
     setNews(updated);
     safeSetItem('danmaje_news', JSON.stringify(updated));
+    apiCreateNews(created).catch(err => console.warn('Backend API news create warn:', err));
+
     setShowAddNews(false);
     setNewsImagePreview('');
     setNewNews({
@@ -819,6 +841,8 @@ export const AdminDashboard: React.FC<Props> = ({
     const updated = news.map(n => n.id === editingNews.id ? editingNews : n);
     setNews(updated);
     safeSetItem('danmaje_news', JSON.stringify(updated));
+    apiUpdateNews(editingNews.id, editingNews).catch(err => console.warn('Backend API news update warn:', err));
+
     setEditingNews(null);
     setActivityLogs(prev => [{
       id: `log-${Date.now()}`,
@@ -833,6 +857,7 @@ export const AdminDashboard: React.FC<Props> = ({
     const updated = news.filter(n => n.id !== id);
     setNews(updated);
     safeSetItem('danmaje_news', JSON.stringify(updated));
+    apiDeleteNews(id).catch(err => console.warn('Backend API news delete warn:', err));
 
     setActivityLogs(prev => [{
       id: `log-${Date.now()}`,
@@ -863,6 +888,8 @@ export const AdminDashboard: React.FC<Props> = ({
     const updated = [created, ...legislative];
     setLegislative(updated);
     try { localStorage.setItem('danmaje_legislative', JSON.stringify(updated)); } catch {}
+    apiCreateLegislative(created).catch(err => console.warn('Backend API legislative create warn:', err));
+
     setShowAddLeg(false);
     setNewLeg({ title: '', category: 'Bill', status: 'Passed', date: new Date().toISOString().split('T')[0], description: '', coSponsors: ['Hon. Umar Yusuf Danmaje'] });
     setActivityLogs(prev => [{
@@ -878,6 +905,7 @@ export const AdminDashboard: React.FC<Props> = ({
     const updated = legislative.filter(l => l.id !== id);
     setLegislative(updated);
     try { localStorage.setItem('danmaje_legislative', JSON.stringify(updated)); } catch {}
+    apiDeleteLegislative(id).catch(err => console.warn('Backend API legislative delete warn:', err));
     setActivityLogs(prev => [{
       id: `log-${Date.now()}`,
       user: email,
@@ -944,6 +972,8 @@ export const AdminDashboard: React.FC<Props> = ({
     const updated = [created, ...programs];
     setPrograms(updated);
     try { localStorage.setItem('danmaje_programs', JSON.stringify(updated)); } catch {}
+    apiCreateProgram(created).catch(err => console.warn('Backend API program create warn:', err));
+
     setShowAddProg(false);
     setNewProg({
       title: '',
@@ -978,6 +1008,8 @@ export const AdminDashboard: React.FC<Props> = ({
     const updated = programs.filter(p => p.id !== id);
     setPrograms(updated);
     try { localStorage.setItem('danmaje_programs', JSON.stringify(updated)); } catch {}
+    apiDeleteProgram(id).catch(err => console.warn('Backend API program delete warn:', err));
+
     setActivityLogs(prev => [{
       id: `log-${Date.now()}`,
       user: email,
@@ -1099,6 +1131,7 @@ export const AdminDashboard: React.FC<Props> = ({
     try {
       localStorage.setItem('danmaje_gallery', JSON.stringify(updated));
     } catch {}
+    apiCreateGallery(createdItem).catch(err => console.warn('Backend API gallery create warn:', err));
 
     setShowAddMedia(false);
     setNewMedia({
@@ -1141,9 +1174,12 @@ export const AdminDashboard: React.FC<Props> = ({
   const handleUpdateMedia = (e: React.FormEvent) => {
     e.preventDefault();
     if (!editingMedia) return;
-    const updated = gallery.map(item => item.id === editingMedia.id ? { ...editingMedia, ...newMedia } : item);
+    const updatedItem = { ...editingMedia, ...newMedia };
+    const updated = gallery.map(item => item.id === editingMedia.id ? updatedItem : item);
     setGallery(updated);
     try { localStorage.setItem('danmaje_gallery', JSON.stringify(updated)); } catch {}
+    apiUpdateGallery(editingMedia.id, updatedItem).catch(err => console.warn('Backend API gallery update warn:', err));
+
     setEditingMedia(null);
     setShowAddMedia(false);
   };
@@ -1154,6 +1190,8 @@ export const AdminDashboard: React.FC<Props> = ({
     try {
       localStorage.setItem('danmaje_gallery', JSON.stringify(updated));
     } catch {}
+    apiDeleteGallery(id).catch(err => console.warn('Backend API gallery delete warn:', err));
+
     setActivityLogs(prev => [{
       id: `log-${Date.now()}`,
       user: email,

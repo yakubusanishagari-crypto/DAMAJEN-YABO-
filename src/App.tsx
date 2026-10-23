@@ -30,6 +30,11 @@ import { PetitionTrackerWidget } from './components/PetitionTrackerWidget';
 import { ParliamentaryGazetteExporter } from './components/ParliamentaryGazetteExporter';
 
 import { safeSetItem, safeGetItem } from './utils/safeStorage';
+import { 
+  apiFetchProjects, apiFetchNews, apiFetchPrograms, 
+  apiFetchLegislative, apiFetchGallery, apiFetchContacts, 
+  apiFetchStats 
+} from './utils/apiSync';
 
 
 export interface ConstituencyStats {
@@ -103,6 +108,33 @@ export default function App() {
       setAdminOpen(true);
       window.history.replaceState({}, '', '/');
     }
+  }, []);
+
+  // Live Backend Data Fetch & Sync on Mount
+  useEffect(() => {
+    async function syncBackendData() {
+      try {
+        const [proj, newsData, progs, leg, gal, con, st] = await Promise.all([
+          apiFetchProjects(),
+          apiFetchNews(),
+          apiFetchPrograms(),
+          apiFetchLegislative(),
+          apiFetchGallery(),
+          apiFetchContacts(),
+          apiFetchStats()
+        ]);
+        if (proj && proj.length > 0) setProjects(proj);
+        if (newsData && newsData.length > 0) setNews(newsData);
+        if (progs && progs.length > 0) setPrograms(progs);
+        if (leg && leg.length > 0) setLegislative(leg);
+        if (gal && gal.length > 0) setGallery(gal);
+        if (con && con.length > 0) setContacts(con);
+        if (st) setStats(st);
+      } catch (err) {
+        console.warn("Backend API sync warning:", err);
+      }
+    }
+    syncBackendData();
   }, []);
 
   const [stats, setStats] = useState<ConstituencyStats>(() => {
