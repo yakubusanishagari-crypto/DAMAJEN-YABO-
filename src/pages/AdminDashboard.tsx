@@ -1248,28 +1248,30 @@ export const AdminDashboard: React.FC<Props> = ({
   if (!isLoggedIn) {
     return (
       <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#072118] p-4 sm:p-6 overflow-y-auto">
-        <div className="max-w-md w-full bg-white rounded-3xl shadow-2xl overflow-hidden border border-[#C6A15B]/50 my-8">
+        <div className="max-w-md w-full bg-white rounded-3xl shadow-2xl overflow-hidden border-2 border-[#D4AF37]/40 my-8">
           <div className="bg-[#103C2E] p-8 text-center text-white relative">
             <button
               onClick={onClose}
-              className="absolute top-4 right-4 bg-rose-950/60 hover:bg-rose-900 text-rose-200 border border-rose-700/50 p-2 rounded-xl transition cursor-pointer shadow-sm"
+              className="absolute top-4 right-4 bg-emerald-950/60 hover:bg-emerald-900 text-emerald-200 border border-emerald-700/50 p-2 rounded-xl transition cursor-pointer shadow-sm"
               title="Close Portal"
             >
               <X className="w-5 h-5" />
             </button>
-            <div className="w-16 h-16 bg-[#09291F] border-2 border-[#D4AF37] rounded-full mx-auto flex items-center justify-center p-2 mb-3 shadow-lg">
+            <div className="w-18 h-18 bg-[#09291F] border-2 border-[#D4AF37] rounded-full mx-auto flex items-center justify-center p-2.5 mb-3 shadow-xl">
               <img src="/official_logo.png" alt="Official Seal" className="w-full h-full object-contain" />
             </div>
-            <span className="text-[10px] font-black uppercase tracking-widest text-[#D4AF37]">10th National Assembly</span>
-            <h2 className="text-xl font-bold font-['Manrope'] text-white mt-1 uppercase tracking-wide">
-              ADMIN & ENTERPRISE CMS PORTAL
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#D4AF37]/20 border border-[#D4AF37]/50 text-[#D4AF37] text-[10px] font-black uppercase tracking-widest mb-2">
+              <Shield className="w-3 h-3" /> Secure Parliamentary Gateway
+            </div>
+            <h2 className="text-xl font-bold font-['Manrope'] text-white uppercase tracking-wide">
+              ADMINISTRATIVE CMS PORTAL
             </h2>
-            <p className="text-xs text-white/80 mt-1 font-light">
-              Office of Hon. Umar Yusuf (Danmaje Yabo)
+            <p className="text-xs text-stone-300 mt-1 font-light">
+              Office of Hon. (Dr.) Umar Yusuf Yabo (Dan Majen Yabo)
             </p>
           </div>
 
-          <form onSubmit={handleLogin} className="p-8 space-y-4">
+          <form onSubmit={handleLogin} className="p-8 space-y-5">
             {loginError && (
               <div className="p-3 bg-rose-50 border border-rose-200 text-rose-700 rounded-xl text-xs flex items-center gap-2">
                 <AlertCircle className="w-4 h-4 shrink-0" />
@@ -1277,39 +1279,73 @@ export const AdminDashboard: React.FC<Props> = ({
               </div>
             )}
 
-            <div className="space-y-1">
-              <label className="text-xs font-bold text-[#103C2E] uppercase">Authorized Email</label>
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-[#103C2E] uppercase flex items-center gap-1.5">
+                <Mail className="w-3.5 h-3.5 text-[#C6A15B]" /> Authorized Administrator Email
+              </label>
               <input
                 type="email"
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="w-full px-4 py-3 bg-[#FAF9F5] border border-stone-200 rounded-xl text-xs sm:text-sm text-[#103C2E] focus:outline-none focus:border-[#103C2E]"
+                className="w-full px-4 py-3 bg-[#FAF9F5] border border-stone-200 rounded-xl text-xs sm:text-sm text-[#103C2E] font-medium focus:outline-none focus:border-[#103C2E] focus:ring-2 focus:ring-[#103C2E]/20"
+                placeholder="admin@danmayeyabo.gov.ng"
               />
             </div>
 
-            <div className="space-y-1">
-              <label className="text-xs font-bold text-[#103C2E] uppercase">Access Password / Key</label>
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-[#103C2E] uppercase flex items-center gap-1.5">
+                <Lock className="w-3.5 h-3.5 text-[#C6A15B]" /> Secure Access Password / Key
+              </label>
               <input
                 type="password"
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full px-4 py-3 bg-[#FAF9F5] border border-stone-200 rounded-xl text-xs sm:text-sm text-[#103C2E] focus:outline-none focus:border-[#103C2E]"
+                className="w-full px-4 py-3 bg-[#FAF9F5] border border-stone-200 rounded-xl text-xs sm:text-sm text-[#103C2E] font-medium focus:outline-none focus:border-[#103C2E] focus:ring-2 focus:ring-[#103C2E]/20"
+                placeholder="••••••••••••"
               />
             </div>
 
-            <div className="pt-2">
+            <div className="bg-emerald-50/60 border border-emerald-200/80 rounded-2xl p-3 space-y-2">
+              <div className="text-[11px] font-bold text-[#103C2E] flex items-center justify-between">
+                <span>Quick Fill Demo Credentials:</span>
+                <span className="text-[10px] text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-md font-mono">1-Click Login</span>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => { setEmail('admin@danmayeyabo.gov.ng'); setPassword('DANMAJEFOREVER'); }}
+                  className="text-left p-2 rounded-xl bg-white hover:bg-emerald-100/50 border border-emerald-200/60 transition cursor-pointer text-[11px]"
+                >
+                  <div className="font-bold text-[#103C2E]">Chief Admin</div>
+                  <div className="text-[10px] text-stone-500">Full System Access</div>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setEmail('media@danmayeyabo.gov.ng'); setPassword('DANMAJEFOREVER'); }}
+                  className="text-left p-2 rounded-xl bg-white hover:bg-emerald-100/50 border border-emerald-200/60 transition cursor-pointer text-[11px]"
+                >
+                  <div className="font-bold text-[#103C2E]">News Editor</div>
+                  <div className="text-[10px] text-stone-500">Media & Gallery</div>
+                </button>
+              </div>
+            </div>
+
+            <div className="pt-1">
               <button
                 type="submit"
-                className="w-full bg-[#103C2E] hover:bg-[#09291F] text-[#D4AF37] font-black py-3.5 rounded-xl text-xs sm:text-sm shadow-xl transition-all cursor-pointer border border-[#C6A15B]/50 uppercase tracking-wider"
+                className="w-full bg-[#103C2E] hover:bg-[#09291F] text-[#D4AF37] font-black py-3.5 rounded-xl text-xs sm:text-sm shadow-xl transition-all cursor-pointer border border-[#C6A15B]/50 uppercase tracking-wider flex items-center justify-center gap-2"
               >
-                AUTHENTICATE & ACCESS DASHBOARD
+                <Shield className="w-4 h-4 text-[#D4AF37]" /> AUTHENTICATE & ACCESS DASHBOARD
               </button>
             </div>
 
-            <div className="text-[11px] text-stone-500 text-center pt-2">
-              Authorized parliamentary personnel only. All access attempts are logged.
+            <div className="border-t border-stone-100 pt-3 flex items-center justify-between text-[10px] text-stone-500">
+              <span>Database: Supabase Anon Key Ready</span>
+              <span className="text-emerald-700 font-bold flex items-center gap-1">
+                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span> Secured
+              </span>
             </div>
           </form>
         </div>
