@@ -29,11 +29,58 @@ import { TownHallWidget } from './components/TownHallWidget';
 import { PetitionTrackerWidget } from './components/PetitionTrackerWidget';
 import { ParliamentaryGazetteExporter } from './components/ParliamentaryGazetteExporter';
 
+import { safeSetItem, safeGetItem } from './utils/safeStorage';
+
+
 export interface ConstituencyStats {
   projectsCount: string;
   billsCount: string;
   citizensCount: string;
   wardsCount: string;
+}
+
+// Global React Error Boundary to prevent white screen
+class ErrorBoundary extends React.Component<{ children: React.ReactNode }, { hasError: boolean; error: any }> {
+  constructor(props: { children: React.ReactNode }) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+
+  static getDerivedStateFromError(error: any) {
+    return { hasError: true, error };
+  }
+
+  componentDidCatch(error: any, errorInfo: any) {
+    console.error("Portal render error caught by ErrorBoundary:", error, errorInfo);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="min-h-screen bg-[#FAF9F5] flex flex-col items-center justify-center p-6 text-center text-[#103C2E]">
+          <div className="max-w-md bg-white p-8 rounded-3xl shadow-xl border border-stone-200 space-y-4">
+            <div className="w-16 h-16 mx-auto rounded-full bg-emerald-100 flex items-center justify-center">
+              <img src="/official_logo.png" alt="Official Seal" className="w-10 h-10 object-contain" />
+            </div>
+            <h2 className="text-xl font-bold font-['Manrope']">National Assembly Constituency Portal</h2>
+            <p className="text-xs text-stone-600 leading-relaxed">
+              The portal encountered a transient display state. Your data is secure and safe.
+            </p>
+            <button
+              onClick={() => {
+                this.setState({ hasError: false, error: null });
+                window.location.reload();
+              }}
+              className="bg-[#103C2E] hover:bg-[#09291F] text-white px-6 py-2.5 rounded-xl font-bold text-xs uppercase cursor-pointer shadow"
+            >
+              Reload Portal
+            </button>
+          </div>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
 }
 
 export default function App() {
@@ -59,34 +106,43 @@ export default function App() {
   }, []);
 
   const [stats, setStats] = useState<ConstituencyStats>(() => {
-    const saved = localStorage.getItem('danmaje_stats');
-    return saved ? JSON.parse(saved) : {
-      projectsCount: '24+',
-      billsCount: '12+',
-      citizensCount: '4,500+',
-      wardsCount: '22'
-    };
+    try {
+      const saved = safeGetItem('danmaje_stats');
+      return saved ? JSON.parse(saved) : {
+        projectsCount: '24+',
+        billsCount: '12+',
+        citizensCount: '4,500+',
+        wardsCount: '22'
+      };
+    } catch {
+      return {
+        projectsCount: '24+',
+        billsCount: '12+',
+        citizensCount: '4,500+',
+        wardsCount: '22'
+      };
+    }
   });
 
   useEffect(() => {
-    localStorage.setItem('danmaje_stats', JSON.stringify(stats));
+    safeSetItem('danmaje_stats', JSON.stringify(stats));
   }, [stats]);
 
   const [translations, setTranslations] = useState<Translations>(() => {
-    const saved = localStorage.getItem('danmaje_translations');
-    if (saved) {
-      try {
+    try {
+      const saved = safeGetItem('danmaje_translations');
+      if (saved) {
         const parsed = JSON.parse(saved);
         return { ...DEFAULT_TRANSLATIONS, ...parsed };
-      } catch (e) {
-        return DEFAULT_TRANSLATIONS;
       }
+    } catch (e) {
+      // Fallback
     }
     return DEFAULT_TRANSLATIONS;
   });
 
   useEffect(() => {
-    localStorage.setItem('danmaje_translations', JSON.stringify(translations));
+    safeSetItem('danmaje_translations', JSON.stringify(translations));
   }, [translations]);
 
   useEffect(() => {
@@ -95,42 +151,73 @@ export default function App() {
   }, [currentLang]);
 
   const [projects, setProjects] = useState<Project[]>(() => {
-    const saved = localStorage.getItem('danmaje_projects');
-    return saved ? JSON.parse(saved) : INITIAL_PROJECTS;
+    try {
+      const saved = safeGetItem('danmaje_projects');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+    } catch (e) {
+      console.warn("Storage recovery for projects:", e);
+    }
+    return INITIAL_PROJECTS;
   });
 
   const [legislative, setLegislative] = useState<LegislativeRecord[]>(() => {
-    const saved = localStorage.getItem('danmaje_legislative');
-    return saved ? JSON.parse(saved) : INITIAL_LEGISLATIVE;
+    try {
+      const saved = safeGetItem('danmaje_legislative');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+    } catch {}
+    return INITIAL_LEGISLATIVE;
   });
 
   const [programs, setPrograms] = useState<EmpowermentProgram[]>(() => {
-    const saved = localStorage.getItem('danmaje_programs');
-    return saved ? JSON.parse(saved) : INITIAL_PROGRAMS;
+    try {
+      const saved = safeGetItem('danmaje_programs');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+    } catch {}
+    return INITIAL_PROGRAMS;
   });
 
   const [news, setNews] = useState<NewsArticle[]>(() => {
-    const saved = localStorage.getItem('danmaje_news');
-    return saved ? JSON.parse(saved) : INITIAL_NEWS;
+    try {
+      const saved = safeGetItem('danmaje_news');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+    } catch {}
+    return INITIAL_NEWS;
   });
 
   const [gallery, setGallery] = useState<GalleryItem[]>(() => {
-    const saved = localStorage.getItem('danmaje_gallery');
-    if (saved) {
-      try {
+    try {
+      const saved = safeGetItem('danmaje_gallery');
+      if (saved) {
         const parsed = JSON.parse(saved);
         return sanitizeGalleryList(parsed);
-      } catch {
-        return sanitizeGalleryList(INITIAL_GALLERY);
       }
-    }
+    } catch {}
     return sanitizeGalleryList(INITIAL_GALLERY);
   });
 
   const [contacts, setContacts] = useState<ContactSubmission[]>(() => {
-    const saved = localStorage.getItem('danmaje_contacts');
-    return saved ? JSON.parse(saved) : INITIAL_CONTACTS;
+    try {
+      const saved = safeGetItem('danmaje_contacts');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+    } catch {}
+    return INITIAL_CONTACTS;
   });
+
 
   const [agents, setAgents] = useState<PollingUnitAgentLink[]>(() => {
     const saved = localStorage.getItem('danmaje_agents') || localStorage.getItem('danmaje_agent_links');
@@ -170,36 +257,36 @@ export default function App() {
   });
 
   useEffect(() => {
-    localStorage.setItem('danmaje_projects', JSON.stringify(projects));
+    safeSetItem('danmaje_projects', JSON.stringify(projects));
   }, [projects]);
 
   useEffect(() => {
-    localStorage.setItem('danmaje_legislative', JSON.stringify(legislative));
+    safeSetItem('danmaje_legislative', JSON.stringify(legislative));
   }, [legislative]);
 
   useEffect(() => {
-    localStorage.setItem('danmaje_programs', JSON.stringify(programs));
+    safeSetItem('danmaje_programs', JSON.stringify(programs));
   }, [programs]);
 
   useEffect(() => {
-    localStorage.setItem('danmaje_news', JSON.stringify(news));
+    safeSetItem('danmaje_news', JSON.stringify(news));
   }, [news]);
 
   useEffect(() => {
-    localStorage.setItem('danmaje_gallery', JSON.stringify(gallery));
+    safeSetItem('danmaje_gallery', JSON.stringify(gallery));
   }, [gallery]);
 
   useEffect(() => {
-    localStorage.setItem('danmaje_contacts', JSON.stringify(contacts));
+    safeSetItem('danmaje_contacts', JSON.stringify(contacts));
   }, [contacts]);
 
   useEffect(() => {
-    localStorage.setItem('danmaje_agents', JSON.stringify(agents));
-    localStorage.setItem('danmaje_agent_links', JSON.stringify(agents));
+    safeSetItem('danmaje_agents', JSON.stringify(agents));
+    safeSetItem('danmaje_agent_links', JSON.stringify(agents));
   }, [agents]);
 
   useEffect(() => {
-    localStorage.setItem('danmaje_election_reports', JSON.stringify(electionReports));
+    safeSetItem('danmaje_election_reports', JSON.stringify(electionReports));
   }, [electionReports]);
 
   const isAgentPortalRoute = 
@@ -223,140 +310,142 @@ export default function App() {
   }
 
   return (
-    <div className={`min-h-screen flex flex-col bg-[#FAF9F5] text-[#242824] selection:bg-[#C6A15B] selection:text-[#09291F] ${currentLang === 'ar' ? 'font-serif' : ''}`}>
-      <Navbar
-        currentTab={currentTab}
-        setCurrentTab={setCurrentTab}
-        currentLang={currentLang}
-        setCurrentLang={setCurrentLang}
-        translations={translations}
-        onOpenAdmin={() => setAdminOpen(true)}
-      />
-
-      <main className="flex-1">
-        {currentTab === 'home' && (
-          <Home
-            setCurrentTab={setCurrentTab}
-            projects={projects}
-            news={news}
-            programs={programs}
-            legislative={legislative}
-            gallery={gallery}
-            stats={stats}
-            currentLang={currentLang}
-            translations={translations}
-          />
-        )}
-        {(currentTab === 'biography' || currentTab === 'about') && (
-          <BiographyPage 
-            setCurrentTab={setCurrentTab}
-            currentLang={currentLang}
-            translations={translations}
-          />
-        )}
-        {currentTab === 'projects' && (
-          <ProjectsPage 
-            projects={projects} 
-            setCurrentTab={setCurrentTab}
-            currentLang={currentLang}
-            translations={translations}
-          />
-        )}
-        {currentTab === 'legislative' && (
-          <LegislativePage 
-            legislative={legislative} 
-            setCurrentTab={setCurrentTab}
-            currentLang={currentLang}
-            translations={translations}
-          />
-        )}
-        {currentTab === 'empowerment' && (
-          <EmpowermentPage 
-            programs={programs} 
-            setCurrentTab={setCurrentTab}
-            currentLang={currentLang}
-            translations={translations}
-          />
-        )}
-        {currentTab === 'news' && (
-          <NewsPage 
-            news={news} 
-            setCurrentTab={setCurrentTab}
-            currentLang={currentLang}
-            translations={translations}
-          />
-        )}
-        {currentTab === 'gallery' && (
-          <GalleryPage 
-            gallery={gallery} 
-            setCurrentTab={setCurrentTab}
-            currentLang={currentLang}
-            translations={translations}
-          />
-        )}
-        {currentTab === 'contact' && (
-          <ContactPage 
-            currentLang={currentLang}
-            translations={translations}
-          />
-        )}
-        {currentTab === 'gis-map' && (
-          <ConstituencyGISMap projects={projects} currentLang={currentLang} />
-        )}
-        {currentTab === 'townhall' && (
-          <TownHallWidget currentLang={currentLang} />
-        )}
-        {currentTab === 'petitions' && (
-          <PetitionTrackerWidget currentLang={currentLang} />
-        )}
-        {currentTab === 'gazette' && (
-          <ParliamentaryGazetteExporter legislative={legislative} projects={projects} programs={programs} currentLang={currentLang} />
-        )}
-        {(currentTab === 'privacy' || currentTab === 'terms' || currentTab === 'accessibility') && (
-          <LegalPage
-            type={currentTab as 'privacy' | 'terms' | 'accessibility'}
-            setCurrentTab={setCurrentTab}
-            currentLang={currentLang}
-            translations={translations}
-          />
-        )}
-      </main>
-
-      {!adminOpen && (
-        <Footer
+    <ErrorBoundary>
+      <div className={`min-h-screen flex flex-col bg-[#FAF9F5] text-[#242824] selection:bg-[#C6A15B] selection:text-[#09291F] ${currentLang === 'ar' ? 'font-serif' : ''}`}>
+        <Navbar
+          currentTab={currentTab}
           setCurrentTab={setCurrentTab}
           currentLang={currentLang}
+          setCurrentLang={setCurrentLang}
           translations={translations}
           onOpenAdmin={() => setAdminOpen(true)}
         />
-      )}
 
-      {adminOpen && (
-        <AdminDashboard
-          projects={projects}
-          setProjects={setProjects}
-          legislative={legislative}
-          setLegislative={setLegislative}
-          programs={programs}
-          setPrograms={setPrograms}
-          news={news}
-          setNews={setNews}
-          gallery={gallery}
-          setGallery={setGallery}
-          contacts={contacts}
-          setContacts={setContacts}
-          agents={agents}
-          setAgents={setAgents}
-          electionReports={electionReports}
-          setElectionReports={setElectionReports}
-          translations={translations}
-          setTranslations={setTranslations}
-          stats={stats}
-          setStats={setStats}
-          currentLang={currentLang}
-          onClose={() => setAdminOpen(false)}
-        />
-      )}
-    </div>
+        <main className="flex-1">
+          {currentTab === 'home' && (
+            <Home
+              setCurrentTab={setCurrentTab}
+              projects={projects}
+              news={news}
+              programs={programs}
+              legislative={legislative}
+              gallery={gallery}
+              stats={stats}
+              currentLang={currentLang}
+              translations={translations}
+            />
+          )}
+          {(currentTab === 'biography' || currentTab === 'about') && (
+            <BiographyPage 
+              setCurrentTab={setCurrentTab}
+              currentLang={currentLang}
+              translations={translations}
+            />
+          )}
+          {currentTab === 'projects' && (
+            <ProjectsPage 
+              projects={projects} 
+              setCurrentTab={setCurrentTab}
+              currentLang={currentLang}
+              translations={translations}
+            />
+          )}
+          {currentTab === 'legislative' && (
+            <LegislativePage 
+              legislative={legislative} 
+              setCurrentTab={setCurrentTab}
+              currentLang={currentLang}
+              translations={translations}
+            />
+          )}
+          {currentTab === 'empowerment' && (
+            <EmpowermentPage 
+              programs={programs} 
+              setCurrentTab={setCurrentTab}
+              currentLang={currentLang}
+              translations={translations}
+            />
+          )}
+          {currentTab === 'news' && (
+            <NewsPage 
+              news={news} 
+              setCurrentTab={setCurrentTab}
+              currentLang={currentLang}
+              translations={translations}
+            />
+          )}
+          {currentTab === 'gallery' && (
+            <GalleryPage 
+              gallery={gallery} 
+              setCurrentTab={setCurrentTab}
+              currentLang={currentLang}
+              translations={translations}
+            />
+          )}
+          {currentTab === 'contact' && (
+            <ContactPage 
+              currentLang={currentLang}
+              translations={translations}
+            />
+          )}
+          {currentTab === 'gis-map' && (
+            <ConstituencyGISMap projects={projects} currentLang={currentLang} />
+          )}
+          {currentTab === 'townhall' && (
+            <TownHallWidget currentLang={currentLang} />
+          )}
+          {currentTab === 'petitions' && (
+            <PetitionTrackerWidget currentLang={currentLang} />
+          )}
+          {currentTab === 'gazette' && (
+            <ParliamentaryGazetteExporter legislative={legislative} projects={projects} programs={programs} currentLang={currentLang} />
+          )}
+          {(currentTab === 'privacy' || currentTab === 'terms' || currentTab === 'accessibility') && (
+            <LegalPage
+              type={currentTab as 'privacy' | 'terms' | 'accessibility'}
+              setCurrentTab={setCurrentTab}
+              currentLang={currentLang}
+              translations={translations}
+            />
+          )}
+        </main>
+
+        {!adminOpen && (
+          <Footer
+            setCurrentTab={setCurrentTab}
+            currentLang={currentLang}
+            translations={translations}
+            onOpenAdmin={() => setAdminOpen(true)}
+          />
+        )}
+
+        {adminOpen && (
+          <AdminDashboard
+            projects={projects}
+            setProjects={setProjects}
+            legislative={legislative}
+            setLegislative={setLegislative}
+            programs={programs}
+            setPrograms={setPrograms}
+            news={news}
+            setNews={setNews}
+            gallery={gallery}
+            setGallery={setGallery}
+            contacts={contacts}
+            setContacts={setContacts}
+            agents={agents}
+            setAgents={setAgents}
+            electionReports={electionReports}
+            setElectionReports={setElectionReports}
+            translations={translations}
+            setTranslations={setTranslations}
+            stats={stats}
+            setStats={setStats}
+            currentLang={currentLang}
+            onClose={() => setAdminOpen(false)}
+          />
+        )}
+      </div>
+    </ErrorBoundary>
   );
 }

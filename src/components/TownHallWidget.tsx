@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 import { MessageSquare, ThumbsUp, Send, User, ShieldCheck, CheckCircle2, Clock } from 'lucide-react';
+import { safeSetItem } from '../utils/safeStorage';
+
 
 interface TownHallTopic {
   id: string;
@@ -84,7 +86,7 @@ export const TownHallWidget: React.FC<Props> = ({ currentLang }) => {
     });
     setTopics(updated);
     setVotedTopics({ ...votedTopics, [topicId]: true });
-    localStorage.setItem('danmaje_townhall_topics', JSON.stringify(updated));
+    safeSetItem('danmaje_townhall_topics', JSON.stringify(updated));
   };
 
   const handleCreateTopic = (e: React.FormEvent) => {
@@ -106,7 +108,7 @@ export const TownHallWidget: React.FC<Props> = ({ currentLang }) => {
 
     const updated = [newTp, ...topics];
     setTopics(updated);
-    localStorage.setItem('danmaje_townhall_topics', JSON.stringify(updated));
+    safeSetItem('danmaje_townhall_topics', JSON.stringify(updated));
     setShowNewTopicModal(false);
     setNewTitle('');
     setNewDesc('');
@@ -136,10 +138,11 @@ export const TownHallWidget: React.FC<Props> = ({ currentLang }) => {
     });
 
     setTopics(updated);
-    localStorage.setItem('danmaje_townhall_topics', JSON.stringify(updated));
+    safeSetItem('danmaje_townhall_topics', JSON.stringify(updated));
     setCommentText('');
     setCommentAuthor('');
   };
+
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-8 py-10 space-y-8 animate-fadeIn">

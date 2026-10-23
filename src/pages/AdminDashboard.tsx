@@ -30,6 +30,42 @@ import {
   YOUTUBE_PLACEHOLDER_THUMBNAIL 
 } from '../utils/youtube';
 import { getAnalyticsStore, resetAnalyticsBaseline, AnalyticsStore } from '../utils/analytics';
+import { compressImageFile } from '../utils/imageCompressor';
+import { safeSetItem } from '../utils/safeStorage';
+
+export function getRespectfulPetitionFeedback(status: ApplicationStatus | string): string {
+  switch (status) {
+    case 'APPROVED':
+      return 'We highly commend your dedicated civic engagement and proactive proposal toward community development. Following thorough committee review and field verification, your petition has been formally UPHELD and approved for direct executive intervention.';
+    case 'REJECTED':
+      return 'We sincerely appreciate your civic awareness and active initiative in bringing this matter forward for community development. Following comprehensive review, this matter has been resolved or does not fall within legislative intervention. Your concern remains respectfully recorded in constituency archives.';
+    case 'INITIAL REVIEW':
+      return 'Thank you for your active civic participation. Your community petition is currently under preliminary review and assigned to the constituency liaison team for field verification.';
+    case 'DOCUMENT VERIFICATION':
+      return 'Thank you for your community development proposal. The committee is conducting field fact-finding and verification of the reported location.';
+    case 'ELIGIBILITY ASSESSMENT':
+      return 'Your community petition has proceeded to the constituency works & welfare committee for assessment and resource planning.';
+    case 'FINAL REVIEW':
+      return 'Your community development petition is before the honorable representative and committee for final legislative determination.';
+    case 'WAITLISTED':
+      return 'We appreciate your dedication to community development. Your petition is held in active consideration pending additional field reports and budget allocation.';
+    default:
+      return 'Your petition has been officially logged into the National Assembly constituency docket. Thank you for your active contribution to grassroots development.';
+  }
+}
+
+export function getRespectfulPetitionAction(status: ApplicationStatus | string): string {
+  switch (status) {
+    case 'APPROVED':
+      return 'Constituency Executive Relief & Infrastructure Intervention Assigned';
+    case 'REJECTED':
+      return 'Formal Advisory Concluded & Archived';
+    case 'INITIAL REVIEW':
+      return 'Field Inspection & Community Liaison Dispatched';
+    default:
+      return 'Under Official Committee Deliberation';
+  }
+}
 
 interface Props {
   projects: Project[];
@@ -125,7 +161,7 @@ export const AdminDashboard: React.FC<Props> = ({
   });
 
   useEffect(() => {
-    localStorage.setItem('danmaje_applications', JSON.stringify(applications));
+    safeSetItem('danmaje_applications', JSON.stringify(applications));
   }, [applications]);
 
   // Petitions Persistence & Review State (100% Independent of Empowerment Applications)
@@ -155,8 +191,9 @@ export const AdminDashboard: React.FC<Props> = ({
   });
 
   useEffect(() => {
-    localStorage.setItem('danmaje_petitions', JSON.stringify(petitions));
+    safeSetItem('danmaje_petitions', JSON.stringify(petitions));
   }, [petitions]);
+
 
   // Sync freshest records when opening petitions or applications
   useEffect(() => {
@@ -317,29 +354,41 @@ export const AdminDashboard: React.FC<Props> = ({
             actor: 'Citizen Portal'
           }
         ];
+        const eventTitle = 
+          newStage === 'APPROVED' ? 'Petition Formally Upheld & Action Directed' :
+          newStage === 'REJECTED' ? 'Petition Review Concluded & Advisory Noted' :
+          newStage === 'INITIAL REVIEW' ? 'Constituency Investigation Initiated' :
+          newStage === 'DOCUMENT VERIFICATION' ? 'Field Fact-Finding & Verification' :
+          newStage === 'ELIGIBILITY ASSESSMENT' ? 'Committee Deliberation & Assessment' :
+          newStage === 'FINAL REVIEW' ? 'Legislative Determination Concluded' :
+          newStage === 'WAITLISTED' ? 'Scheduled for Secondary Hearing' :
+          `Stage Transitioned to ${newStage}`;
+
+        const fallbackFeedback = getRespectfulPetitionFeedback(newStage);
+        const resolvedFeedback = (publicFeedback !== undefined && publicFeedback !== '') ? publicFeedback : fallbackFeedback;
+        const resolvedPackage = actionPackage || getRespectfulPetitionAction(newStage);
+
         const newEvent = {
           stage: newStage,
           timestamp: timeStr,
-          title: `Stage transitioned to ${newStage}`,
-          note: publicFeedback || internalNote || `Stage updated by ${adminRole || 'Administrator'}`,
-          actor: adminRole || 'Administrator'
+          title: eventTitle,
+          note: resolvedFeedback || internalNote || `Status updated to ${newStage} by Committee`,
+          actor: adminRole || 'Constituency Committee'
         };
         return {
           ...p,
           status: newStage,
           currentStage: newStage,
-          awardGrantPackage: actionPackage || p.awardGrantPackage || reviewAwardPackage,
+          awardGrantPackage: resolvedPackage || p.awardGrantPackage,
           notes: internalNote !== undefined ? internalNote : p.notes,
-          publicFeedback: publicFeedback !== undefined ? publicFeedback : p.publicFeedback,
+          publicFeedback: resolvedFeedback,
           timeline: [...oldTimeline, newEvent]
         };
       }
       return p;
     });
     setPetitions(updated);
-    try {
-      localStorage.setItem('danmaje_petitions', JSON.stringify(updated));
-    } catch {}
+    safeSetItem('danmaje_petitions', JSON.stringify(updated));
     if (selectedAppForReview && selectedAppForReview.id === petitionId) {
       setSelectedAppForReview(updated.find(p => p.id === petitionId) || null);
     }
@@ -552,32 +601,62 @@ export const AdminDashboard: React.FC<Props> = ({
     updates: []
   });
   const [editingProject, setEditingProject] = useState<Project | null>(null);
+  const [isCompressingProjImg, setIsCompressingProjImg] = useState(false);
+  const [projectSuccessNotice, setProjectSuccessNotice] = useState<string | null>(null);
 
-  const handleProjectImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleProjectImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      if (file.size > 8 * 1024 * 1024) return;
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        const result = reader.result as string;
-        setNewProj(prev => ({ ...prev, images: [result] }));
-      };
-      reader.readAsDataURL(file);
+      setIsCompressingProjImg(true);
+      try {
+        const compressed = await compressImageFile(file, 1200, 900, 0.78);
+        setNewProj(prev => ({ ...prev, images: [compressed] }));
+      } catch (err) {
+        console.warn('Image compression fallback:', err);
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          setNewProj(prev => ({ ...prev, images: [reader.result as string] }));
+        };
+        reader.readAsDataURL(file);
+      } finally {
+        setIsCompressingProjImg(false);
+      }
     }
   };
 
   const handleCreateProject = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!newProj.title.trim()) return;
+
+    const safeImages = newProj.images && newProj.images.length > 0 && newProj.images[0]?.trim()
+      ? newProj.images
+      : ['https://images.unsplash.com/photo-1541888946425-d0fbb18f764c?auto=format&fit=crop&q=80&w=1000'];
+
     const created: Project = {
       id: `proj-${Date.now()}`,
-      ...newProj,
-      startDate: new Date().toISOString().split('T')[0],
-      date: new Date().toISOString().split('T')[0]
+      title: newProj.title.trim(),
+      category: newProj.category || 'Water & Sanitation',
+      location: newProj.location.trim() || 'Yabo / Shagari Constituency',
+      status: newProj.status || 'Ongoing',
+      year: newProj.year?.trim() || '2026',
+      startDate: newProj.startDate || new Date().toISOString().split('T')[0],
+      completionDate: newProj.completionDate || '2026-12-31',
+      expenditure: newProj.expenditure?.trim() || '',
+      currency: newProj.currency || '₦',
+      description: newProj.description.trim() || 'Constituency capital development project.',
+      images: safeImages,
+      updates: newProj.updates || [],
+      date: new Date().toISOString().split('T')[0],
+      isFeatured: true
     };
+
     const updated = [created, ...projects];
     setProjects(updated);
-    try { localStorage.setItem('danmaje_projects', JSON.stringify(updated)); } catch {}
+    safeSetItem('danmaje_projects', JSON.stringify(updated));
     setShowAddProj(false);
+    setProjectSuccessNotice(`Project "${created.title}" successfully published and live across portal!`);
+    setTimeout(() => setProjectSuccessNotice(null), 5000);
+
     setNewProj({
       title: '',
       category: 'Water & Sanitation',
@@ -604,14 +683,29 @@ export const AdminDashboard: React.FC<Props> = ({
   const handleUpdateProject = (e: React.FormEvent) => {
     e.preventDefault();
     if (!editingProject) return;
-    const updated = projects.map(p => p.id === editingProject.id ? editingProject : p);
+    const safeImages = editingProject.images && editingProject.images.length > 0 && editingProject.images[0]?.trim()
+      ? editingProject.images
+      : ['https://images.unsplash.com/photo-1541888946425-d0fbb18f764c?auto=format&fit=crop&q=80&w=1000'];
+
+    const sanitizedProject: Project = {
+      ...editingProject,
+      title: editingProject.title.trim(),
+      location: editingProject.location.trim() || 'Yabo/Shagari Constituency',
+      description: editingProject.description.trim() || 'Constituency development project.',
+      images: safeImages,
+      updates: editingProject.updates || []
+    };
+
+    const updated = projects.map(p => p.id === sanitizedProject.id ? sanitizedProject : p);
     setProjects(updated);
-    try { localStorage.setItem('danmaje_projects', JSON.stringify(updated)); } catch {}
+    safeSetItem('danmaje_projects', JSON.stringify(updated));
     setEditingProject(null);
+    setProjectSuccessNotice(`Project "${sanitizedProject.title}" updated successfully!`);
+    setTimeout(() => setProjectSuccessNotice(null), 5000);
     setActivityLogs(prev => [{
       id: `log-${Date.now()}`,
       user: email,
-      action: `Updated project: ${editingProject.title}`,
+      action: `Updated project: ${sanitizedProject.title}`,
       timestamp: new Date().toISOString().replace('T', ' ').substring(0, 16),
       role: adminRole
     }, ...prev]);
@@ -620,7 +714,8 @@ export const AdminDashboard: React.FC<Props> = ({
   const handleDeleteProject = (id: string) => {
     const updated = projects.filter(p => p.id !== id);
     setProjects(updated);
-    try { localStorage.setItem('danmaje_projects', JSON.stringify(updated)); } catch {}
+    safeSetItem('danmaje_projects', JSON.stringify(updated));
+    setEditingProject(null);
     setActivityLogs(prev => [{
       id: `log-${Date.now()}`,
       user: email,
@@ -649,17 +744,24 @@ export const AdminDashboard: React.FC<Props> = ({
   const [newsImagePreview, setNewsImagePreview] = useState<string>('');
   const [editingNews, setEditingNews] = useState<NewsArticle | null>(null);
 
-  const handleNewsImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleNewsImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      if (file.size > 8 * 1024 * 1024) return;
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        const result = reader.result as string;
-        setNewsImagePreview(result);
-        setNewNews(prev => ({ ...prev, imageUrl: result }));
-      };
-      reader.readAsDataURL(file);
+      try {
+        const compressed = await compressImageFile(file, 960, 720, 0.72);
+        setNewsImagePreview(compressed);
+        setNewNews(prev => ({ ...prev, imageUrl: compressed }));
+      } catch (err) {
+        if (file.size < 800 * 1024) {
+          const reader = new FileReader();
+          reader.onloadend = () => {
+            const result = reader.result as string;
+            setNewsImagePreview(result);
+            setNewNews(prev => ({ ...prev, imageUrl: result }));
+          };
+          reader.readAsDataURL(file);
+        }
+      }
     }
   };
 
@@ -688,7 +790,7 @@ export const AdminDashboard: React.FC<Props> = ({
     };
     const updated = [created, ...news];
     setNews(updated);
-    try { localStorage.setItem('danmaje_news', JSON.stringify(updated)); } catch {}
+    safeSetItem('danmaje_news', JSON.stringify(updated));
     setShowAddNews(false);
     setNewsImagePreview('');
     setNewNews({
@@ -716,7 +818,7 @@ export const AdminDashboard: React.FC<Props> = ({
     if (!editingNews) return;
     const updated = news.map(n => n.id === editingNews.id ? editingNews : n);
     setNews(updated);
-    try { localStorage.setItem('danmaje_news', JSON.stringify(updated)); } catch {}
+    safeSetItem('danmaje_news', JSON.stringify(updated));
     setEditingNews(null);
     setActivityLogs(prev => [{
       id: `log-${Date.now()}`,
@@ -730,7 +832,8 @@ export const AdminDashboard: React.FC<Props> = ({
   const handleDeleteNews = (id: string) => {
     const updated = news.filter(n => n.id !== id);
     setNews(updated);
-    try { localStorage.setItem('danmaje_news', JSON.stringify(updated)); } catch {}
+    safeSetItem('danmaje_news', JSON.stringify(updated));
+
     setActivityLogs(prev => [{
       id: `log-${Date.now()}`,
       user: email,
@@ -2050,10 +2153,26 @@ export const AdminDashboard: React.FC<Props> = ({
                 </button>
               </div>
 
+              {/* Upload Success Feedback Banner */}
+              {projectSuccessNotice && (
+                <div className="bg-emerald-50 border-2 border-emerald-400 text-emerald-900 p-4 rounded-2xl flex items-center gap-3 shadow-md animate-fadeIn">
+                  <div className="w-8 h-8 rounded-full bg-emerald-600 text-white flex items-center justify-center shrink-0">
+                    <CheckCircle className="w-5 h-5 text-white" />
+                  </div>
+                  <div>
+                    <h5 className="font-bold text-xs uppercase tracking-wide text-emerald-950">Record Published Successfully</h5>
+                    <p className="text-xs text-emerald-800">{projectSuccessNotice}</p>
+                  </div>
+                </div>
+              )}
+
               {/* Add Project Form */}
               {showAddProj && (
                 <form onSubmit={handleCreateProject} className="bg-white p-6 rounded-3xl shadow-md border border-stone-200 space-y-4">
-                  <h4 className="font-bold text-[#103C2E] text-sm uppercase">CREATE NEW CONSTITUENCY PROJECT RECORD</h4>
+                  <div className="flex justify-between items-center border-b border-stone-100 pb-3">
+                    <h4 className="font-bold text-[#103C2E] text-sm uppercase">CREATE NEW CONSTITUENCY PROJECT RECORD</h4>
+                    <span className="text-[11px] text-stone-500 font-medium">Fields with * are mandatory</span>
+                  </div>
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                     <input
                       type="text"
@@ -2127,10 +2246,10 @@ export const AdminDashboard: React.FC<Props> = ({
                     <div className="flex flex-wrap items-center gap-3">
                       <label className="cursor-pointer bg-[#103C2E] hover:bg-[#09291F] text-white px-4 py-2.5 rounded-xl text-xs font-bold flex items-center gap-2 shadow-sm transition">
                         <Camera className="w-4 h-4 text-[#C6A15B]" />
-                        <span>Upload Photo File</span>
-                        <input type="file" accept="image/*" onChange={handleProjectImageUpload} className="hidden" />
+                        <span>{isCompressingProjImg ? 'Processing Photo...' : 'Upload Photo File'}</span>
+                        <input type="file" accept="image/*" disabled={isCompressingProjImg} onChange={handleProjectImageUpload} className="hidden" />
                       </label>
-                      <span className="text-[11px] text-stone-500 font-medium">Supports JPG, PNG, WEBP (Direct Camera or Gallery)</span>
+                      <span className="text-[11px] text-stone-500 font-medium">Auto-compressed for web. Supports JPG, PNG, WEBP (Camera or Gallery)</span>
                     </div>
 
                     <div className="space-y-1">
@@ -2174,9 +2293,11 @@ export const AdminDashboard: React.FC<Props> = ({
                     </button>
                     <button
                       type="submit"
-                      className="px-6 py-2 bg-[#103C2E] hover:bg-[#09291F] text-white rounded-xl text-xs font-bold uppercase cursor-pointer shadow"
+                      disabled={isCompressingProjImg}
+                      className="px-6 py-2.5 bg-[#103C2E] hover:bg-[#09291F] disabled:opacity-50 text-white rounded-xl text-xs font-bold uppercase cursor-pointer shadow flex items-center gap-2 transition"
                     >
-                      Save Project
+                      <CheckCircle className="w-4 h-4 text-[#C6A15B]" />
+                      <span>{isCompressingProjImg ? 'Processing Photo...' : 'Publish Project'}</span>
                     </button>
                   </div>
                 </form>
@@ -2287,14 +2408,19 @@ export const AdminDashboard: React.FC<Props> = ({
                         <input
                           type="file"
                           accept="image/*"
-                          onChange={(e) => {
+                          onChange={async (e) => {
                             const file = e.target.files?.[0];
                             if (file) {
-                              const reader = new FileReader();
-                              reader.onloadend = () => {
-                                setEditingProject(prev => prev ? ({ ...prev, images: [reader.result as string] }) : null);
-                              };
-                              reader.readAsDataURL(file);
+                              try {
+                                const compressed = await compressImageFile(file, 1200, 900, 0.78);
+                                setEditingProject(prev => prev ? ({ ...prev, images: [compressed] }) : null);
+                              } catch (err) {
+                                const reader = new FileReader();
+                                reader.onloadend = () => {
+                                  setEditingProject(prev => prev ? ({ ...prev, images: [reader.result as string] }) : null);
+                                };
+                                reader.readAsDataURL(file);
+                              }
                             }
                           }}
                           className="hidden"
@@ -3546,8 +3672,8 @@ export const AdminDashboard: React.FC<Props> = ({
                                   setSelectedAppForReview(app);
                                   setReviewStatusInput(app.status || 'SUBMITTED');
                                   setReviewInternalNote(app.notes || '');
-                                  setReviewPublicFeedback(app.publicFeedback || '');
-                                  setReviewAwardPackage(app.awardGrantPackage || '');
+                                  setReviewPublicFeedback(app.publicFeedback || getRespectfulPetitionFeedback(app.status || 'SUBMITTED'));
+                                  setReviewAwardPackage(app.awardGrantPackage || getRespectfulPetitionAction(app.status || 'SUBMITTED'));
                                 }}
                                 className="inline-flex items-center gap-1 bg-[#103C2E] hover:bg-[#09291F] text-white px-3 py-1.5 rounded-xl text-xs font-bold cursor-pointer uppercase shadow-xs transition"
                                 title="Open Review & Decision Dossier"
@@ -4557,7 +4683,14 @@ export const AdminDashboard: React.FC<Props> = ({
                           </label>
                           <select
                             value={reviewStatusInput}
-                            onChange={(e) => setReviewStatusInput(e.target.value as ApplicationStatus)}
+                            onChange={(e) => {
+                              const nextStage = e.target.value as ApplicationStatus;
+                              setReviewStatusInput(nextStage);
+                              if (isPetition) {
+                                setReviewPublicFeedback(getRespectfulPetitionFeedback(nextStage));
+                                setReviewAwardPackage(getRespectfulPetitionAction(nextStage));
+                              }
+                            }}
                             className="w-full px-3 py-2 bg-white border border-stone-300 rounded-xl text-xs font-bold text-[#103C2E]"
                           >
                             <option value="SUBMITTED">{isPetition ? '1. SUBMITTED / LOGGED' : '1. SUBMITTED'}</option>
@@ -4572,16 +4705,56 @@ export const AdminDashboard: React.FC<Props> = ({
                         </div>
 
                         <div>
-                          <label className="text-[11px] font-bold text-[#103C2E] block uppercase mb-1">
-                            {isPetition ? 'Official Resolution Notice (Public on Tracker)' : 'Public Feedback (Visible to Applicant on Tracker)'}
+                          <label className="text-[11px] font-bold text-[#103C2E] block uppercase mb-1 flex items-center justify-between">
+                            <span>{isPetition ? 'Official Resolution Notice (Public on Tracker):' : 'Public Feedback (Visible to Applicant):'}</span>
+                            {isPetition && (
+                              <span className="text-[10px] text-emerald-700 font-bold lowercase">Respectful Civic Reply</span>
+                            )}
                           </label>
-                          <input
-                            type="text"
-                            placeholder={isPetition ? "e.g. Investigation concluded. Relief materials & engineering team dispatched to site." : "e.g. Approved. Please bring printed slip and NIN for physical handover..."}
+                          <textarea
+                            rows={2}
+                            placeholder={isPetition ? "Respectful message acknowledging the citizen's proposal for community development..." : "Public feedback visible on status tracker..."}
                             value={reviewPublicFeedback}
                             onChange={(e) => setReviewPublicFeedback(e.target.value)}
                             className="w-full px-3 py-2 bg-white border border-stone-300 rounded-xl text-xs text-stone-800"
                           />
+                          {isPetition && (
+                            <div className="flex flex-wrap gap-1.5 mt-1">
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setReviewStatusInput('APPROVED');
+                                  setReviewPublicFeedback(getRespectfulPetitionFeedback('APPROVED'));
+                                  setReviewAwardPackage(getRespectfulPetitionAction('APPROVED'));
+                                }}
+                                className="px-2 py-0.5 rounded-md bg-emerald-100 hover:bg-emerald-200 text-emerald-800 text-[10px] font-bold uppercase transition"
+                              >
+                                Preset: Commend & Upheld
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setReviewStatusInput('REJECTED');
+                                  setReviewPublicFeedback(getRespectfulPetitionFeedback('REJECTED'));
+                                  setReviewAwardPackage(getRespectfulPetitionAction('REJECTED'));
+                                }}
+                                className="px-2 py-0.5 rounded-md bg-stone-100 hover:bg-stone-200 text-stone-700 text-[10px] font-bold uppercase transition"
+                              >
+                                Preset: Respectful Dismissal / Advisory
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setReviewStatusInput('INITIAL REVIEW');
+                                  setReviewPublicFeedback(getRespectfulPetitionFeedback('INITIAL REVIEW'));
+                                  setReviewAwardPackage(getRespectfulPetitionAction('INITIAL REVIEW'));
+                                }}
+                                className="px-2 py-0.5 rounded-md bg-blue-100 hover:bg-blue-200 text-blue-800 text-[10px] font-bold uppercase transition"
+                              >
+                                Preset: Under Investigation
+                              </button>
+                            </div>
+                          )}
                         </div>
                       </div>
 
