@@ -24,6 +24,72 @@ export const SmsUssdGatewayTab: React.FC<Props> = ({ applications = [] }) => {
   const [isSending, setIsSending] = useState(false);
   const [sendSuccessMsg, setSendSuccessMsg] = useState('');
 
+  // Termii API Status & Test SMS State
+  const [termiiConfig, setTermiiConfig] = useState<{ configured: boolean; maskedKey: string; senderId: string; endpoint: string } | null>(null);
+  const [testPhone, setTestPhone] = useState('+234');
+  const [testMessage, setTestMessage] = useState('Official test message from Hon. Umar Yusuf Constituency Gateway via Termii SMS.');
+  const [isTestingTermii, setIsTestingTermii] = useState(false);
+  const [termiiTestResult, setTermiiTestResult] = useState<{ success: boolean; message?: string; error?: string; providerResponse?: any } | null>(null);
+
+  useEffect(() => {
+    fetch('/api/sms/config')
+      .then(res => res.json())
+      .then(data => {
+        setTermiiConfig(data);
+        if (data.senderId) setSenderId(data.senderId);
+      })
+      .catch(() => {
+        setTermiiConfig({ configured: false, maskedKey: '', senderId: 'DanmajeYabo', endpoint: 'https://v3.termii.com/api/sms/send' });
+      });
+  }, []);
+
+  const handleTestTermiiSms = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!testPhone.trim() || !testMessage.trim()) return;
+
+    const confirmed = window.confirm(`Are you sure you want to send a real test SMS to ${testPhone} via Termii SMS Gateway?`);
+    if (!confirmed) return;
+
+    setIsTestingTermii(true);
+    setTermiiTestResult(null);
+
+    try {
+      const res = await fetch('/api/sms/send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          to: testPhone.trim(),
+          sms: testMessage.trim(),
+          senderId: senderId.trim() || 'DanmajeYabo'
+        })
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setTermiiTestResult({ success: true, message: 'Test SMS successfully verified and delivered by Termii V3 API.', providerResponse: data.providerResponse });
+        const newRecord: SmsBroadcastRecord = {
+          id: `sms-test-${Date.now()}`,
+          senderId: senderId || 'DanmajeYabo',
+          targetGroup: `Test Recipient (${testPhone})`,
+          recipientsCount: 1,
+          message: testMessage.trim(),
+          timestamp: new Date().toLocaleString(),
+          status: 'DELIVERED',
+          deliveryRate: '100% (Termii API Verified)'
+        };
+        const updated = [newRecord, ...broadcastHistory];
+        setBroadcastHistory(updated);
+        try { localStorage.setItem('danmaje_sms_broadcasts', JSON.stringify(updated)); } catch {}
+      } else {
+        setTermiiTestResult({ success: false, error: data.error || 'Termii SMS Gateway returned an error.', providerResponse: data.providerResponse });
+      }
+    } catch (err: any) {
+      setTermiiTestResult({ success: false, error: err.message || 'Failed to communicate with backend SMS proxy route.' });
+    } finally {
+      setIsTestingTermii(false);
+    }
+  };
+
+
   // Stored SMS Broadcasts
   const [broadcastHistory, setBroadcastHistory] = useState<SmsBroadcastRecord[]>(() => {
     const saved = localStorage.getItem('danmaje_sms_broadcasts');
@@ -611,7 +677,146 @@ export const SmsUssdGatewayTab: React.FC<Props> = ({ applications = [] }) => {
         </div>
       )}
 
+      {/* TERMII SMS API GATEWAY INTEGRATION & TEST SUITE */}
+      {activeSubTab === 'sms' && (
+        <div className="bg-white p-6 sm:p-8 rounded-3xl border border-stone-200 shadow-sm space-y-6">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-stone-100 pb-4">
+            <div>
+              <h4 className="font-['Manrope'] font-black text-lg text-[#103C2E] uppercase flex items-center gap-2">
+                <Zap className="w-5 h-5 text-[#C6A15B]" />
+                <span>Termii SMS API Gateway Integration & Credentials (Secure Server-Side)</span>
+              </h4>
+              <p className="text-xs text-stone-500 mt-0.5">
+                Manage your official Termii API configuration, verify connection status, test SMS delivery, and monitor provider responses.
+              </p>
+            </div>
+            <span className={`text-xs font-mono px-3 py-1 rounded-full border font-black uppercase ${
+              termiiConfig?.configured ? 'bg-emerald-100 text-emerald-800 border-emerald-300' : 'bg-amber-100 text-amber-900 border-amber-300'
+            }`}>
+              {termiiConfig?.configured ? '✓ TERMII_API_KEY CONNECTED' : '⚠ TERMII_API_KEY NOT CONFIGURED'}
+            </span>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-xs">
+            <div className="bg-stone-50 p-5 rounded-2xl border border-stone-200 space-y-2">
+              <span className="text-stone-400 font-bold uppercase block text-[10px]">Gateway Connection Status</span>
+              <strong className="text-sm font-black text-[#103C2E] block">
+                {termiiConfig?.configured ? 'Active & Secure Proxy' : 'Awaiting Environment Variable'}
+              </strong>
+              <p className="text-[11px] text-stone-600">
+                API requests route securely through server-side backend proxy (`/api/sms/send`) ensuring `TERMII_API_KEY` is never exposed in browser code.
+              </p>
+            </div>
+
+            <div className="bg-stone-50 p-5 rounded-2xl border border-stone-200 space-y-2">
+              <span className="text-stone-400 font-bold uppercase block text-[10px]">Secure Credential Status</span>
+              <strong className="text-sm font-black text-stone-800 block font-mono">
+                {termiiConfig?.configured ? termiiConfig.maskedKey : 'Not Provided in Server Env'}
+              </strong>
+              <p className="text-[11px] text-stone-600">
+                Configured via server environment variable <code>TERMII_API_KEY</code>.
+              </p>
+            </div>
+
+            <div className="bg-stone-50 p-5 rounded-2xl border border-stone-200 space-y-2">
+              <span className="text-stone-400 font-bold uppercase block text-[10px]">Active Sender ID</span>
+              <strong className="text-sm font-black text-[#103C2E] block">
+                {senderId || termiiConfig?.senderId || 'DanmajeYabo'}
+              </strong>
+              <p className="text-[11px] text-stone-600">
+                Configured alpha-numeric sender ID approved for Yabo/Shagari constituency notifications.
+              </p>
+            </div>
+          </div>
+
+          {/* Test SMS Form */}
+          <div className="bg-gradient-to-br from-emerald-50/60 to-stone-50 p-6 rounded-2xl border-2 border-emerald-300/80 space-y-4">
+            <div className="flex items-center justify-between border-b border-emerald-200 pb-3">
+              <h5 className="font-bold text-xs text-[#103C2E] uppercase tracking-wider flex items-center gap-2">
+                <Send className="w-4 h-4 text-[#C6A15B]" />
+                <span>Test Termii SMS Gateway Integration</span>
+              </h5>
+              <span className="text-[11px] text-emerald-800 font-medium">Sends real SMS message via Termii V3 API</span>
+            </div>
+
+            {termiiTestResult && (
+              <div className={`p-4 rounded-xl border text-xs space-y-2 animate-fadeIn ${
+                termiiTestResult.success ? 'bg-emerald-100 border-emerald-400 text-emerald-950' : 'bg-rose-100 border-rose-300 text-rose-950'
+              }`}>
+                <div className="flex items-center gap-2 font-bold uppercase">
+                  {termiiTestResult.success ? <CheckCircle2 className="w-5 h-5 text-emerald-700" /> : <AlertCircle className="w-5 h-5 text-rose-700" />}
+                  <span>{termiiTestResult.success ? 'Termii Test SMS Successfully Delivered' : 'Termii Test SMS Delivery Failed'}</span>
+                </div>
+                <p className="text-xs leading-relaxed font-medium">
+                  {termiiTestResult.message || termiiTestResult.error}
+                </p>
+                {termiiTestResult.providerResponse && (
+                  <div className="space-y-1">
+                    <span className="text-[10px] font-bold uppercase text-stone-600 block">Termii API Response Payload:</span>
+                    <pre className="bg-white p-3 rounded-lg text-[10px] font-mono overflow-x-auto text-stone-800 border border-emerald-300">
+                      {JSON.stringify(termiiTestResult.providerResponse, null, 2)}
+                    </pre>
+                  </div>
+                )}
+              </div>
+            )}
+
+            <form onSubmit={handleTestTermiiSms} className="grid grid-cols-1 sm:grid-cols-12 gap-4 items-end">
+              <div className="sm:col-span-4 space-y-1">
+                <label className="text-xs font-bold text-[#103C2E] uppercase">Recipient Phone Number *</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="+2348031234567"
+                  value={testPhone}
+                  onChange={(e) => setTestPhone(e.target.value)}
+                  className="w-full px-4 py-2.5 bg-white border border-stone-300 rounded-xl text-xs font-mono font-bold text-[#103C2E]"
+                />
+              </div>
+
+              <div className="sm:col-span-6 space-y-1">
+                <label className="text-xs font-bold text-[#103C2E] uppercase">Test Message *</label>
+                <input
+                  type="text"
+                  required
+                  value={testMessage}
+                  onChange={(e) => setTestMessage(e.target.value)}
+                  className="w-full px-4 py-2.5 bg-white border border-stone-300 rounded-xl text-xs font-medium"
+                />
+              </div>
+
+              <div className="sm:col-span-2">
+                <button
+                  type="submit"
+                  disabled={isTestingTermii || !termiiConfig?.configured}
+                  className="w-full bg-[#103C2E] hover:bg-[#09291F] disabled:opacity-50 text-white py-2.5 rounded-xl font-bold text-xs uppercase tracking-wider shadow cursor-pointer transition flex items-center justify-center gap-1.5"
+                >
+                  {isTestingTermii ? (
+                    <>
+                      <RefreshCw className="w-3.5 h-3.5 animate-spin text-[#C6A15B]" />
+                      <span>SENDING...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Send className="w-3.5 h-3.5 text-[#C6A15B]" />
+                      <span>TEST SMS</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </form>
+
+            {!termiiConfig?.configured && (
+              <p className="text-xs text-amber-800 bg-amber-50 p-3 rounded-xl border border-amber-200 text-center font-medium">
+                Note: <strong>TERMII_API_KEY</strong> environment variable is not yet configured in this deployment. Once configured, you can test live delivery to any mobile phone number.
+              </p>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* SUB-TAB 2: USSD SIMULATOR (*384*77#) */}
+
       {activeSubTab === 'ussd' && (
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
           

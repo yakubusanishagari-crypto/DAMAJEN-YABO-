@@ -32,9 +32,93 @@ async function startServer() {
     }
   };
 
+  // Termii SMS Helper function for background notifications
+  async function sendTermiiSmsQuietly(to: string, sms: string) {
+    const apiKey = process.env.TERMII_API_KEY;
+    if (!apiKey || !to || !sms) return;
+    try {
+      const payload = {
+        api_key: apiKey,
+        to: to.replace(/[\s+-]/g, ''),
+        from: process.env.TERMII_SENDER_ID || 'DanmajeYabo',
+        sms,
+        type: 'plain',
+        channel: 'generic'
+      };
+      await fetch('https://v3.termii.com/api/sms/send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+    } catch (e) {
+      console.warn('Background Termii SMS dispatch failed:', e);
+    }
+  }
+
   // API Routes
   app.get('/api/health', (req, res) => {
     res.json({ status: 'ok', timestamp: new Date().toISOString() });
+  });
+
+  // Termii SMS Gateway Configuration & Send Status
+  app.get('/api/sms/config', (req, res) => {
+    const apiKey = process.env.TERMII_API_KEY || '';
+    const configured = apiKey.length > 5;
+    const maskedKey = configured ? `${apiKey.substring(0, 4)}••••${apiKey.substring(apiKey.length - 4)}` : '';
+    res.json({
+      configured,
+      maskedKey,
+      senderId: process.env.TERMII_SENDER_ID || 'DanmajeYabo',
+      endpoint: 'https://v3.termii.com/api/sms/send'
+    });
+  });
+
+  app.post('/api/sms/send', async (req, res) => {
+    const { to, sms, senderId, type, channel } = req.body;
+    const apiKey = process.env.TERMII_API_KEY;
+
+    if (!apiKey) {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'TERMII_API_KEY is not configured on the server environment. Please set TERMII_API_KEY in your server environment variables.' 
+      });
+    }
+
+    if (!to || !sms) {
+      return res.status(400).json({ success: false, error: 'Recipient phone number (to) and message (sms) are required.' });
+    }
+
+    try {
+      const payload = {
+        api_key: apiKey,
+        to: to.replace(/[\s+-]/g, ''),
+        from: senderId || process.env.TERMII_SENDER_ID || 'DanmajeYabo',
+        sms,
+        type: type || 'plain',
+        channel: channel || 'generic'
+      };
+
+      const response = await fetch('https://v3.termii.com/api/sms/send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+
+      const data = await response.json();
+      
+      if (response.ok && (data.code === 'ok' || data.message_id || data.status === 'success' || data.code === 200)) {
+        return res.json({ success: true, providerResponse: data, message: 'SMS successfully sent via Termii SMS Gateway.' });
+      } else {
+        return res.status(400).json({ 
+          success: false, 
+          error: data.message || data.error || 'Termii SMS Gateway returned an error response.', 
+          providerResponse: data 
+        });
+      }
+    } catch (err: any) {
+      console.error('Termii SMS API error:', err);
+      return res.status(500).json({ success: false, error: err.message || 'Failed to connect to Termii SMS Gateway API.' });
+    }
   });
 
   // Stats
@@ -45,6 +129,7 @@ async function startServer() {
     store.stats = { ...store.stats, ...req.body };
     res.json(store.stats);
   });
+
 
   // Projects
   app.get('/api/projects', (req, res) => {
@@ -186,15 +271,46 @@ async function startServer() {
       status: req.body.status || 'SUBMITTED'
     };
     store.applications.unshift(appItem);
+
+    if (appItem.phone) {
+      sendTermiiSmsQuietly(
+        appItem.phone,
+        `Hon. Umar Yusuf (Danmaje Yabo): Your application (${appItem.referenceNumber || appItem.id}) for "${appItem.programTitle}" has been received and logged into the constituency portal. Track via *384*77#.`
+      );
+    }
+
     res.status(201).json(appItem);
   });
   app.put('/api/applications/:id', (req, res) => {
     const { id } = req.params;
     const index = store.applications.findIndex(a => a.id === id);
     if (index === -1) return res.status(404).json({ error: 'Application not found' });
-    store.applications[index] = { ...store.applications[index], ...req.body };
-    res.json(store.applications[index]);
+    const oldApp = store.applications[index];
+    store.applications[index] = { ...oldApp, ...req.body };
+    const newApp = store.applications[index];
+
+    if (newApp.phone && newApp.status && newApp.status !== oldApp.status) {
+      if (newApp.status === 'APPROVED') {
+        sendTermiiSmsQuietly(
+          newApp.phone,
+          `CONGRATULATIONS! Hon. Umar Yusuf (Danmaje Yabo) Empower Desk: Your application (${newApp.referenceNumber}) for "${newApp.programTitle}" has been APPROVED. Access your official congratulatory offer letter on the constituency portal.`
+        );
+      } else if (newApp.status === 'REJECTED') {
+        sendTermiiSmsQuietly(
+          newApp.phone,
+          `Hon. Umar Yusuf (Danmaje Yabo) Constituency Update: Your application (${newApp.referenceNumber}) review has concluded. Thank you for participating in Yabo/Shagari grassroots development.`
+        );
+      } else {
+        sendTermiiSmsQuietly(
+          newApp.phone,
+          `Hon. Umar Yusuf (Danmaje Yabo) Portal Update: Your application (${newApp.referenceNumber}) stage has advanced to ${newApp.status}.`
+        );
+      }
+    }
+
+    res.json(newApp);
   });
+
 
   // Admin Login mock
   app.post('/api/admin/login', (req, res) => {
