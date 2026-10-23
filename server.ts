@@ -216,10 +216,13 @@ async function startServer() {
     saveStore();
     res.json(store.projects[index]);
   });
-  app.delete('/api/projects/:id', (req, res) => {
+  app.delete('/api/projects/:id', async (req, res) => {
     const { id } = req.params;
     store.projects = store.projects.filter(p => p.id !== id);
     saveStore();
+    if (supabase) {
+      try { await supabase.from('projects').delete().eq('id', id); } catch (e) { console.warn('Supabase delete error:', e); }
+    }
     res.json({ success: true });
   });
 
@@ -241,9 +244,13 @@ async function startServer() {
     saveStore();
     res.json(store.legislative[index]);
   });
-  app.delete('/api/legislative/:id', (req, res) => {
-    store.legislative = store.legislative.filter(l => l.id !== req.params.id);
+  app.delete('/api/legislative/:id', async (req, res) => {
+    const { id } = req.params;
+    store.legislative = store.legislative.filter(l => l.id !== id);
     saveStore();
+    if (supabase) {
+      try { await supabase.from('legislative').delete().eq('id', id); } catch (e) { console.warn('Supabase delete error:', e); }
+    }
     res.json({ success: true });
   });
 
@@ -265,9 +272,13 @@ async function startServer() {
     saveStore();
     res.json(store.programs[index]);
   });
-  app.delete('/api/programs/:id', (req, res) => {
-    store.programs = store.programs.filter(p => p.id !== req.params.id);
+  app.delete('/api/programs/:id', async (req, res) => {
+    const { id } = req.params;
+    store.programs = store.programs.filter(p => p.id !== id);
     saveStore();
+    if (supabase) {
+      try { await supabase.from('programs').delete().eq('id', id); } catch (e) { console.warn('Supabase delete error:', e); }
+    }
     res.json({ success: true });
   });
 
@@ -289,9 +300,13 @@ async function startServer() {
     saveStore();
     res.json(store.news[index]);
   });
-  app.delete('/api/news/:id', (req, res) => {
-    store.news = store.news.filter(n => n.id !== req.params.id);
+  app.delete('/api/news/:id', async (req, res) => {
+    const { id } = req.params;
+    store.news = store.news.filter(n => n.id !== id);
     saveStore();
+    if (supabase) {
+      try { await supabase.from('news').delete().eq('id', id); } catch (e) { console.warn('Supabase delete error:', e); }
+    }
     res.json({ success: true });
   });
 
@@ -313,9 +328,13 @@ async function startServer() {
     saveStore();
     res.json(store.gallery[index]);
   });
-  app.delete('/api/gallery/:id', (req, res) => {
-    store.gallery = store.gallery.filter(g => g.id !== req.params.id);
+  app.delete('/api/gallery/:id', async (req, res) => {
+    const { id } = req.params;
+    store.gallery = store.gallery.filter(g => g.id !== id);
     saveStore();
+    if (supabase) {
+      try { await supabase.from('gallery').delete().eq('id', id); } catch (e) { console.warn('Supabase delete error:', e); }
+    }
     res.json({ success: true });
   });
 
