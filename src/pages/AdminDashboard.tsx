@@ -30,52 +30,6 @@ import {
   YOUTUBE_PLACEHOLDER_THUMBNAIL 
 } from '../utils/youtube';
 import { getAnalyticsStore, resetAnalyticsBaseline, AnalyticsStore } from '../utils/analytics';
-import { compressImageFile } from '../utils/imageCompressor';
-import { safeSetItem } from '../utils/safeStorage';
-import { 
-  apiCreateProject, apiUpdateProject, apiDeleteProject,
-  apiCreateNews, apiUpdateNews, apiDeleteNews,
-  apiCreateProgram, apiUpdateProgram, apiDeleteProgram,
-  apiCreateLegislative, apiUpdateLegislative, apiDeleteLegislative,
-  apiCreateGallery, apiUpdateGallery, apiDeleteGallery,
-  apiUpdateStats, apiUpdateApplication,
-  apiFetchAdminUsers, apiCreateAdminUser, apiUpdateAdminUser, apiDeleteAdminUser,
-  apiFetchSettings, apiUpdateSettings
-} from '../utils/apiSync';
-
-export function getRespectfulPetitionFeedback(status: ApplicationStatus | string): string {
-  switch (status) {
-    case 'APPROVED':
-      return 'We highly commend your dedicated civic engagement and proactive proposal toward community development. Following thorough committee review and field verification, your petition has been formally UPHELD and approved for direct executive intervention.';
-    case 'REJECTED':
-      return 'We sincerely appreciate your civic awareness and active initiative in bringing this matter forward for community development. Following comprehensive review, this matter has been resolved or does not fall within legislative intervention. Your concern remains respectfully recorded in constituency archives.';
-    case 'INITIAL REVIEW':
-      return 'Thank you for your active civic participation. Your community petition is currently under preliminary review and assigned to the constituency liaison team for field verification.';
-    case 'DOCUMENT VERIFICATION':
-      return 'Thank you for your community development proposal. The committee is conducting field fact-finding and verification of the reported location.';
-    case 'ELIGIBILITY ASSESSMENT':
-      return 'Your community petition has proceeded to the constituency works & welfare committee for assessment and resource planning.';
-    case 'FINAL REVIEW':
-      return 'Your community development petition is before the honorable representative and committee for final legislative determination.';
-    case 'WAITLISTED':
-      return 'We appreciate your dedication to community development. Your petition is held in active consideration pending additional field reports and budget allocation.';
-    default:
-      return 'Your petition has been officially logged into the National Assembly constituency docket. Thank you for your active contribution to grassroots development.';
-  }
-}
-
-export function getRespectfulPetitionAction(status: ApplicationStatus | string): string {
-  switch (status) {
-    case 'APPROVED':
-      return 'Constituency Executive Relief & Infrastructure Intervention Assigned';
-    case 'REJECTED':
-      return 'Formal Advisory Concluded & Archived';
-    case 'INITIAL REVIEW':
-      return 'Field Inspection & Community Liaison Dispatched';
-    default:
-      return 'Under Official Committee Deliberation';
-  }
-}
 
 interface Props {
   projects: Project[];
@@ -171,7 +125,7 @@ export const AdminDashboard: React.FC<Props> = ({
   });
 
   useEffect(() => {
-    safeSetItem('danmaje_applications', JSON.stringify(applications));
+    localStorage.setItem('danmaje_applications', JSON.stringify(applications));
   }, [applications]);
 
   // Petitions Persistence & Review State (100% Independent of Empowerment Applications)
@@ -201,9 +155,8 @@ export const AdminDashboard: React.FC<Props> = ({
   });
 
   useEffect(() => {
-    safeSetItem('danmaje_petitions', JSON.stringify(petitions));
+    localStorage.setItem('danmaje_petitions', JSON.stringify(petitions));
   }, [petitions]);
-
 
   // Sync freshest records when opening petitions or applications
   useEffect(() => {
@@ -283,12 +236,8 @@ export const AdminDashboard: React.FC<Props> = ({
     try {
       localStorage.setItem('danmaje_applications', JSON.stringify(updated));
     } catch {}
-    const targetApp = updated.find(a => a.id === appId);
-    if (targetApp) {
-      apiUpdateApplication(appId, targetApp).catch((err: unknown) => console.warn('Backend API application update warn:', err));
-    }
     if (selectedAppForReview && selectedAppForReview.id === appId) {
-      setSelectedAppForReview(targetApp || null);
+      setSelectedAppForReview(updated.find(a => a.id === appId) || null);
     }
     setActivityLogs(prev => [{
       id: `log-${Date.now()}`,
@@ -368,41 +317,29 @@ export const AdminDashboard: React.FC<Props> = ({
             actor: 'Citizen Portal'
           }
         ];
-        const eventTitle = 
-          newStage === 'APPROVED' ? 'Petition Formally Upheld & Action Directed' :
-          newStage === 'REJECTED' ? 'Petition Review Concluded & Advisory Noted' :
-          newStage === 'INITIAL REVIEW' ? 'Constituency Investigation Initiated' :
-          newStage === 'DOCUMENT VERIFICATION' ? 'Field Fact-Finding & Verification' :
-          newStage === 'ELIGIBILITY ASSESSMENT' ? 'Committee Deliberation & Assessment' :
-          newStage === 'FINAL REVIEW' ? 'Legislative Determination Concluded' :
-          newStage === 'WAITLISTED' ? 'Scheduled for Secondary Hearing' :
-          `Stage Transitioned to ${newStage}`;
-
-        const fallbackFeedback = getRespectfulPetitionFeedback(newStage);
-        const resolvedFeedback = (publicFeedback !== undefined && publicFeedback !== '') ? publicFeedback : fallbackFeedback;
-        const resolvedPackage = actionPackage || getRespectfulPetitionAction(newStage);
-
         const newEvent = {
           stage: newStage,
           timestamp: timeStr,
-          title: eventTitle,
-          note: resolvedFeedback || internalNote || `Status updated to ${newStage} by Committee`,
-          actor: adminRole || 'Constituency Committee'
+          title: `Stage transitioned to ${newStage}`,
+          note: publicFeedback || internalNote || `Stage updated by ${adminRole || 'Administrator'}`,
+          actor: adminRole || 'Administrator'
         };
         return {
           ...p,
           status: newStage,
           currentStage: newStage,
-          awardGrantPackage: resolvedPackage || p.awardGrantPackage,
+          awardGrantPackage: actionPackage || p.awardGrantPackage || reviewAwardPackage,
           notes: internalNote !== undefined ? internalNote : p.notes,
-          publicFeedback: resolvedFeedback,
+          publicFeedback: publicFeedback !== undefined ? publicFeedback : p.publicFeedback,
           timeline: [...oldTimeline, newEvent]
         };
       }
       return p;
     });
     setPetitions(updated);
-    safeSetItem('danmaje_petitions', JSON.stringify(updated));
+    try {
+      localStorage.setItem('danmaje_petitions', JSON.stringify(updated));
+    } catch {}
     if (selectedAppForReview && selectedAppForReview.id === petitionId) {
       setSelectedAppForReview(updated.find(p => p.id === petitionId) || null);
     }
@@ -497,8 +434,6 @@ export const AdminDashboard: React.FC<Props> = ({
     try {
       localStorage.setItem('danmaje_stats', JSON.stringify(editableStats));
     } catch {}
-    apiUpdateStats(editableStats).catch(err => console.warn('Backend API stats update warn:', err));
-
     setStatsSavedMsg(true);
     setTimeout(() => setStatsSavedMsg(false), 3000);
   };
@@ -541,8 +476,6 @@ export const AdminDashboard: React.FC<Props> = ({
     const updated = [newUsr, ...adminUsers];
     setAdminUsers(updated);
     try { localStorage.setItem('danmaje_admin_users', JSON.stringify(updated)); } catch {}
-    apiCreateAdminUser(newUsr).catch((err: unknown) => console.warn('Backend admin user create warn:', err));
-
     setNewAdminEmail('');
     setShowAddAdminModal(false);
     setActivityLogs(prev => [{
@@ -558,17 +491,12 @@ export const AdminDashboard: React.FC<Props> = ({
     const updated = adminUsers.map(u => u.id === id ? { ...u, status: u.status === 'Active' ? 'Inactive' as const : 'Active' as const } : u);
     setAdminUsers(updated);
     try { localStorage.setItem('danmaje_admin_users', JSON.stringify(updated)); } catch {}
-    const updatedUsr = updated.find(u => u.id === id);
-    if (updatedUsr) {
-      apiUpdateAdminUser(id, updatedUsr).catch((err: unknown) => console.warn('Backend admin user update warn:', err));
-    }
   };
 
   const handleDeleteAdmin = (id: string) => {
     const updated = adminUsers.filter(u => u.id !== id);
     setAdminUsers(updated);
     try { localStorage.setItem('danmaje_admin_users', JSON.stringify(updated)); } catch {}
-    apiDeleteAdminUser(id).catch((err: unknown) => console.warn('Backend admin user delete warn:', err));
   };
 
   // Activity Logs State
@@ -624,64 +552,32 @@ export const AdminDashboard: React.FC<Props> = ({
     updates: []
   });
   const [editingProject, setEditingProject] = useState<Project | null>(null);
-  const [isCompressingProjImg, setIsCompressingProjImg] = useState(false);
-  const [projectSuccessNotice, setProjectSuccessNotice] = useState<string | null>(null);
 
-  const handleProjectImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleProjectImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      setIsCompressingProjImg(true);
-      try {
-        const compressed = await compressImageFile(file, 1200, 900, 0.78);
-        setNewProj(prev => ({ ...prev, images: [compressed] }));
-      } catch (err) {
-        console.warn('Image compression fallback:', err);
-        const reader = new FileReader();
-        reader.onloadend = () => {
-          setNewProj(prev => ({ ...prev, images: [reader.result as string] }));
-        };
-        reader.readAsDataURL(file);
-      } finally {
-        setIsCompressingProjImg(false);
-      }
+      if (file.size > 8 * 1024 * 1024) return;
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const result = reader.result as string;
+        setNewProj(prev => ({ ...prev, images: [result] }));
+      };
+      reader.readAsDataURL(file);
     }
   };
 
   const handleCreateProject = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newProj.title.trim()) return;
-
-    const safeImages = newProj.images && newProj.images.length > 0 && newProj.images[0]?.trim()
-      ? newProj.images
-      : ['https://images.unsplash.com/photo-1541888946425-d0fbb18f764c?auto=format&fit=crop&q=80&w=1000'];
-
     const created: Project = {
       id: `proj-${Date.now()}`,
-      title: newProj.title.trim(),
-      category: newProj.category || 'Water & Sanitation',
-      location: newProj.location.trim() || 'Yabo / Shagari Constituency',
-      status: newProj.status || 'Ongoing',
-      year: newProj.year?.trim() || '2026',
-      startDate: newProj.startDate || new Date().toISOString().split('T')[0],
-      completionDate: newProj.completionDate || '2026-12-31',
-      expenditure: newProj.expenditure?.trim() || '',
-      currency: newProj.currency || '₦',
-      description: newProj.description.trim() || 'Constituency capital development project.',
-      images: safeImages,
-      updates: newProj.updates || [],
-      date: new Date().toISOString().split('T')[0],
-      isFeatured: true
+      ...newProj,
+      startDate: new Date().toISOString().split('T')[0],
+      date: new Date().toISOString().split('T')[0]
     };
-
     const updated = [created, ...projects];
     setProjects(updated);
-    safeSetItem('danmaje_projects', JSON.stringify(updated));
-    apiCreateProject(created).catch(err => console.warn('Backend API project create warn:', err));
-
+    try { localStorage.setItem('danmaje_projects', JSON.stringify(updated)); } catch {}
     setShowAddProj(false);
-    setProjectSuccessNotice(`Project "${created.title}" successfully published and live across portal!`);
-    setTimeout(() => setProjectSuccessNotice(null), 5000);
-
     setNewProj({
       title: '',
       category: 'Water & Sanitation',
@@ -708,31 +604,14 @@ export const AdminDashboard: React.FC<Props> = ({
   const handleUpdateProject = (e: React.FormEvent) => {
     e.preventDefault();
     if (!editingProject) return;
-    const safeImages = editingProject.images && editingProject.images.length > 0 && editingProject.images[0]?.trim()
-      ? editingProject.images
-      : ['https://images.unsplash.com/photo-1541888946425-d0fbb18f764c?auto=format&fit=crop&q=80&w=1000'];
-
-    const sanitizedProject: Project = {
-      ...editingProject,
-      title: editingProject.title.trim(),
-      location: editingProject.location.trim() || 'Yabo/Shagari Constituency',
-      description: editingProject.description.trim() || 'Constituency development project.',
-      images: safeImages,
-      updates: editingProject.updates || []
-    };
-
-    const updated = projects.map(p => p.id === sanitizedProject.id ? sanitizedProject : p);
+    const updated = projects.map(p => p.id === editingProject.id ? editingProject : p);
     setProjects(updated);
-    safeSetItem('danmaje_projects', JSON.stringify(updated));
-    apiUpdateProject(sanitizedProject.id, sanitizedProject).catch(err => console.warn('Backend API project update warn:', err));
-
+    try { localStorage.setItem('danmaje_projects', JSON.stringify(updated)); } catch {}
     setEditingProject(null);
-    setProjectSuccessNotice(`Project "${sanitizedProject.title}" updated successfully!`);
-    setTimeout(() => setProjectSuccessNotice(null), 5000);
     setActivityLogs(prev => [{
       id: `log-${Date.now()}`,
       user: email,
-      action: `Updated project: ${sanitizedProject.title}`,
+      action: `Updated project: ${editingProject.title}`,
       timestamp: new Date().toISOString().replace('T', ' ').substring(0, 16),
       role: adminRole
     }, ...prev]);
@@ -741,10 +620,7 @@ export const AdminDashboard: React.FC<Props> = ({
   const handleDeleteProject = (id: string) => {
     const updated = projects.filter(p => p.id !== id);
     setProjects(updated);
-    safeSetItem('danmaje_projects', JSON.stringify(updated));
-    apiDeleteProject(id).catch(err => console.warn('Backend API project delete warn:', err));
-
-    setEditingProject(null);
+    try { localStorage.setItem('danmaje_projects', JSON.stringify(updated)); } catch {}
     setActivityLogs(prev => [{
       id: `log-${Date.now()}`,
       user: email,
@@ -773,24 +649,17 @@ export const AdminDashboard: React.FC<Props> = ({
   const [newsImagePreview, setNewsImagePreview] = useState<string>('');
   const [editingNews, setEditingNews] = useState<NewsArticle | null>(null);
 
-  const handleNewsImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleNewsImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      try {
-        const compressed = await compressImageFile(file, 960, 720, 0.72);
-        setNewsImagePreview(compressed);
-        setNewNews(prev => ({ ...prev, imageUrl: compressed }));
-      } catch (err) {
-        if (file.size < 800 * 1024) {
-          const reader = new FileReader();
-          reader.onloadend = () => {
-            const result = reader.result as string;
-            setNewsImagePreview(result);
-            setNewNews(prev => ({ ...prev, imageUrl: result }));
-          };
-          reader.readAsDataURL(file);
-        }
-      }
+      if (file.size > 8 * 1024 * 1024) return;
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const result = reader.result as string;
+        setNewsImagePreview(result);
+        setNewNews(prev => ({ ...prev, imageUrl: result }));
+      };
+      reader.readAsDataURL(file);
     }
   };
 
@@ -819,9 +688,7 @@ export const AdminDashboard: React.FC<Props> = ({
     };
     const updated = [created, ...news];
     setNews(updated);
-    safeSetItem('danmaje_news', JSON.stringify(updated));
-    apiCreateNews(created).catch(err => console.warn('Backend API news create warn:', err));
-
+    try { localStorage.setItem('danmaje_news', JSON.stringify(updated)); } catch {}
     setShowAddNews(false);
     setNewsImagePreview('');
     setNewNews({
@@ -849,9 +716,7 @@ export const AdminDashboard: React.FC<Props> = ({
     if (!editingNews) return;
     const updated = news.map(n => n.id === editingNews.id ? editingNews : n);
     setNews(updated);
-    safeSetItem('danmaje_news', JSON.stringify(updated));
-    apiUpdateNews(editingNews.id, editingNews).catch(err => console.warn('Backend API news update warn:', err));
-
+    try { localStorage.setItem('danmaje_news', JSON.stringify(updated)); } catch {}
     setEditingNews(null);
     setActivityLogs(prev => [{
       id: `log-${Date.now()}`,
@@ -865,9 +730,7 @@ export const AdminDashboard: React.FC<Props> = ({
   const handleDeleteNews = (id: string) => {
     const updated = news.filter(n => n.id !== id);
     setNews(updated);
-    safeSetItem('danmaje_news', JSON.stringify(updated));
-    apiDeleteNews(id).catch(err => console.warn('Backend API news delete warn:', err));
-
+    try { localStorage.setItem('danmaje_news', JSON.stringify(updated)); } catch {}
     setActivityLogs(prev => [{
       id: `log-${Date.now()}`,
       user: email,
@@ -897,8 +760,6 @@ export const AdminDashboard: React.FC<Props> = ({
     const updated = [created, ...legislative];
     setLegislative(updated);
     try { localStorage.setItem('danmaje_legislative', JSON.stringify(updated)); } catch {}
-    apiCreateLegislative(created).catch(err => console.warn('Backend API legislative create warn:', err));
-
     setShowAddLeg(false);
     setNewLeg({ title: '', category: 'Bill', status: 'Passed', date: new Date().toISOString().split('T')[0], description: '', coSponsors: ['Hon. Umar Yusuf Danmaje'] });
     setActivityLogs(prev => [{
@@ -914,7 +775,6 @@ export const AdminDashboard: React.FC<Props> = ({
     const updated = legislative.filter(l => l.id !== id);
     setLegislative(updated);
     try { localStorage.setItem('danmaje_legislative', JSON.stringify(updated)); } catch {}
-    apiDeleteLegislative(id).catch(err => console.warn('Backend API legislative delete warn:', err));
     setActivityLogs(prev => [{
       id: `log-${Date.now()}`,
       user: email,
@@ -981,8 +841,6 @@ export const AdminDashboard: React.FC<Props> = ({
     const updated = [created, ...programs];
     setPrograms(updated);
     try { localStorage.setItem('danmaje_programs', JSON.stringify(updated)); } catch {}
-    apiCreateProgram(created).catch(err => console.warn('Backend API program create warn:', err));
-
     setShowAddProg(false);
     setNewProg({
       title: '',
@@ -1017,8 +875,6 @@ export const AdminDashboard: React.FC<Props> = ({
     const updated = programs.filter(p => p.id !== id);
     setPrograms(updated);
     try { localStorage.setItem('danmaje_programs', JSON.stringify(updated)); } catch {}
-    apiDeleteProgram(id).catch(err => console.warn('Backend API program delete warn:', err));
-
     setActivityLogs(prev => [{
       id: `log-${Date.now()}`,
       user: email,
@@ -1140,7 +996,6 @@ export const AdminDashboard: React.FC<Props> = ({
     try {
       localStorage.setItem('danmaje_gallery', JSON.stringify(updated));
     } catch {}
-    apiCreateGallery(createdItem).catch(err => console.warn('Backend API gallery create warn:', err));
 
     setShowAddMedia(false);
     setNewMedia({
@@ -1183,12 +1038,9 @@ export const AdminDashboard: React.FC<Props> = ({
   const handleUpdateMedia = (e: React.FormEvent) => {
     e.preventDefault();
     if (!editingMedia) return;
-    const updatedItem = { ...editingMedia, ...newMedia };
-    const updated = gallery.map(item => item.id === editingMedia.id ? updatedItem : item);
+    const updated = gallery.map(item => item.id === editingMedia.id ? { ...editingMedia, ...newMedia } : item);
     setGallery(updated);
     try { localStorage.setItem('danmaje_gallery', JSON.stringify(updated)); } catch {}
-    apiUpdateGallery(editingMedia.id, updatedItem).catch(err => console.warn('Backend API gallery update warn:', err));
-
     setEditingMedia(null);
     setShowAddMedia(false);
   };
@@ -1199,8 +1051,6 @@ export const AdminDashboard: React.FC<Props> = ({
     try {
       localStorage.setItem('danmaje_gallery', JSON.stringify(updated));
     } catch {}
-    apiDeleteGallery(id).catch(err => console.warn('Backend API gallery delete warn:', err));
-
     setActivityLogs(prev => [{
       id: `log-${Date.now()}`,
       user: email,
@@ -1295,30 +1145,28 @@ export const AdminDashboard: React.FC<Props> = ({
   if (!isLoggedIn) {
     return (
       <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#072118] p-4 sm:p-6 overflow-y-auto">
-        <div className="max-w-md w-full bg-white rounded-3xl shadow-2xl overflow-hidden border-2 border-[#D4AF37]/40 my-8">
+        <div className="max-w-md w-full bg-white rounded-3xl shadow-2xl overflow-hidden border border-[#C6A15B]/50 my-8">
           <div className="bg-[#103C2E] p-8 text-center text-white relative">
             <button
               onClick={onClose}
-              className="absolute top-4 right-4 bg-emerald-950/60 hover:bg-emerald-900 text-emerald-200 border border-emerald-700/50 p-2 rounded-xl transition cursor-pointer shadow-sm"
+              className="absolute top-4 right-4 bg-rose-950/60 hover:bg-rose-900 text-rose-200 border border-rose-700/50 p-2 rounded-xl transition cursor-pointer shadow-sm"
               title="Close Portal"
             >
               <X className="w-5 h-5" />
             </button>
-            <div className="w-18 h-18 bg-[#09291F] border-2 border-[#D4AF37] rounded-full mx-auto flex items-center justify-center p-2.5 mb-3 shadow-xl">
+            <div className="w-16 h-16 bg-[#09291F] border-2 border-[#D4AF37] rounded-full mx-auto flex items-center justify-center p-2 mb-3 shadow-lg">
               <img src="/official_logo.png" alt="Official Seal" className="w-full h-full object-contain" />
             </div>
-            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#D4AF37]/20 border border-[#D4AF37]/50 text-[#D4AF37] text-[10px] font-black uppercase tracking-widest mb-2">
-              <Shield className="w-3 h-3" /> Secure Parliamentary Gateway
-            </div>
-            <h2 className="text-xl font-bold font-['Manrope'] text-white uppercase tracking-wide">
-              ADMINISTRATIVE CMS PORTAL
+            <span className="text-[10px] font-black uppercase tracking-widest text-[#D4AF37]">10th National Assembly</span>
+            <h2 className="text-xl font-bold font-['Manrope'] text-white mt-1 uppercase tracking-wide">
+              ADMIN & ENTERPRISE CMS PORTAL
             </h2>
-            <p className="text-xs text-stone-300 mt-1 font-light">
-              Office of Hon. (Dr.) Umar Yusuf Yabo (Dan Majen Yabo)
+            <p className="text-xs text-white/80 mt-1 font-light">
+              Office of Hon. Umar Yusuf (Danmaje Yabo)
             </p>
           </div>
 
-          <form onSubmit={handleLogin} className="p-8 space-y-5">
+          <form onSubmit={handleLogin} className="p-8 space-y-4">
             {loginError && (
               <div className="p-3 bg-rose-50 border border-rose-200 text-rose-700 rounded-xl text-xs flex items-center gap-2">
                 <AlertCircle className="w-4 h-4 shrink-0" />
@@ -1326,73 +1174,39 @@ export const AdminDashboard: React.FC<Props> = ({
               </div>
             )}
 
-            <div className="space-y-1.5">
-              <label className="text-xs font-bold text-[#103C2E] uppercase flex items-center gap-1.5">
-                <Mail className="w-3.5 h-3.5 text-[#C6A15B]" /> Authorized Administrator Email
-              </label>
+            <div className="space-y-1">
+              <label className="text-xs font-bold text-[#103C2E] uppercase">Authorized Email</label>
               <input
                 type="email"
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="w-full px-4 py-3 bg-[#FAF9F5] border border-stone-200 rounded-xl text-xs sm:text-sm text-[#103C2E] font-medium focus:outline-none focus:border-[#103C2E] focus:ring-2 focus:ring-[#103C2E]/20"
-                placeholder="admin@danmayeyabo.gov.ng"
+                className="w-full px-4 py-3 bg-[#FAF9F5] border border-stone-200 rounded-xl text-xs sm:text-sm text-[#103C2E] focus:outline-none focus:border-[#103C2E]"
               />
             </div>
 
-            <div className="space-y-1.5">
-              <label className="text-xs font-bold text-[#103C2E] uppercase flex items-center gap-1.5">
-                <Lock className="w-3.5 h-3.5 text-[#C6A15B]" /> Secure Access Password / Key
-              </label>
+            <div className="space-y-1">
+              <label className="text-xs font-bold text-[#103C2E] uppercase">Access Password / Key</label>
               <input
                 type="password"
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full px-4 py-3 bg-[#FAF9F5] border border-stone-200 rounded-xl text-xs sm:text-sm text-[#103C2E] font-medium focus:outline-none focus:border-[#103C2E] focus:ring-2 focus:ring-[#103C2E]/20"
-                placeholder="••••••••••••"
+                className="w-full px-4 py-3 bg-[#FAF9F5] border border-stone-200 rounded-xl text-xs sm:text-sm text-[#103C2E] focus:outline-none focus:border-[#103C2E]"
               />
             </div>
 
-            <div className="bg-emerald-50/60 border border-emerald-200/80 rounded-2xl p-3 space-y-2">
-              <div className="text-[11px] font-bold text-[#103C2E] flex items-center justify-between">
-                <span>Quick Fill Demo Credentials:</span>
-                <span className="text-[10px] text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-md font-mono">1-Click Login</span>
-              </div>
-              <div className="grid grid-cols-2 gap-2">
-                <button
-                  type="button"
-                  onClick={() => { setEmail('admin@danmayeyabo.gov.ng'); setPassword('DANMAJEFOREVER'); }}
-                  className="text-left p-2 rounded-xl bg-white hover:bg-emerald-100/50 border border-emerald-200/60 transition cursor-pointer text-[11px]"
-                >
-                  <div className="font-bold text-[#103C2E]">Chief Admin</div>
-                  <div className="text-[10px] text-stone-500">Full System Access</div>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => { setEmail('media@danmayeyabo.gov.ng'); setPassword('DANMAJEFOREVER'); }}
-                  className="text-left p-2 rounded-xl bg-white hover:bg-emerald-100/50 border border-emerald-200/60 transition cursor-pointer text-[11px]"
-                >
-                  <div className="font-bold text-[#103C2E]">News Editor</div>
-                  <div className="text-[10px] text-stone-500">Media & Gallery</div>
-                </button>
-              </div>
-            </div>
-
-            <div className="pt-1">
+            <div className="pt-2">
               <button
                 type="submit"
-                className="w-full bg-[#103C2E] hover:bg-[#09291F] text-[#D4AF37] font-black py-3.5 rounded-xl text-xs sm:text-sm shadow-xl transition-all cursor-pointer border border-[#C6A15B]/50 uppercase tracking-wider flex items-center justify-center gap-2"
+                className="w-full bg-[#103C2E] hover:bg-[#09291F] text-[#D4AF37] font-black py-3.5 rounded-xl text-xs sm:text-sm shadow-xl transition-all cursor-pointer border border-[#C6A15B]/50 uppercase tracking-wider"
               >
-                <Shield className="w-4 h-4 text-[#D4AF37]" /> AUTHENTICATE & ACCESS DASHBOARD
+                AUTHENTICATE & ACCESS DASHBOARD
               </button>
             </div>
 
-            <div className="border-t border-stone-100 pt-3 flex items-center justify-between text-[10px] text-stone-500">
-              <span>Database: Supabase Anon Key Ready</span>
-              <span className="text-emerald-700 font-bold flex items-center gap-1">
-                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span> Secured
-              </span>
+            <div className="text-[11px] text-stone-500 text-center pt-2">
+              Authorized parliamentary personnel only. All access attempts are logged.
             </div>
           </form>
         </div>
@@ -2236,26 +2050,10 @@ export const AdminDashboard: React.FC<Props> = ({
                 </button>
               </div>
 
-              {/* Upload Success Feedback Banner */}
-              {projectSuccessNotice && (
-                <div className="bg-emerald-50 border-2 border-emerald-400 text-emerald-900 p-4 rounded-2xl flex items-center gap-3 shadow-md animate-fadeIn">
-                  <div className="w-8 h-8 rounded-full bg-emerald-600 text-white flex items-center justify-center shrink-0">
-                    <CheckCircle className="w-5 h-5 text-white" />
-                  </div>
-                  <div>
-                    <h5 className="font-bold text-xs uppercase tracking-wide text-emerald-950">Record Published Successfully</h5>
-                    <p className="text-xs text-emerald-800">{projectSuccessNotice}</p>
-                  </div>
-                </div>
-              )}
-
               {/* Add Project Form */}
               {showAddProj && (
                 <form onSubmit={handleCreateProject} className="bg-white p-6 rounded-3xl shadow-md border border-stone-200 space-y-4">
-                  <div className="flex justify-between items-center border-b border-stone-100 pb-3">
-                    <h4 className="font-bold text-[#103C2E] text-sm uppercase">CREATE NEW CONSTITUENCY PROJECT RECORD</h4>
-                    <span className="text-[11px] text-stone-500 font-medium">Fields with * are mandatory</span>
-                  </div>
+                  <h4 className="font-bold text-[#103C2E] text-sm uppercase">CREATE NEW CONSTITUENCY PROJECT RECORD</h4>
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                     <input
                       type="text"
@@ -2329,10 +2127,10 @@ export const AdminDashboard: React.FC<Props> = ({
                     <div className="flex flex-wrap items-center gap-3">
                       <label className="cursor-pointer bg-[#103C2E] hover:bg-[#09291F] text-white px-4 py-2.5 rounded-xl text-xs font-bold flex items-center gap-2 shadow-sm transition">
                         <Camera className="w-4 h-4 text-[#C6A15B]" />
-                        <span>{isCompressingProjImg ? 'Processing Photo...' : 'Upload Photo File'}</span>
-                        <input type="file" accept="image/*" disabled={isCompressingProjImg} onChange={handleProjectImageUpload} className="hidden" />
+                        <span>Upload Photo File</span>
+                        <input type="file" accept="image/*" onChange={handleProjectImageUpload} className="hidden" />
                       </label>
-                      <span className="text-[11px] text-stone-500 font-medium">Auto-compressed for web. Supports JPG, PNG, WEBP (Camera or Gallery)</span>
+                      <span className="text-[11px] text-stone-500 font-medium">Supports JPG, PNG, WEBP (Direct Camera or Gallery)</span>
                     </div>
 
                     <div className="space-y-1">
@@ -2376,11 +2174,9 @@ export const AdminDashboard: React.FC<Props> = ({
                     </button>
                     <button
                       type="submit"
-                      disabled={isCompressingProjImg}
-                      className="px-6 py-2.5 bg-[#103C2E] hover:bg-[#09291F] disabled:opacity-50 text-white rounded-xl text-xs font-bold uppercase cursor-pointer shadow flex items-center gap-2 transition"
+                      className="px-6 py-2 bg-[#103C2E] hover:bg-[#09291F] text-white rounded-xl text-xs font-bold uppercase cursor-pointer shadow"
                     >
-                      <CheckCircle className="w-4 h-4 text-[#C6A15B]" />
-                      <span>{isCompressingProjImg ? 'Processing Photo...' : 'Publish Project'}</span>
+                      Save Project
                     </button>
                   </div>
                 </form>
@@ -2491,19 +2287,14 @@ export const AdminDashboard: React.FC<Props> = ({
                         <input
                           type="file"
                           accept="image/*"
-                          onChange={async (e) => {
+                          onChange={(e) => {
                             const file = e.target.files?.[0];
                             if (file) {
-                              try {
-                                const compressed = await compressImageFile(file, 1200, 900, 0.78);
-                                setEditingProject(prev => prev ? ({ ...prev, images: [compressed] }) : null);
-                              } catch (err) {
-                                const reader = new FileReader();
-                                reader.onloadend = () => {
-                                  setEditingProject(prev => prev ? ({ ...prev, images: [reader.result as string] }) : null);
-                                };
-                                reader.readAsDataURL(file);
-                              }
+                              const reader = new FileReader();
+                              reader.onloadend = () => {
+                                setEditingProject(prev => prev ? ({ ...prev, images: [reader.result as string] }) : null);
+                              };
+                              reader.readAsDataURL(file);
                             }
                           }}
                           className="hidden"
@@ -3755,8 +3546,8 @@ export const AdminDashboard: React.FC<Props> = ({
                                   setSelectedAppForReview(app);
                                   setReviewStatusInput(app.status || 'SUBMITTED');
                                   setReviewInternalNote(app.notes || '');
-                                  setReviewPublicFeedback(app.publicFeedback || getRespectfulPetitionFeedback(app.status || 'SUBMITTED'));
-                                  setReviewAwardPackage(app.awardGrantPackage || getRespectfulPetitionAction(app.status || 'SUBMITTED'));
+                                  setReviewPublicFeedback(app.publicFeedback || '');
+                                  setReviewAwardPackage(app.awardGrantPackage || '');
                                 }}
                                 className="inline-flex items-center gap-1 bg-[#103C2E] hover:bg-[#09291F] text-white px-3 py-1.5 rounded-xl text-xs font-bold cursor-pointer uppercase shadow-xs transition"
                                 title="Open Review & Decision Dossier"
@@ -4766,14 +4557,7 @@ export const AdminDashboard: React.FC<Props> = ({
                           </label>
                           <select
                             value={reviewStatusInput}
-                            onChange={(e) => {
-                              const nextStage = e.target.value as ApplicationStatus;
-                              setReviewStatusInput(nextStage);
-                              if (isPetition) {
-                                setReviewPublicFeedback(getRespectfulPetitionFeedback(nextStage));
-                                setReviewAwardPackage(getRespectfulPetitionAction(nextStage));
-                              }
-                            }}
+                            onChange={(e) => setReviewStatusInput(e.target.value as ApplicationStatus)}
                             className="w-full px-3 py-2 bg-white border border-stone-300 rounded-xl text-xs font-bold text-[#103C2E]"
                           >
                             <option value="SUBMITTED">{isPetition ? '1. SUBMITTED / LOGGED' : '1. SUBMITTED'}</option>
@@ -4788,56 +4572,16 @@ export const AdminDashboard: React.FC<Props> = ({
                         </div>
 
                         <div>
-                          <label className="text-[11px] font-bold text-[#103C2E] block uppercase mb-1 flex items-center justify-between">
-                            <span>{isPetition ? 'Official Resolution Notice (Public on Tracker):' : 'Public Feedback (Visible to Applicant):'}</span>
-                            {isPetition && (
-                              <span className="text-[10px] text-emerald-700 font-bold lowercase">Respectful Civic Reply</span>
-                            )}
+                          <label className="text-[11px] font-bold text-[#103C2E] block uppercase mb-1">
+                            {isPetition ? 'Official Resolution Notice (Public on Tracker)' : 'Public Feedback (Visible to Applicant on Tracker)'}
                           </label>
-                          <textarea
-                            rows={2}
-                            placeholder={isPetition ? "Respectful message acknowledging the citizen's proposal for community development..." : "Public feedback visible on status tracker..."}
+                          <input
+                            type="text"
+                            placeholder={isPetition ? "e.g. Investigation concluded. Relief materials & engineering team dispatched to site." : "e.g. Approved. Please bring printed slip and NIN for physical handover..."}
                             value={reviewPublicFeedback}
                             onChange={(e) => setReviewPublicFeedback(e.target.value)}
                             className="w-full px-3 py-2 bg-white border border-stone-300 rounded-xl text-xs text-stone-800"
                           />
-                          {isPetition && (
-                            <div className="flex flex-wrap gap-1.5 mt-1">
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setReviewStatusInput('APPROVED');
-                                  setReviewPublicFeedback(getRespectfulPetitionFeedback('APPROVED'));
-                                  setReviewAwardPackage(getRespectfulPetitionAction('APPROVED'));
-                                }}
-                                className="px-2 py-0.5 rounded-md bg-emerald-100 hover:bg-emerald-200 text-emerald-800 text-[10px] font-bold uppercase transition"
-                              >
-                                Preset: Commend & Upheld
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setReviewStatusInput('REJECTED');
-                                  setReviewPublicFeedback(getRespectfulPetitionFeedback('REJECTED'));
-                                  setReviewAwardPackage(getRespectfulPetitionAction('REJECTED'));
-                                }}
-                                className="px-2 py-0.5 rounded-md bg-stone-100 hover:bg-stone-200 text-stone-700 text-[10px] font-bold uppercase transition"
-                              >
-                                Preset: Respectful Dismissal / Advisory
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setReviewStatusInput('INITIAL REVIEW');
-                                  setReviewPublicFeedback(getRespectfulPetitionFeedback('INITIAL REVIEW'));
-                                  setReviewAwardPackage(getRespectfulPetitionAction('INITIAL REVIEW'));
-                                }}
-                                className="px-2 py-0.5 rounded-md bg-blue-100 hover:bg-blue-200 text-blue-800 text-[10px] font-bold uppercase transition"
-                              >
-                                Preset: Under Investigation
-                              </button>
-                            </div>
-                          )}
                         </div>
                       </div>
 
@@ -4892,11 +4636,7 @@ export const AdminDashboard: React.FC<Props> = ({
                           <button
                             type="button"
                             onClick={() => {
-                              if (isPetition) {
-                                handleAdvancePetitionStage(selectedAppForReview.id, reviewStatusInput, reviewInternalNote, reviewPublicFeedback, reviewAwardPackage);
-                              } else {
-                                handleAdvanceApplicationStage(selectedAppForReview.id, reviewStatusInput, reviewInternalNote, reviewPublicFeedback, reviewAwardPackage);
-                              }
+                              handleAdvanceApplicationStage(selectedAppForReview.id, reviewStatusInput, reviewInternalNote, reviewPublicFeedback, reviewAwardPackage);
                               setSelectedAppForReview(null);
                             }}
                             className="bg-[#103C2E] hover:bg-[#09291F] text-white px-5 py-2 rounded-xl text-xs font-bold uppercase shadow cursor-pointer flex items-center gap-1.5"

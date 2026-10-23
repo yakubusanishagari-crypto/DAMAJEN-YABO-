@@ -575,8 +575,8 @@ export const Home: React.FC<Props> = ({
                 <div>
                   <div className="relative aspect-[16/10] overflow-hidden bg-stone-200">
                     <img
-                      src={(project.images && project.images[0]) || 'https://images.unsplash.com/photo-1541888946425-d0fbb18f764c?auto=format&fit=crop&q=80&w=1000'}
-                      alt={project.title || 'Constituency Project'}
+                      src={project.images[0]}
+                      alt={project.title}
                       className="w-full h-full object-cover group-hover:scale-105 transition duration-500"
                       onError={(e) => {
                         (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1541888946425-d0fbb18f764c?auto=format&fit=crop&q=80&w=1000';
@@ -1015,14 +1015,10 @@ export const Home: React.FC<Props> = ({
           <div className="bg-white w-full max-w-2xl rounded-3xl shadow-2xl overflow-hidden border border-stone-200 max-h-[90vh] flex flex-col">
             <div className="relative aspect-[16/9] bg-stone-100 shrink-0">
               <img
-                src={(activeProject.images && activeProject.images[0]) || 'https://images.unsplash.com/photo-1541888946425-d0fbb18f764c?auto=format&fit=crop&q=80&w=1000'}
-                alt={activeProject.title || 'Project'}
+                src={activeProject.images[0]}
+                alt={activeProject.title}
                 className="w-full h-full object-cover"
-                onError={(e) => {
-                  (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1541888946425-d0fbb18f764c?auto=format&fit=crop&q=80&w=1000';
-                }}
               />
-
               <button
                 onClick={() => setActiveProject(null)}
                 className="absolute top-4 right-4 bg-black/60 hover:bg-black text-white p-2 rounded-full transition"

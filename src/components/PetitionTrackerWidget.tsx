@@ -1,8 +1,6 @@
 import React, { useState } from 'react';
-import { Search, CheckCircle2, Clock, ShieldCheck, AlertCircle, FileText, ArrowRight, Plus, X, Copy, Check, Award, Printer } from 'lucide-react';
+import { Search, CheckCircle2, Clock, ShieldCheck, AlertCircle, FileText, ArrowRight, Plus, X, Copy, Check } from 'lucide-react';
 import { ProgramApplication } from '../types';
-import { CongratulationOfferModal } from './CongratulationOfferModal';
-import { safeSetItem } from '../utils/safeStorage';
 
 interface Props {
   currentLang: string;
@@ -12,8 +10,6 @@ export const PetitionTrackerWidget: React.FC<Props> = ({ currentLang }) => {
   const [searchRef, setSearchRef] = useState('');
   const [searchedResult, setSearchedResult] = useState<ProgramApplication | null>(null);
   const [hasSearched, setHasSearched] = useState(false);
-  const [showResolutionOrderModal, setShowResolutionOrderModal] = useState(false);
-
 
   // Modal / Form state for generating new ticket
   const [showGenerateModal, setShowGenerateModal] = useState(false);
@@ -115,9 +111,8 @@ export const PetitionTrackerWidget: React.FC<Props> = ({ currentLang }) => {
     try {
       const existing = JSON.parse(localStorage.getItem('danmaje_petitions') || '[]');
       existing.unshift(newTicket);
-      safeSetItem('danmaje_petitions', JSON.stringify(existing));
+      localStorage.setItem('danmaje_petitions', JSON.stringify(existing));
     } catch {}
-
 
     setJustGeneratedRef(refCode);
     setSearchRef(refCode);
@@ -335,94 +330,30 @@ export const PetitionTrackerWidget: React.FC<Props> = ({ currentLang }) => {
               <span className="text-xs font-bold text-stone-500 uppercase tracking-wider">Reference Number</span>
               <h3 className="font-mono font-black text-xl text-[#103C2E]">{searchedResult.referenceNumber}</h3>
             </div>
-            <div className="flex flex-wrap items-center gap-2.5">
-              <span className={`px-4 py-2 rounded-full text-xs font-black uppercase tracking-wider border flex items-center gap-1.5 ${
-                searchedResult.status === 'APPROVED' ? 'bg-emerald-100 text-emerald-800 border-emerald-300' :
-                searchedResult.status === 'REJECTED' ? 'bg-stone-200 text-stone-800 border-stone-300' :
-                searchedResult.status === 'INITIAL REVIEW' ? 'bg-blue-100 text-blue-800 border-blue-300' :
-                'bg-amber-100 text-amber-800 border-amber-300'
-              }`}>
-                <span className={`w-2 h-2 rounded-full ${searchedResult.status === 'APPROVED' ? 'bg-emerald-600' : searchedResult.status === 'REJECTED' ? 'bg-stone-500' : 'bg-amber-600 animate-pulse'}`}></span>
-                STATUS: {
-                  searchedResult.status === 'APPROVED' ? 'UPHELD & RELIEF ACTION DIRECTED' :
-                  searchedResult.status === 'REJECTED' ? 'REVIEW CONCLUDED / ADVISORY' :
-                  searchedResult.status === 'INITIAL REVIEW' ? 'UNDER INVESTIGATION' :
-                  searchedResult.status
-                }
-              </span>
-
-              {searchedResult.status === 'APPROVED' && (
-                <button
-                  onClick={() => setShowResolutionOrderModal(true)}
-                  className="bg-gradient-to-r from-[#D4AF37] to-[#C6A15B] hover:brightness-110 active:scale-95 text-[#09291F] px-4 py-2 rounded-xl text-xs font-black flex items-center gap-1.5 shadow-md cursor-pointer transition uppercase tracking-wider"
-                >
-                  <Award className="w-4 h-4" />
-                  <span>OFFICIAL RESOLUTION & ORDER</span>
-                </button>
-              )}
-            </div>
+            <span className="bg-emerald-100 text-emerald-800 px-4 py-2 rounded-full text-xs font-black uppercase tracking-wider border border-emerald-300 flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full bg-emerald-600 animate-pulse"></span>
+              STATUS: {searchedResult.status}
+            </span>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 bg-stone-50 p-6 rounded-2xl border border-stone-200 text-xs">
             <div className="space-y-1">
-              <span className="text-stone-400 font-bold uppercase">Petitioner / Applicant</span>
+              <span className="text-stone-400 font-bold uppercase">Applicant Name</span>
               <strong className="text-[#103C2E] text-sm block">{searchedResult.applicantName}</strong>
             </div>
             <div className="space-y-1">
-              <span className="text-stone-400 font-bold uppercase">Petition Subject / Request</span>
+              <span className="text-stone-400 font-bold uppercase">Subject / Program</span>
               <strong className="text-[#103C2E] text-sm block">{searchedResult.programTitle}</strong>
             </div>
             <div className="space-y-1">
-              <span className="text-stone-400 font-bold uppercase">Ward & Constituency</span>
-              <span className="text-stone-800 font-medium block">{searchedResult.wardOrTown} ({searchedResult.lga || 'Yabo/Shagari'})</span>
+              <span className="text-stone-400 font-bold uppercase">Ward & LGA</span>
+              <span className="text-stone-800 font-medium block">{searchedResult.wardOrTown}</span>
             </div>
             <div className="space-y-1">
-              <span className="text-stone-400 font-bold uppercase">Date Officially Logged</span>
+              <span className="text-stone-400 font-bold uppercase">Date Logged</span>
               <span className="text-stone-800 font-mono block">{searchedResult.date}</span>
             </div>
           </div>
-
-          {/* Official Committee Resolution Notice */}
-          {(() => {
-            let feedback = searchedResult.publicFeedback;
-            if (!feedback) {
-              if (searchedResult.status === 'APPROVED') {
-                feedback = 'We highly commend your dedicated civic engagement and proactive proposal toward community development. Following thorough committee review and field verification, your petition has been formally UPHELD and approved for direct executive intervention.';
-              } else if (searchedResult.status === 'REJECTED') {
-                feedback = 'We sincerely appreciate your civic awareness and active initiative in bringing this matter forward for community development. Following comprehensive review, this matter has been resolved or does not fall within legislative intervention. Your concern remains respectfully recorded in constituency archives.';
-              } else if (searchedResult.status === 'INITIAL REVIEW') {
-                feedback = 'Thank you for your active civic participation. Your community petition is currently under preliminary review and assigned to the constituency liaison team for field verification.';
-              }
-            }
-
-            if (!feedback && !searchedResult.awardGrantPackage) return null;
-
-            return (
-              <div className={`p-5 rounded-2xl border space-y-2 text-xs ${
-                searchedResult.status === 'APPROVED' ? 'bg-emerald-50/90 border-emerald-300' :
-                searchedResult.status === 'REJECTED' ? 'bg-stone-50 border-stone-300' :
-                'bg-blue-50/90 border-blue-200'
-              }`}>
-                <div className="flex items-center gap-2">
-                  <ShieldCheck className="w-4 h-4 text-[#103C2E]" />
-                  <h4 className="font-['Manrope'] font-extrabold uppercase text-[#103C2E] text-xs tracking-wider">
-                    Official Committee Resolution Notice
-                  </h4>
-                </div>
-                {feedback && (
-                  <p className="text-stone-800 leading-relaxed font-medium pl-6">
-                    "{feedback}"
-                  </p>
-                )}
-                {searchedResult.awardGrantPackage && (
-                  <div className="pt-2 border-t border-stone-200/70 pl-6 flex items-center gap-2">
-                    <span className="font-bold text-[#103C2E] uppercase text-[11px]">Committed Action:</span>
-                    <span className="font-black text-emerald-800 text-xs">{searchedResult.awardGrantPackage}</span>
-                  </div>
-                )}
-              </div>
-            );
-          })()}
 
           {/* Timeline */}
           <div className="space-y-4 pt-2">
@@ -446,15 +377,6 @@ export const PetitionTrackerWidget: React.FC<Props> = ({ currentLang }) => {
           </div>
         </div>
       )}
-
-      {/* Resolution & Commendation Modal */}
-      {showResolutionOrderModal && searchedResult && (
-        <CongratulationOfferModal
-          application={searchedResult}
-          onClose={() => setShowResolutionOrderModal(false)}
-        />
-      )}
     </div>
   );
 };
-

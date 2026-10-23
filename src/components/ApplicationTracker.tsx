@@ -185,50 +185,24 @@ export const ApplicationTracker: React.FC<Props> = ({ applications = [], initial
             </div>
 
             <div className="flex flex-wrap items-center gap-3">
-              {(() => {
-                const isPetition = Boolean(
-                  currentApp.referenceNumber?.startsWith('DAN-PET') ||
-                  currentApp.programCategory?.toLowerCase().includes('petition') ||
-                  currentApp.programId?.includes('ticket') ||
-                  currentApp.programId?.includes('petition')
-                );
+              <span className={`px-4 py-1.5 rounded-full text-xs font-black uppercase tracking-wider border ${
+                currentApp.status === 'APPROVED' ? 'bg-emerald-100 text-emerald-800 border-emerald-300' :
+                currentApp.status === 'REJECTED' ? 'bg-rose-100 text-rose-800 border-rose-300' :
+                currentApp.status === 'WAITLISTED' ? 'bg-blue-100 text-blue-800 border-blue-300' :
+                'bg-amber-100 text-amber-900 border-amber-300'
+              }`}>
+                {currentApp.status}
+              </span>
 
-                const getStatusPill = () => {
-                  if (currentApp.status === 'APPROVED') {
-                    return isPetition ? 'UPHELD & RELIEF DIRECTED' : 'APPROVED';
-                  }
-                  if (currentApp.status === 'REJECTED') {
-                    return isPetition ? 'REVIEW CONCLUDED / ADVISORY' : 'REJECTED';
-                  }
-                  if (currentApp.status === 'INITIAL REVIEW') {
-                    return isPetition ? 'UNDER INVESTIGATION' : 'INITIAL REVIEW';
-                  }
-                  return currentApp.status;
-                };
-
-                return (
-                  <>
-                    <span className={`px-4 py-1.5 rounded-full text-xs font-black uppercase tracking-wider border ${
-                      currentApp.status === 'APPROVED' ? 'bg-emerald-100 text-emerald-800 border-emerald-300' :
-                      currentApp.status === 'REJECTED' ? 'bg-stone-200 text-stone-800 border-stone-300' :
-                      currentApp.status === 'WAITLISTED' ? 'bg-blue-100 text-blue-800 border-blue-300' :
-                      'bg-amber-100 text-amber-900 border-amber-300'
-                    }`}>
-                      {getStatusPill()}
-                    </span>
-
-                    {currentApp.status === 'APPROVED' && (
-                      <button
-                        onClick={() => setShowOfferModal(true)}
-                        className="bg-gradient-to-r from-[#D4AF37] to-[#C6A15B] hover:brightness-110 active:scale-95 text-[#09291F] px-4 py-2 rounded-xl text-xs font-black flex items-center gap-1.5 shadow-md cursor-pointer transition uppercase tracking-wider"
-                      >
-                        <Award className="w-4 h-4" />
-                        <span>{isPetition ? 'OFFICIAL RESOLUTION & ORDER' : 'CONGRATULATION OFFER'}</span>
-                      </button>
-                    )}
-                  </>
-                );
-              })()}
+              {currentApp.status === 'APPROVED' && (
+                <button
+                  onClick={() => setShowOfferModal(true)}
+                  className="bg-gradient-to-r from-[#D4AF37] to-[#C6A15B] hover:brightness-110 active:scale-95 text-[#09291F] px-4 py-2 rounded-xl text-xs font-black flex items-center gap-1.5 shadow-md cursor-pointer transition uppercase tracking-wider"
+                >
+                  <Award className="w-4 h-4" />
+                  <span>CONGRATULATION OFFER</span>
+                </button>
+              )}
 
               <button
                 onClick={() => setShowSlipModal(true)}
@@ -241,48 +215,17 @@ export const ApplicationTracker: React.FC<Props> = ({ applications = [], initial
           </div>
 
           {/* Committee Advisory / Public Feedback */}
-          {(() => {
-            const isPetition = Boolean(
-              currentApp.referenceNumber?.startsWith('DAN-PET') ||
-              currentApp.programCategory?.toLowerCase().includes('petition') ||
-              currentApp.programId?.includes('ticket') ||
-              currentApp.programId?.includes('petition')
-            );
-
-            let feedbackText = currentApp.publicFeedback;
-            if (!feedbackText && isPetition) {
-              if (currentApp.status === 'APPROVED') {
-                feedbackText = 'We highly commend your dedicated civic engagement and proactive proposal toward community development. Following thorough committee review and field verification, your petition has been formally UPHELD and approved for direct executive intervention.';
-              } else if (currentApp.status === 'REJECTED') {
-                feedbackText = 'We sincerely appreciate your civic awareness and active initiative in bringing this matter forward for community development. Following comprehensive review, this matter has been resolved or does not fall within legislative intervention. Your concern remains respectfully recorded in constituency archives.';
-              }
-            }
-
-            if (!feedbackText) return null;
-
-            return (
-              <div className={`border-2 rounded-2xl p-5 space-y-1.5 ${
-                currentApp.status === 'APPROVED' ? 'bg-emerald-50 border-emerald-300/80 text-emerald-950' :
-                currentApp.status === 'REJECTED' ? 'bg-stone-50 border-stone-300 text-stone-900' :
-                'bg-blue-50 border-blue-200 text-blue-950'
-              }`}>
-                <div className="flex items-center gap-2 font-black text-xs uppercase tracking-wider text-[#103C2E]">
-                  <Shield className="w-4 h-4 text-[#103C2E]" />
-                  <span>{isPetition ? 'OFFICIAL RESOLUTION NOTICE FROM COMMITTEE:' : 'OFFICIAL NOTICE FROM VERIFICATION COMMITTEE:'}</span>
-                </div>
-                <p className="text-xs sm:text-sm font-medium leading-relaxed pl-6">
-                  "{feedbackText}"
-                </p>
-                {isPetition && currentApp.awardGrantPackage && (
-                  <div className="pt-2 border-t border-stone-200 pl-6 flex items-center gap-2">
-                    <span className="font-bold text-[#103C2E] uppercase text-[11px]">Committed Action:</span>
-                    <span className="font-black text-emerald-800 text-xs">{currentApp.awardGrantPackage}</span>
-                  </div>
-                )}
+          {currentApp.publicFeedback && (
+            <div className="bg-emerald-50 border-2 border-emerald-300/80 rounded-2xl p-5 space-y-1.5 text-emerald-950">
+              <div className="flex items-center gap-2 font-black text-xs uppercase tracking-wider text-emerald-900">
+                <Shield className="w-4 h-4 text-emerald-700" />
+                <span>OFFICIAL NOTICE FROM VERIFICATION COMMITTEE:</span>
               </div>
-            );
-          })()}
-
+              <p className="text-xs sm:text-sm font-medium leading-relaxed">
+                "{currentApp.publicFeedback}"
+              </p>
+            </div>
+          )}
 
           {/* Phase-by-Phase Timeline Stepper */}
           <div className="space-y-4">

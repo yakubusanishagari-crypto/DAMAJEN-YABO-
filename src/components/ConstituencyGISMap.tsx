@@ -15,10 +15,9 @@ export const ConstituencyGISMap: React.FC<Props> = ({ projects, currentLang }) =
   const yaboWards = ['Yabo Central', 'Birnin Tudu', 'Kilgori', 'Kuchi', 'Badau', 'Romawa'];
   const shagariWards = ['Shagari Central', 'Dandin Mahe', 'Gangara', 'Lambu', 'Tapkin Alkali', 'Yari'];
 
-  const filteredProjects = (projects || []).filter(p => {
-    const loc = (p.location || '').toLowerCase();
-    if (selectedLGA === 'Yabo' && !loc.includes('yabo')) return false;
-    if (selectedLGA === 'Shagari' && !loc.includes('shagari')) return false;
+  const filteredProjects = projects.filter(p => {
+    if (selectedLGA === 'Yabo' && !p.location.toLowerCase().includes('yabo')) return false;
+    if (selectedLGA === 'Shagari' && !p.location.toLowerCase().includes('shagari')) return false;
     return true;
   });
 
@@ -106,14 +105,10 @@ export const ConstituencyGISMap: React.FC<Props> = ({ projects, currentLang }) =
             <div className="bg-white p-6 sm:p-8 rounded-3xl shadow-xl border border-stone-200 space-y-5">
               <div className="aspect-video rounded-2xl overflow-hidden border border-stone-200 bg-stone-100 relative">
                 <img
-                  src={(selectedProj.images && selectedProj.images[0]) || 'https://images.unsplash.com/photo-1541888946425-d0fbb18f764c?auto=format&fit=crop&q=80&w=800'}
-                  alt={selectedProj.title || 'Project'}
+                  src={selectedProj.images[0] || 'https://images.unsplash.com/photo-1541888946425-d0fbb18f764c?auto=format&fit=crop&q=80&w=800'}
+                  alt={selectedProj.title}
                   className="w-full h-full object-cover"
-                  onError={(e) => {
-                    (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1541888946425-d0fbb18f764c?auto=format&fit=crop&q=80&w=800';
-                  }}
                 />
-
                 <div className="absolute top-3 left-3 bg-[#103C2E]/90 text-white px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider">
                   {selectedProj.status}
                 </div>
