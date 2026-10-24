@@ -27,18 +27,35 @@ export interface Project {
   isFeatured?: boolean;
 }
 
-export type LegislativeStatus = 'Introduced' | 'Pending' | 'Passed' | 'Assented' | 'Withdrawn';
+export type LegislativeStatus = 
+  | 'Proposed' 
+  | 'Under Review' 
+  | 'Approved' 
+  | 'Rejected' 
+  | 'Passed' 
+  | 'First Reading' 
+  | 'Second Reading' 
+  | 'Committee Stage' 
+  | 'Third Reading' 
+  | 'Adopted' 
+  | 'Introduced' 
+  | 'Pending' 
+  | 'Assented' 
+  | 'Withdrawn';
 
 export interface LegislativeRecord {
   id: string;
   title: string;
-  category: 'Bill' | 'Motion' | 'Committee' | 'Parliamentary Question' | 'Petition';
+  category: 'Bill' | 'Motion' | 'Committee' | 'Parliamentary Question' | 'Petition' | 'Constituency Intervention' | string;
   status: LegislativeStatus;
   date: string;
   description: string;
   documentUrl?: string;
   source?: string;
   coSponsors?: string[];
+  statusNotes?: string;
+  statusUpdatedAt?: string;
+  statusUpdatedBy?: string;
 }
 
 export type ProgramStatus = 'Active' | 'Upcoming' | 'Closed';
@@ -46,7 +63,7 @@ export type ProgramStatus = 'Active' | 'Upcoming' | 'Closed';
 export interface EmpowermentProgram {
   id: string;
   title: string;
-  category: 'Skills Acquisition' | 'Youth Development' | 'Women Empowerment' | 'Educational Support' | 'Small Business Grant' | 'Agricultural Support';
+  category: 'Skills Acquisition' | 'Youth Development' | 'Women Empowerment' | 'Educational Support' | 'Small Business Grant' | 'Agricultural Support' | string;
   eligibility: string;
   targetBeneficiaries: string;
   startDate: string;
@@ -69,7 +86,7 @@ export interface NewsArticle {
   title: string;
   excerpt: string;
   content: string;
-  category: 'Press Release' | 'Constituency News' | 'Legislative Update' | 'Speech' | 'Event';
+  category: 'Press Release' | 'Constituency News' | 'Legislative Update' | 'Speech' | 'Event' | string;
   date: string;
   imageUrl: string;
   videoUrl?: string;
@@ -85,13 +102,19 @@ export interface GalleryItem {
   id: string;
   title: string;
   type?: MediaType;
-  category: 'Projects' | 'Constituency Visits' | 'National Assembly' | 'Empowerment' | 'Town Halls' | 'Interviews & Debates';
+  category: 'Projects' | 'Constituency Visits' | 'National Assembly' | 'Empowerment' | 'Town Halls' | 'Interviews & Debates' | string;
   imageUrl: string;
   videoUrl?: string;
   showOnHomepage?: boolean;
   youtubeTitle?: string;
   date: string;
   description: string;
+  hasDownloadPermission?: boolean;
+  downloadUrl?: string;
+  downloadFileSize?: string;
+  downloadQuality?: string;
+  permissionNote?: string;
+  officialChannelUrl?: string;
 }
 
 export interface ContactSubmission {
@@ -182,29 +205,41 @@ export interface ProgramApplication {
 export interface PetitionerDecisionMessage {
   id: string;
   petitionId: string;
-  referenceNumber: string;
+  referenceNumber?: string;
   recipientName: string;
-  recipientPhone: string;
+  recipientPhone?: string;
   recipientEmail?: string;
-  wardOrTown: string;
-  category: string;
-  petitionTitle: string;
-  decision: 'APPROVED' | 'REJECTED' | 'INITIAL REVIEW' | 'SUBMITTED';
-  decisionTitle: string;
-  salutation: string;
-  executiveSummary: string;
-  detailedReason: string;
+  wardOrTown?: string;
+  category?: string;
+  petitionTitle?: string;
+  decision?: 'APPROVED' | 'REJECTED' | 'INITIAL REVIEW' | 'SUBMITTED' | 'Approved' | 'Rejected' | string;
+  status?: 'Approved' | 'Rejected' | string;
+  decisionTitle?: string;
+  salutation?: string;
+  officialGreeting?: string;
+  executiveSummary?: string;
+  decisionSummary?: string;
+  detailedReason?: string;
+  detailedRationale?: string;
   committedAction?: string;
-  civicEncouragement: string;
+  nextStepsOrAlternatives?: string;
+  civicEncouragement?: string;
+  communityEncouragement?: string;
   sentAt: string;
-  senderTitle: string;
-  channels: {
+  senderTitle?: string;
+  signatory?: string;
+  sentBy?: string;
+  subject?: string;
+  channels?: {
     smsDelivered: boolean;
     portalNotified: boolean;
     emailQueued: boolean;
   };
+  deliveryChannels?: string[];
   smsExcerpt?: string;
 }
+
+export type PetitionDecisionMessage = PetitionerDecisionMessage;
 
 export interface PollingUnitAgentLink {
   id: string;
@@ -268,5 +303,79 @@ export interface UssdSessionRecord {
   networkCarrier: 'MTN' | 'AIRTEL' | 'GLO' | '9MOBILE';
   timestamp: string;
   status: 'COMPLETED' | 'TIMEOUT';
+}
+
+export type PetitionCategory = 'Infrastructure & Roads' | 'Water & Sanitation' | 'Healthcare' | 'Education' | 'Youth & Employment' | 'Agriculture' | 'Security & Peace' | 'Constituency Petition' | 'General Inquiry';
+export type PetitionStatus = 'Submitted' | 'Under Review' | 'In Field Investigation' | 'Committee Hearing' | 'Approved' | 'Rejected' | 'Archived';
+
+export interface CommunityPetition {
+  id: string;
+  referenceNumber: string;
+  title: string;
+  category: string;
+  petitionerName: string;
+  petitionerEmail: string;
+  petitionerPhone?: string;
+  email?: string;
+  phone?: string;
+  ward: string;
+  targetWard?: string;
+  localGovernment?: string;
+  address?: string;
+  description: string;
+  problemStatement?: string;
+  proposedSolution?: string;
+  expectedImpact?: string;
+  signatoriesCount?: number;
+  signaturesCount?: number;
+  supportingDocName?: string;
+  status: 'Submitted' | 'Under Review' | 'In Field Investigation' | 'Committee Hearing' | 'Approved' | 'Rejected' | 'Archived' | string;
+  decision?: string | { status?: 'Approved' | 'Rejected' | string; decisionDate?: string; decisionBy?: string; decisionNotes?: string; officialLetter?: string; deliveredVia?: string[]; rationale?: string; [key: string]: any };
+  submittedDate: string;
+  reviewNotes?: string;
+  updatedAt?: string;
+  decisionMessage?: PetitionerDecisionMessage;
+}
+
+export interface PollOption {
+  id: string;
+  text: string;
+  votes: number;
+  votesCount?: number;
+}
+
+export interface PollVoterRecord {
+  id: string;
+  pollId: string;
+  voterId: string;
+  voterName?: string;
+  ward?: string;
+  selectedOptionId: string;
+  optionId?: string;
+  ipHash?: string;
+  timestamp: string;
+}
+
+export type PollVoteRecord = PollVoterRecord;
+export type PollCategory = string;
+export type PollStatus = 'Active' | 'Closed' | 'Upcoming' | string;
+
+export interface TownHallPoll {
+  id: string;
+  title: string;
+  question: string;
+  description?: string;
+  category: string;
+  targetWard: string;
+  status: 'Active' | 'Closed' | 'Upcoming' | string;
+  startDate: string;
+  endDate: string;
+  createdBy: string;
+  createdAt: string;
+  isFeatured?: boolean;
+  totalVotes: number;
+  options: PollOption[];
+  voters?: PollVoterRecord[];
+  votes?: PollVoterRecord[];
 }
 

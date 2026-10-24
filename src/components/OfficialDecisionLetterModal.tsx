@@ -126,7 +126,7 @@ export const OfficialDecisionLetterModal: React.FC<Props> = ({ message, onClose 
               </span>
             </div>
             <h4 className="font-['Manrope'] font-bold text-base sm:text-lg text-[#103C2E] pt-1">
-              RE: CITIZEN PETITION CONCERNING "{message.petitionTitle.toUpperCase()}"
+              RE: CITIZEN PETITION CONCERNING "{(message.petitionTitle || 'COMMUNITY PETITION').toUpperCase()}"
             </h4>
           </div>
 

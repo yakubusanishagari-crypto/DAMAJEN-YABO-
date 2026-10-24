@@ -787,7 +787,7 @@ export const ContactPage: React.FC<Props> = ({ currentLang = 'en', translations 
 
                         <div className="pt-4 border-t border-stone-200 text-xs font-mono text-stone-600 space-y-1">
                           <p className="font-bold text-[#103C2E]">{trackedPetition.decisionMessage.signatory}</p>
-                          <p className="text-[11px] text-stone-400">Channels Dispatched: {trackedPetition.decisionMessage.deliveryChannels.join(' • ')}</p>
+                          <p className="text-[11px] text-stone-400">Channels Dispatched: {trackedPetition.decisionMessage.deliveryChannels ? trackedPetition.decisionMessage.deliveryChannels.join(' • ') : 'SMS • Portal • Email'}</p>
                         </div>
                       </div>
 

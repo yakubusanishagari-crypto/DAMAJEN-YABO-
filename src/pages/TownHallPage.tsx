@@ -71,7 +71,7 @@ export const TownHallPage: React.FC<Props> = ({
   const filteredPolls = polls.filter(p => {
     const matchesSearch = p.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
                           p.question.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          p.description.toLowerCase().includes(searchTerm.toLowerCase());
+                          (p.description || '').toLowerCase().includes(searchTerm.toLowerCase());
     const matchesCat = selectedCategory === 'All' || p.category === selectedCategory;
     const matchesStat = selectedStatus === 'All' || p.status === selectedStatus;
     const matchesWard = selectedWard === 'All' || p.targetWard.includes(selectedWard) || p.targetWard.includes('All');

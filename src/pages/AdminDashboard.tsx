@@ -1015,7 +1015,7 @@ export const AdminDashboard: React.FC<Props> = ({
     setNewMedia({
       title: item.title,
       type: (item.type === 'video' || !!item.videoUrl) ? 'video' : 'photo',
-      category: item.category,
+      category: item.category as any,
       imageUrl: item.imageUrl || '',
       videoUrl: item.videoUrl || '',
       showOnHomepage: item.showOnHomepage || false,

@@ -2,6 +2,7 @@ import express from 'express';
 import { fileURLToPath } from 'url';
 import path from 'path';
 import fs from 'fs';
+import { createClient } from '@supabase/supabase-js';
 import { 
   INITIAL_PROJECTS, 
   INITIAL_LEGISLATIVE, 
@@ -29,13 +30,22 @@ import { sanitizeGalleryList } from './src/utils/youtube';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+// Supabase Initialization with multi-environment variable fallback
+const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
+const supabaseKey = process.env.SUPABASE_ANON_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.VITE_SUPABASE_ANON_KEY;
+const supabase = (supabaseUrl && supabaseKey) ? createClient(supabaseUrl, supabaseKey) : null;
+
 async function startServer() {
   const app = express();
   const PORT = process.env.PORT || 3000;
 
-  app.use(express.json());
+  // Increase payload limits to 50MB for high-resolution site photo & image uploads
+  app.use(express.json({ limit: '50mb' }));
+  app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
-  // In-memory data store with fallback to initial data
+  const DATA_FILE = path.join(__dirname, 'data', 'store.json');
+
+  // In-memory store initialized with default data
   let store = {
     projects: [...INITIAL_PROJECTS],
     legislative: [...INITIAL_LEGISLATIVE],
@@ -54,27 +64,164 @@ async function startServer() {
     }
   };
 
-  // API Routes
+  // Load from local store file if exists
+  try {
+    if (fs.existsSync(DATA_FILE)) {
+      const raw = fs.readFileSync(DATA_FILE, 'utf-8');
+      const parsed = JSON.parse(raw);
+      store = { ...store, ...parsed };
+    } else {
+      fs.mkdirSync(path.dirname(DATA_FILE), { recursive: true });
+      fs.writeFileSync(DATA_FILE, JSON.stringify(store, null, 2));
+    }
+  } catch (e) {
+    console.warn('Local store file warning, using default initial data:', e);
+  }
+
+  // Load from Supabase on startup if configured
+  if (supabase) {
+    try {
+      console.log('Attempting Supabase sync on server start...');
+      const [pRes, lRes, prRes, nRes, gRes, cRes, aRes] = await Promise.allSettled([
+        supabase.from('projects').select('*'),
+        supabase.from('legislative').select('*'),
+        supabase.from('programs').select('*'),
+        supabase.from('news').select('*'),
+        supabase.from('gallery').select('*'),
+        supabase.from('contacts').select('*'),
+        supabase.from('applications').select('*')
+      ]);
+
+      if (pRes.status === 'fulfilled' && pRes.value.data && pRes.value.data.length > 0) {
+        store.projects = pRes.value.data;
+      }
+      if (lRes.status === 'fulfilled' && lRes.value.data && lRes.value.data.length > 0) {
+        store.legislative = lRes.value.data;
+      }
+      if (prRes.status === 'fulfilled' && prRes.value.data && prRes.value.data.length > 0) {
+        store.programs = prRes.value.data;
+      }
+      if (nRes.status === 'fulfilled' && nRes.value.data && nRes.value.data.length > 0) {
+        store.news = nRes.value.data;
+      }
+      if (gRes.status === 'fulfilled' && gRes.value.data && gRes.value.data.length > 0) {
+        store.gallery = sanitizeGalleryList(gRes.value.data);
+      }
+      if (cRes.status === 'fulfilled' && cRes.value.data && cRes.value.data.length > 0) {
+        store.contacts = cRes.value.data;
+      }
+      if (aRes.status === 'fulfilled' && aRes.value.data && aRes.value.data.length > 0) {
+        store.applications = aRes.value.data;
+      }
+      console.log('Supabase initial state sync complete.');
+    } catch (err) {
+      console.warn('Supabase initial fetch warning (continuing with persistent local store):', err);
+    }
+  }
+
+  // Helper to persist store locally and push updates to Supabase asynchronously
+  function persistStore() {
+    try {
+      fs.mkdirSync(path.dirname(DATA_FILE), { recursive: true });
+      fs.writeFileSync(DATA_FILE, JSON.stringify(store, null, 2));
+
+      if (supabase) {
+        Promise.allSettled([
+          supabase.from('projects').upsert(store.projects),
+          supabase.from('legislative').upsert(store.legislative),
+          supabase.from('programs').upsert(store.programs),
+          supabase.from('news').upsert(store.news),
+          supabase.from('gallery').upsert(store.gallery),
+          supabase.from('contacts').upsert(store.contacts),
+          supabase.from('applications').upsert(store.applications)
+        ]).catch(err => console.warn('Background Supabase upsert notice:', err));
+      }
+    } catch (e) {
+      console.error('Failed to persist local store:', e);
+    }
+  }
+
+  // Helper for background safe Supabase operations
+  function asyncSupabaseCall(builder: any) {
+    if (!supabase) return;
+    Promise.resolve(builder)
+      .then((res: any) => {
+        if (res && res.error) {
+          console.warn('Supabase operation notice:', res.error.message);
+        }
+      })
+      .catch((err: any) => {
+        console.warn('Supabase background network notice:', err?.message || err);
+      });
+  }
+
+  // ==================== HEALTH & SUPABASE STATUS API ====================
   app.get('/api/health', (req, res) => {
-    res.json({ status: 'ok', timestamp: new Date().toISOString() });
+    res.json({ 
+      status: 'ok', 
+      supabaseConnected: Boolean(supabase),
+      timestamp: new Date().toISOString() 
+    });
   });
 
-  // Stats
+  app.get('/api/supabase/status', async (req, res) => {
+    if (!supabase) {
+      return res.json({
+        connected: false,
+        message: 'Supabase URL or Key not detected in environment. Operating in persistent local store mode.'
+      });
+    }
+    try {
+      const { data, error } = await supabase.from('projects').select('id').limit(1);
+      if (error) {
+        return res.json({
+          connected: true,
+          tableReady: false,
+          error: error.message,
+          message: 'Connected to Supabase project URL, table query warning.'
+        });
+      }
+      res.json({
+        connected: true,
+        tableReady: true,
+        message: 'Supabase backend connection verified and fully operational.'
+      });
+    } catch (err: any) {
+      res.json({
+        connected: true,
+        tableReady: false,
+        error: err.message || 'Unknown network error',
+        message: 'Supabase client initialized, background connection checking...'
+      });
+    }
+  });
+
+  // ==================== STATS API ====================
   app.get('/api/stats', (req, res) => {
     res.json(store.stats);
   });
   app.put('/api/stats', (req, res) => {
     store.stats = { ...store.stats, ...req.body };
+    persistStore();
     res.json(store.stats);
   });
 
-  // Projects
+  // ==================== PROJECTS API ====================
   app.get('/api/projects', (req, res) => {
     res.json(store.projects);
   });
   app.post('/api/projects', (req, res) => {
-    const newProj: Project = { ...req.body, id: `proj-${Date.now()}` };
+    const newProj: Project = { 
+      ...req.body, 
+      id: req.body.id || `proj-${Date.now()}` 
+    };
     store.projects.unshift(newProj);
+    persistStore();
+
+    if (supabase) {
+      asyncSupabaseCall(supabase.from('projects').insert(newProj));
+    }
+
     res.status(201).json(newProj);
   });
   app.put('/api/projects/:id', (req, res) => {
@@ -82,21 +229,39 @@ async function startServer() {
     const index = store.projects.findIndex(p => p.id === id);
     if (index === -1) return res.status(404).json({ error: 'Project not found' });
     store.projects[index] = { ...store.projects[index], ...req.body, id };
+    persistStore();
+
+    if (supabase) {
+      asyncSupabaseCall(supabase.from('projects').upsert(store.projects[index]));
+    }
+
     res.json(store.projects[index]);
   });
   app.delete('/api/projects/:id', (req, res) => {
     const { id } = req.params;
     store.projects = store.projects.filter(p => p.id !== id);
+    persistStore();
+
+    if (supabase) {
+      asyncSupabaseCall(supabase.from('projects').delete().eq('id', id));
+    }
+
     res.json({ success: true });
   });
 
-  // Legislative
+  // ==================== LEGISLATIVE API ====================
   app.get('/api/legislative', (req, res) => {
     res.json(store.legislative);
   });
   app.post('/api/legislative', (req, res) => {
-    const item: LegislativeRecord = { ...req.body, id: `leg-${Date.now()}` };
+    const item: LegislativeRecord = { ...req.body, id: req.body.id || `leg-${Date.now()}` };
     store.legislative.unshift(item);
+    persistStore();
+
+    if (supabase) {
+      asyncSupabaseCall(supabase.from('legislative').insert(item));
+    }
+
     res.status(201).json(item);
   });
   app.put('/api/legislative/:id', (req, res) => {
@@ -104,20 +269,39 @@ async function startServer() {
     const index = store.legislative.findIndex(l => l.id === id);
     if (index === -1) return res.status(404).json({ error: 'Record not found' });
     store.legislative[index] = { ...store.legislative[index], ...req.body, id };
+    persistStore();
+
+    if (supabase) {
+      asyncSupabaseCall(supabase.from('legislative').upsert(store.legislative[index]));
+    }
+
     res.json(store.legislative[index]);
   });
   app.delete('/api/legislative/:id', (req, res) => {
-    store.legislative = store.legislative.filter(l => l.id !== req.params.id);
+    const { id } = req.params;
+    store.legislative = store.legislative.filter(l => l.id !== id);
+    persistStore();
+
+    if (supabase) {
+      asyncSupabaseCall(supabase.from('legislative').delete().eq('id', id));
+    }
+
     res.json({ success: true });
   });
 
-  // Programs
+  // ==================== PROGRAMS API ====================
   app.get('/api/programs', (req, res) => {
     res.json(store.programs);
   });
   app.post('/api/programs', (req, res) => {
-    const item: EmpowermentProgram = { ...req.body, id: `prog-${Date.now()}` };
+    const item: EmpowermentProgram = { ...req.body, id: req.body.id || `prog-${Date.now()}` };
     store.programs.unshift(item);
+    persistStore();
+
+    if (supabase) {
+      asyncSupabaseCall(supabase.from('programs').insert(item));
+    }
+
     res.status(201).json(item);
   });
   app.put('/api/programs/:id', (req, res) => {
@@ -125,20 +309,39 @@ async function startServer() {
     const index = store.programs.findIndex(p => p.id === id);
     if (index === -1) return res.status(404).json({ error: 'Program not found' });
     store.programs[index] = { ...store.programs[index], ...req.body, id };
+    persistStore();
+
+    if (supabase) {
+      asyncSupabaseCall(supabase.from('programs').upsert(store.programs[index]));
+    }
+
     res.json(store.programs[index]);
   });
   app.delete('/api/programs/:id', (req, res) => {
-    store.programs = store.programs.filter(p => p.id !== req.params.id);
+    const { id } = req.params;
+    store.programs = store.programs.filter(p => p.id !== id);
+    persistStore();
+
+    if (supabase) {
+      asyncSupabaseCall(supabase.from('programs').delete().eq('id', id));
+    }
+
     res.json({ success: true });
   });
 
-  // News
+  // ==================== NEWS API ====================
   app.get('/api/news', (req, res) => {
     res.json(store.news);
   });
   app.post('/api/news', (req, res) => {
-    const item: NewsArticle = { ...req.body, id: `news-${Date.now()}` };
+    const item: NewsArticle = { ...req.body, id: req.body.id || `news-${Date.now()}` };
     store.news.unshift(item);
+    persistStore();
+
+    if (supabase) {
+      asyncSupabaseCall(supabase.from('news').insert(item));
+    }
+
     res.status(201).json(item);
   });
   app.put('/api/news/:id', (req, res) => {
@@ -146,20 +349,39 @@ async function startServer() {
     const index = store.news.findIndex(n => n.id === id);
     if (index === -1) return res.status(404).json({ error: 'Article not found' });
     store.news[index] = { ...store.news[index], ...req.body, id };
+    persistStore();
+
+    if (supabase) {
+      asyncSupabaseCall(supabase.from('news').upsert(store.news[index]));
+    }
+
     res.json(store.news[index]);
   });
   app.delete('/api/news/:id', (req, res) => {
-    store.news = store.news.filter(n => n.id !== req.params.id);
+    const { id } = req.params;
+    store.news = store.news.filter(n => n.id !== id);
+    persistStore();
+
+    if (supabase) {
+      asyncSupabaseCall(supabase.from('news').delete().eq('id', id));
+    }
+
     res.json({ success: true });
   });
 
-  // Gallery
+  // ==================== GALLERY API ====================
   app.get('/api/gallery', (req, res) => {
     res.json(store.gallery);
   });
   app.post('/api/gallery', (req, res) => {
-    const item: GalleryItem = { ...req.body, id: `gal-${Date.now()}` };
+    const item: GalleryItem = { ...req.body, id: req.body.id || `gal-${Date.now()}` };
     store.gallery.unshift(item);
+    persistStore();
+
+    if (supabase) {
+      asyncSupabaseCall(supabase.from('gallery').insert(item));
+    }
+
     res.status(201).json(item);
   });
   app.put('/api/gallery/:id', (req, res) => {
@@ -167,25 +389,44 @@ async function startServer() {
     const index = store.gallery.findIndex(g => g.id === id);
     if (index === -1) return res.status(404).json({ error: 'Gallery item not found' });
     store.gallery[index] = { ...store.gallery[index], ...req.body, id };
+    persistStore();
+
+    if (supabase) {
+      asyncSupabaseCall(supabase.from('gallery').upsert(store.gallery[index]));
+    }
+
     res.json(store.gallery[index]);
   });
   app.delete('/api/gallery/:id', (req, res) => {
-    store.gallery = store.gallery.filter(g => g.id !== req.params.id);
+    const { id } = req.params;
+    store.gallery = store.gallery.filter(p => p.id !== id);
+    persistStore();
+
+    if (supabase) {
+      asyncSupabaseCall(supabase.from('gallery').delete().eq('id', id));
+    }
+
     res.json({ success: true });
   });
 
-  // Contacts
+  // ==================== CONTACTS API ====================
   app.get('/api/contacts', (req, res) => {
     res.json(store.contacts);
   });
   app.post('/api/contacts', (req, res) => {
     const item: ContactSubmission = {
       ...req.body,
-      id: `con-${Date.now()}`,
-      date: new Date().toISOString().split('T')[0],
+      id: req.body.id || `con-${Date.now()}`,
+      date: req.body.date || new Date().toISOString().split('T')[0],
       status: 'Unread'
     };
     store.contacts.unshift(item);
+    persistStore();
+
+    if (supabase) {
+      asyncSupabaseCall(supabase.from('contacts').insert(item));
+    }
+
     res.status(201).json(item);
   });
   app.put('/api/contacts/:id', (req, res) => {
@@ -193,10 +434,16 @@ async function startServer() {
     const index = store.contacts.findIndex(c => c.id === id);
     if (index === -1) return res.status(404).json({ error: 'Contact not found' });
     store.contacts[index] = { ...store.contacts[index], ...req.body };
+    persistStore();
+
+    if (supabase) {
+      asyncSupabaseCall(supabase.from('contacts').upsert(store.contacts[index]));
+    }
+
     res.json(store.contacts[index]);
   });
 
-  // Applications
+  // ==================== APPLICATIONS API ====================
   app.get('/api/applications', (req, res) => {
     res.json(store.applications);
   });
@@ -208,6 +455,12 @@ async function startServer() {
       status: req.body.status || 'SUBMITTED'
     };
     store.applications.unshift(appItem);
+    persistStore();
+
+    if (supabase) {
+      asyncSupabaseCall(supabase.from('applications').insert(appItem));
+    }
+
     res.status(201).json(appItem);
   });
   app.put('/api/applications/:id', (req, res) => {
@@ -215,12 +468,16 @@ async function startServer() {
     const index = store.applications.findIndex(a => a.id === id);
     if (index === -1) return res.status(404).json({ error: 'Application not found' });
     store.applications[index] = { ...store.applications[index], ...req.body };
+    persistStore();
+
+    if (supabase) {
+      asyncSupabaseCall(supabase.from('applications').upsert(store.applications[index]));
+    }
+
     res.json(store.applications[index]);
   });
 
-  // ==========================================
-  // TOWN HALL & POLLS API
-  // ==========================================
+  // ==================== TOWN HALL & POLLS API ====================
   app.get('/api/polls', (req, res) => {
     res.json(store.polls);
   });
@@ -254,6 +511,7 @@ async function startServer() {
     };
 
     store.polls.unshift(newPoll);
+    persistStore();
     res.status(201).json(newPoll);
   });
 
@@ -262,12 +520,14 @@ async function startServer() {
     const index = store.polls.findIndex(p => p.id === id);
     if (index === -1) return res.status(404).json({ error: 'Poll not found' });
     store.polls[index] = { ...store.polls[index], ...req.body, id };
+    persistStore();
     res.json(store.polls[index]);
   });
 
   app.delete('/api/polls/:id', (req, res) => {
     const { id } = req.params;
     store.polls = store.polls.filter(p => p.id !== id);
+    persistStore();
     res.json({ success: true });
   });
 
@@ -282,7 +542,6 @@ async function startServer() {
       return res.status(400).json({ error: 'This voting session has concluded.' });
     }
 
-    // Check duplicate voting by voterId
     const effectiveVoterId = voterId || `voter-${req.ip || 'anon'}`;
     const alreadyVoted = (poll.voters || []).some(v => v.voterId === effectiveVoterId);
     if (alreadyVoted) {
@@ -294,11 +553,9 @@ async function startServer() {
       return res.status(400).json({ error: 'Selected option not found in this poll.' });
     }
 
-    // Increment option votes and total votes
     poll.options[optIndex].votes = (poll.options[optIndex].votes || 0) + 1;
     poll.totalVotes = (poll.totalVotes || 0) + 1;
 
-    // Record audit trail
     if (!poll.voters) poll.voters = [];
     poll.voters.push({
       id: `vote-${Date.now()}`,
@@ -309,6 +566,8 @@ async function startServer() {
       selectedOptionId: optionId,
       timestamp: new Date().toISOString()
     });
+
+    persistStore();
 
     res.json({ 
       success: true, 
@@ -366,6 +625,7 @@ async function startServer() {
     };
 
     store.petitions.unshift(newPetition);
+    persistStore();
     res.status(201).json(newPetition);
   });
 
@@ -379,12 +639,14 @@ async function startServer() {
       id,
       updatedAt: new Date().toISOString()
     };
+    persistStore();
     res.json(store.petitions[index]);
   });
 
   app.delete('/api/petitions/:id', (req, res) => {
     const { id } = req.params;
     store.petitions = store.petitions.filter(p => p.id !== id);
+    persistStore();
     res.json({ success: true });
   });
 
@@ -455,6 +717,8 @@ async function startServer() {
     petition.reviewNotes = reviewNotes || petition.reviewNotes;
     petition.decisionMessage = decisionMessage;
     petition.updatedAt = new Date().toISOString();
+
+    persistStore();
 
     res.json({
       success: true,
