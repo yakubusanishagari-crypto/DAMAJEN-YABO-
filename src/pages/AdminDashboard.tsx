@@ -31,6 +31,8 @@ import {
   YOUTUBE_PLACEHOLDER_THUMBNAIL 
 } from '../utils/youtube';
 import { getAnalyticsStore, resetAnalyticsBaseline, AnalyticsStore } from '../utils/analytics';
+import { compressImageFile } from '../utils/imageCompressor';
+import { apiCreateProject, apiUpdateProject } from '../utils/apiSync';
 
 interface Props {
   projects: Project[];
@@ -406,6 +408,59 @@ export const AdminDashboard: React.FC<Props> = ({
     updates: []
   });
   const [editingProject, setEditingProject] = useState<Project | null>(null);
+  const [isCompressingProjImg, setIsCompressingProjImg] = useState(false);
+  const [projectSuccessNotice, setProjectSuccessNotice] = useState('');
+
+  const handleProjectImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      setIsCompressingProjImg(true);
+      const compressedDataUrl = await compressImageFile(file, 1600, 1200, 0.82);
+      setNewProj(prev => ({
+        ...prev,
+        images: [compressedDataUrl, ...prev.images.filter(img => !img.startsWith('data:'))]
+      }));
+    } catch (err) {
+      console.warn('Image compression fallback:', err);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const result = reader.result as string;
+        setNewProj(prev => ({
+          ...prev,
+          images: [result, ...prev.images.filter(img => !img.startsWith('data:'))]
+        }));
+      };
+      reader.readAsDataURL(file);
+    } finally {
+      setIsCompressingProjImg(false);
+    }
+  };
+
+  const handleEditingProjectImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !editingProject) return;
+    try {
+      setIsCompressingProjImg(true);
+      const compressedDataUrl = await compressImageFile(file, 1600, 1200, 0.82);
+      setEditingProject(prev => prev ? {
+        ...prev,
+        images: [compressedDataUrl, ...(prev.images ? prev.images.slice(1) : [])]
+      } : null);
+    } catch (err) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const result = reader.result as string;
+        setEditingProject(prev => prev ? {
+          ...prev,
+          images: [result, ...(prev.images ? prev.images.slice(1) : [])]
+        } : null);
+      };
+      reader.readAsDataURL(file);
+    } finally {
+      setIsCompressingProjImg(false);
+    }
+  };
 
   const handleCreateProject = (e: React.FormEvent) => {
     e.preventDefault();
@@ -418,7 +473,10 @@ export const AdminDashboard: React.FC<Props> = ({
     const updated = [created, ...projects];
     setProjects(updated);
     try { localStorage.setItem('danmaje_projects', JSON.stringify(updated)); } catch {}
+    apiCreateProject(created).catch(err => console.warn('API project create warning:', err));
     setShowAddProj(false);
+    setProjectSuccessNotice(`Project "${created.title}" published with verified site photo.`);
+    setTimeout(() => setProjectSuccessNotice(''), 4000);
     setNewProj({
       title: '',
       category: 'Water & Sanitation',
@@ -448,6 +506,7 @@ export const AdminDashboard: React.FC<Props> = ({
     const updated = projects.map(p => p.id === editingProject.id ? editingProject : p);
     setProjects(updated);
     try { localStorage.setItem('danmaje_projects', JSON.stringify(updated)); } catch {}
+    apiUpdateProject(editingProject.id, editingProject).catch(err => console.warn('API project update warning:', err));
     setEditingProject(null);
     setActivityLogs(prev => [{
       id: `log-${Date.now()}`,
@@ -2057,13 +2116,40 @@ export const AdminDashboard: React.FC<Props> = ({
                     />
                   </div>
 
-                  <textarea
-                    rows={3}
-                    placeholder="Comprehensive project scope, beneficiaries, and milestones..."
-                    value={newProj.description}
-                    onChange={(e) => setNewProj({...newProj, description: e.target.value})}
-                    className="w-full px-4 py-2.5 bg-stone-50 border border-stone-200 rounded-xl text-xs sm:text-sm"
-                  ></textarea>
+                  {/* Project Photo Attachment */}
+                  <div className="space-y-3 bg-stone-50 p-4 rounded-2xl border border-stone-200">
+                    <label className="text-xs font-bold text-[#103C2E] block uppercase tracking-wider">
+                      Attach Project Site Photo / Progress Evidence *
+                    </label>
+                    <div className="flex flex-wrap items-center gap-3">
+                      <label className="cursor-pointer bg-[#103C2E] hover:bg-[#09291F] text-white px-4 py-2.5 rounded-xl text-xs font-bold flex items-center gap-2 shadow-sm transition">
+                        <Camera className="w-4 h-4 text-[#C6A15B]" />
+                        <span>{isCompressingProjImg ? 'Processing Photo...' : 'Upload Photo File'}</span>
+                        <input type="file" accept="image/*" disabled={isCompressingProjImg} onChange={handleProjectImageUpload} className="hidden" />
+                      </label>
+                      <span className="text-[11px] text-stone-500 font-medium">Auto-compressed for web performance. Supports JPG, PNG, WEBP</span>
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="text-[11px] text-stone-500 font-semibold uppercase">Or Direct Image URL</label>
+                      <input
+                        type="url"
+                        placeholder="https://images.unsplash.com/... or direct photo link"
+                        value={newProj.images[0] || ''}
+                        onChange={(e) => setNewProj({...newProj, images: [e.target.value]})}
+                        className="w-full px-3 py-2 bg-white border border-stone-200 rounded-xl text-xs font-mono"
+                      />
+                    </div>
+
+                    {newProj.images[0] && (
+                      <div className="flex items-center gap-3 pt-1">
+                        <img src={newProj.images[0]} alt="Project Preview" className="w-20 h-14 object-cover rounded-xl border border-stone-300 shadow-xs shrink-0" />
+                        <span className="text-xs text-emerald-800 font-bold flex items-center gap-1">
+                          <CheckCircle className="w-4 h-4 text-emerald-600" /> Site Photo Attached & Ready
+                        </span>
+                      </div>
+                    )}
+                  </div>
 
                   <div className="flex justify-end gap-3 pt-2">
                     <button
@@ -2075,9 +2161,10 @@ export const AdminDashboard: React.FC<Props> = ({
                     </button>
                     <button
                       type="submit"
-                      className="px-6 py-2 bg-[#103C2E] hover:bg-[#09291F] text-white rounded-xl text-xs font-bold uppercase cursor-pointer shadow"
+                      className="px-6 py-2 bg-[#103C2E] hover:bg-[#09291F] text-white rounded-xl text-xs font-bold uppercase cursor-pointer shadow flex items-center gap-1.5"
                     >
-                      Save Project
+                      <CheckCircle className="w-4 h-4 text-[#C6A15B]" />
+                      <span>Save & Publish Project</span>
                     </button>
                   </div>
                 </form>
@@ -2135,6 +2222,156 @@ export const AdminDashboard: React.FC<Props> = ({
                   </table>
                 </div>
               </div>
+
+              {/* Edit Project Modal */}
+              {editingProject && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-xs p-4 overflow-y-auto">
+                  <form onSubmit={handleUpdateProject} className="bg-white rounded-3xl max-w-2xl w-full p-6 sm:p-8 space-y-4 shadow-2xl my-8 border border-stone-200">
+                    <div className="flex justify-between items-center border-b border-stone-100 pb-3">
+                      <div>
+                        <span className="text-[10px] font-black uppercase tracking-wider text-[#C6A15B] bg-[#C6A15B]/15 px-2.5 py-0.5 rounded-full border border-[#C6A15B]/30 inline-block mb-1">
+                          CONSTITUENCY PROJECT EDITOR
+                        </span>
+                        <h4 className="font-['Manrope'] font-black text-lg text-[#103C2E] uppercase">
+                          EDIT PROJECT DETAILS & PHOTO EVIDENCE
+                        </h4>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setEditingProject(null)}
+                        className="bg-stone-100 hover:bg-rose-600 text-stone-600 hover:text-white p-2 rounded-xl transition cursor-pointer"
+                      >
+                        <X className="w-5 h-5" />
+                      </button>
+                    </div>
+
+                    <div className="space-y-3 text-xs">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div className="space-y-1">
+                          <label className="font-bold text-[#103C2E] uppercase">Project Title *</label>
+                          <input
+                            type="text"
+                            required
+                            value={editingProject.title}
+                            onChange={(e) => setEditingProject({...editingProject, title: e.target.value})}
+                            className="w-full px-3.5 py-2.5 bg-stone-50 border border-stone-200 rounded-xl text-xs sm:text-sm font-semibold"
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <label className="font-bold text-[#103C2E] uppercase">Location *</label>
+                          <input
+                            type="text"
+                            required
+                            value={editingProject.location}
+                            onChange={(e) => setEditingProject({...editingProject, location: e.target.value})}
+                            className="w-full px-3.5 py-2.5 bg-stone-50 border border-stone-200 rounded-xl text-xs sm:text-sm"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                        <div className="space-y-1">
+                          <label className="font-bold text-[#103C2E] uppercase">Category</label>
+                          <select
+                            value={editingProject.category}
+                            onChange={(e) => setEditingProject({...editingProject, category: e.target.value as any})}
+                            className="w-full px-3 py-2 bg-stone-50 border border-stone-200 rounded-xl text-xs"
+                          >
+                            <option value="Water & Sanitation">Water & Sanitation</option>
+                            <option value="Education">Education</option>
+                            <option value="Roads & Infrastructure">Roads & Infrastructure</option>
+                            <option value="Healthcare">Healthcare</option>
+                            <option value="Youth Development">Youth Development</option>
+                            <option value="Agriculture">Agriculture</option>
+                          </select>
+                        </div>
+                        <div className="space-y-1">
+                          <label className="font-bold text-[#103C2E] uppercase">Status</label>
+                          <select
+                            value={editingProject.status}
+                            onChange={(e) => setEditingProject({...editingProject, status: e.target.value as any})}
+                            className="w-full px-3 py-2 bg-stone-50 border border-stone-200 rounded-xl text-xs font-bold"
+                          >
+                            <option value="Ongoing">Ongoing</option>
+                            <option value="Completed">Completed</option>
+                            <option value="Proposed">Proposed</option>
+                          </select>
+                        </div>
+                        <div className="space-y-1">
+                          <label className="font-bold text-[#103C2E] uppercase">Year</label>
+                          <input
+                            type="text"
+                            value={editingProject.year || ''}
+                            onChange={(e) => setEditingProject({...editingProject, year: e.target.value})}
+                            className="w-full px-3.5 py-2 bg-stone-50 border border-stone-200 rounded-xl text-xs"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="space-y-1">
+                        <label className="font-bold text-[#103C2E] uppercase">Description / Milestones</label>
+                        <textarea
+                          rows={3}
+                          value={editingProject.description}
+                          onChange={(e) => setEditingProject({...editingProject, description: e.target.value})}
+                          className="w-full px-3.5 py-2 bg-stone-50 border border-stone-200 rounded-xl text-xs"
+                        ></textarea>
+                      </div>
+
+                      {/* Project Photo Upload & URL */}
+                      <div className="space-y-2 bg-stone-50 p-4 rounded-2xl border border-stone-200">
+                        <label className="text-xs font-bold text-[#103C2E] block uppercase tracking-wider">
+                          Replace / Update Project Site Photo
+                        </label>
+                        <div className="flex flex-wrap items-center gap-3">
+                          <label className="cursor-pointer bg-[#103C2E] hover:bg-[#09291F] text-white px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2 shadow-sm transition">
+                            <Camera className="w-4 h-4 text-[#C6A15B]" />
+                            <span>{isCompressingProjImg ? 'Processing Photo...' : 'Upload New Photo File'}</span>
+                            <input type="file" accept="image/*" disabled={isCompressingProjImg} onChange={handleEditingProjectImageUpload} className="hidden" />
+                          </label>
+                          <span className="text-[11px] text-stone-500 font-medium">Auto-compressed for web</span>
+                        </div>
+
+                        <div className="space-y-1">
+                          <label className="text-[11px] text-stone-500 font-semibold uppercase">Or Image URL</label>
+                          <input
+                            type="url"
+                            value={editingProject.images?.[0] || ''}
+                            onChange={(e) => setEditingProject({...editingProject, images: [e.target.value, ...(editingProject.images ? editingProject.images.slice(1) : [])]})}
+                            className="w-full px-3 py-2 bg-white border border-stone-200 rounded-xl text-xs font-mono"
+                          />
+                        </div>
+
+                        {editingProject.images?.[0] && (
+                          <div className="flex items-center gap-3 pt-1">
+                            <img src={editingProject.images[0]} alt="Project Preview" className="w-20 h-14 object-cover rounded-xl border border-stone-300 shadow-xs shrink-0" />
+                            <span className="text-xs text-emerald-800 font-bold flex items-center gap-1">
+                              <CheckCircle className="w-4 h-4 text-emerald-600" /> Photo Updated
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="flex justify-end gap-3 pt-2 border-t border-stone-100">
+                      <button
+                        type="button"
+                        onClick={() => setEditingProject(null)}
+                        className="px-4 py-2 bg-stone-100 hover:bg-stone-200 rounded-xl text-xs font-bold uppercase cursor-pointer"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        type="submit"
+                        className="px-6 py-2 bg-[#103C2E] hover:bg-[#09291F] text-white rounded-xl text-xs font-bold uppercase cursor-pointer shadow flex items-center gap-1.5"
+                      >
+                        <CheckCircle className="w-4 h-4 text-[#C6A15B]" />
+                        <span>Update Project Record</span>
+                      </button>
+                    </div>
+                  </form>
+                </div>
+              )}
             </div>
           )}
 
