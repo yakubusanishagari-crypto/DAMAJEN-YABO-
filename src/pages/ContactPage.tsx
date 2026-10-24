@@ -56,15 +56,17 @@ export const ContactPage: React.FC<Props> = ({ currentLang = 'en', translations 
 
   return (
     <div className={`max-w-7xl mx-auto px-4 sm:px-8 py-12 space-y-12 ${isRtl ? 'rtl text-right' : ''}`}>
-      <div className="bg-gradient-to-br from-[#09291F] via-[#103C2E] to-[#0A261E] text-white rounded-3xl p-8 sm:p-12 shadow-2xl space-y-4 border border-emerald-500/30 relative overflow-hidden">
+      {/* Header */}
+      <div className="bg-gradient-to-br from-[#09291F] via-[#103C2E] to-[#0A261E] text-white rounded-3xl p-8 sm:p-12 shadow-2xl space-y-4 border border-[#C6A15B]/30 relative overflow-hidden">
+        <div className="absolute right-0 top-0 w-96 h-96 bg-[#C6A15B]/10 rounded-full blur-3xl pointer-events-none"></div>
         <div className="flex items-center gap-3">
-          <img src="/official_logo.png" alt="Official Seal" className="w-10 h-10 rounded-full border border-emerald-400 object-contain bg-[#07241A] shadow-md shrink-0" />
-          <span className="inline-block text-xs font-extrabold uppercase tracking-widest text-emerald-200 bg-emerald-900/60 px-3 py-1 rounded-full border border-emerald-500/40">
-            {currentLang === 'ha' ? 'OFISHIN SADARWA NA MAZABA' : currentLang === 'ar' ? 'مكتب التواصل وخدمة الدائرة' : 'CONSTITUENCY LIAISON'}
+          <img src="/official_logo.png" alt="Official Seal" className="w-10 h-10 rounded-full border border-[#D4AF37] object-contain bg-[#07241A] shadow-md shrink-0" />
+          <span className="inline-block text-xs font-extrabold uppercase tracking-widest text-[#D4AF37] bg-[#D4AF37]/20 px-3 py-1 rounded-full border border-[#D4AF37]/30">
+            {currentLang === 'ha' ? 'Ofishin Sadarwa na Mazaba' : currentLang === 'ar' ? 'مكتب التواصل وخدمة الدائرة' : 'Constituency Liaison Desk'}
           </span>
         </div>
         <h1 className="text-3xl sm:text-5xl font-extrabold font-['Manrope'] text-white">
-          {currentLang === 'en' ? 'CONTACT THE OFFICE' : t('contactOffice', currentLang, translations).toUpperCase()}
+          {t('contactOffice', currentLang, translations)}
         </h1>
         <p className="text-stone-300 text-sm sm:text-base max-w-2xl leading-relaxed font-light">
           {currentLang === 'ha'
@@ -80,13 +82,13 @@ export const ContactPage: React.FC<Props> = ({ currentLang = 'en', translations 
         <div className="lg:col-span-5 space-y-6">
           <div className="bg-white p-8 rounded-3xl shadow-xl border border-stone-200/80 space-y-6">
             <h3 className="font-['Manrope'] font-bold text-2xl text-[#103C2E]">
-              {currentLang === 'en' ? 'OFFICE LOCATIONS & LIAISON DESKS' : t('officeLocationsTitle', currentLang, translations).toUpperCase()}
+              {t('officeLocationsTitle', currentLang, translations)}
             </h3>
             
             <ul className="space-y-6 text-sm text-[#242824]">
               <li className="flex items-start space-x-4 rtl:space-x-reverse">
                 <div className="w-11 h-11 rounded-xl bg-[#103C2E]/10 text-[#103C2E] flex items-center justify-center shrink-0 mt-0.5 shadow-sm">
-                  <Building2 className="w-5 h-5 text-[#103C2E]" />
+                  <Building2 className="w-5 h-5 text-[#C6A15B]" />
                 </div>
                 <div>
                   <strong className="block text-[#103C2E] font-['Manrope'] font-bold">
@@ -100,7 +102,7 @@ export const ContactPage: React.FC<Props> = ({ currentLang = 'en', translations 
 
               <li className="flex items-start space-x-4 rtl:space-x-reverse">
                 <div className="w-11 h-11 rounded-xl bg-[#103C2E]/10 text-[#103C2E] flex items-center justify-center shrink-0 mt-0.5 shadow-sm">
-                  <MapPin className="w-5 h-5 text-[#103C2E]" />
+                  <MapPin className="w-5 h-5 text-[#C6A15B]" />
                 </div>
                 <div>
                   <strong className="block text-[#103C2E] font-['Manrope'] font-bold">
@@ -114,7 +116,7 @@ export const ContactPage: React.FC<Props> = ({ currentLang = 'en', translations 
 
               <li className="flex items-start space-x-4 rtl:space-x-reverse">
                 <div className="w-11 h-11 rounded-xl bg-[#103C2E]/10 text-[#103C2E] flex items-center justify-center shrink-0 mt-0.5 shadow-sm">
-                  <MapPin className="w-5 h-5 text-[#103C2E]" />
+                  <MapPin className="w-5 h-5 text-[#C6A15B]" />
                 </div>
                 <div>
                   <strong className="block text-[#103C2E] font-['Manrope'] font-bold">
@@ -128,7 +130,7 @@ export const ContactPage: React.FC<Props> = ({ currentLang = 'en', translations 
 
               <li className="flex items-start space-x-4 rtl:space-x-reverse">
                 <div className="w-11 h-11 rounded-xl bg-[#103C2E]/10 text-[#103C2E] flex items-center justify-center shrink-0 mt-0.5 shadow-sm">
-                  <Mail className="w-5 h-5 text-[#103C2E]" />
+                  <Mail className="w-5 h-5 text-[#C6A15B]" />
                 </div>
                 <div>
                   <strong className="block text-[#103C2E] font-['Manrope'] font-bold">
@@ -140,7 +142,7 @@ export const ContactPage: React.FC<Props> = ({ currentLang = 'en', translations 
 
               <li className="flex items-start space-x-4 rtl:space-x-reverse">
                 <div className="w-11 h-11 rounded-xl bg-[#103C2E]/10 text-[#103C2E] flex items-center justify-center shrink-0 mt-0.5 shadow-sm">
-                  <Clock className="w-5 h-5 text-[#103C2E]" />
+                  <Clock className="w-5 h-5 text-[#C6A15B]" />
                 </div>
                 <div>
                   <strong className="block text-[#103C2E] font-['Manrope'] font-bold">
@@ -153,7 +155,7 @@ export const ContactPage: React.FC<Props> = ({ currentLang = 'en', translations 
               </li>
             </ul>
 
-            <div className="bg-[#FAF9F5] p-5 rounded-2xl border border-emerald-500/30 text-xs text-[#6B716D] space-y-1">
+            <div className="bg-[#FAF9F5] p-5 rounded-2xl border border-[#C6A15B]/30 text-xs text-[#6B716D] space-y-1">
               <span className="font-bold text-[#103C2E] block">
                 {currentLang === 'ha' ? 'Sanarwar Ofishin Sadarwa:' : currentLang === 'ar' ? 'ملاحظة مكتب التواصل:' : 'Constituency Liaison Note:'}
               </span>
@@ -172,7 +174,7 @@ export const ContactPage: React.FC<Props> = ({ currentLang = 'en', translations 
         <div className="lg:col-span-7">
           <div className="bg-white p-8 sm:p-10 rounded-3xl shadow-xl border border-stone-200/80 space-y-6">
             <h3 className="font-['Manrope'] font-bold text-2xl text-[#103C2E]">
-              {currentLang === 'en' ? 'SEND OFFICIAL MESSAGE OR PETITION' : currentLang === 'ha' ? 'AIKA SAKO KO KORAFI' : 'إرسال رسالة أو تقديم طلب'}
+              {currentLang === 'ha' ? 'Aika Sako ko Korafi' : currentLang === 'ar' ? 'إرسال رسالة أو تقديم طلب' : 'Send Official Message or Petition'}
             </h3>
             
             {success ? (
@@ -286,9 +288,9 @@ export const ContactPage: React.FC<Props> = ({ currentLang = 'en', translations 
                   <button
                     type="submit"
                     disabled={submitting}
-                    className="w-full bg-[#103C2E] hover:bg-[#09291F] text-white py-3.5 rounded-xl font-bold text-sm shadow-md transition flex items-center justify-center gap-2 cursor-pointer border border-emerald-500/40 uppercase tracking-wider"
+                    className="w-full bg-[#103C2E] hover:bg-[#09291F] text-white py-3.5 rounded-xl font-bold text-sm shadow-md transition flex items-center justify-center gap-2 cursor-pointer border border-[#C6A15B]/30 uppercase tracking-wider"
                   >
-                    <Send className="w-4 h-4 text-emerald-300" />
+                    <Send className="w-4 h-4 text-[#C6A15B]" />
                     <span>
                       {submitting 
                         ? (currentLang === 'ha' ? 'ANA AIKA SAKO...' : currentLang === 'ar' ? 'جارٍ الإرسال...' : 'SENDING MESSAGE...')

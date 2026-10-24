@@ -164,13 +164,13 @@ export const Home: React.FC<Props> = ({
   return (
     <div className="space-y-20 pb-20 overflow-x-hidden">
       {/* 1. PROFESSIONAL HERO SECTION */}
-      <section className="relative bg-gradient-to-br from-[#0B3B2C] via-[#0E4A38] to-[#072B20] text-white">
+      <section className="relative bg-[#0A3D2E] text-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-8 py-16 sm:py-24 relative z-10 grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
           
           <div className="lg:col-span-7 space-y-6">
             {/* Official Kicker Plate */}
-            <div className="inline-flex items-center gap-2.5 px-4 py-2 rounded-full bg-emerald-950/70 border border-emerald-500/40 text-xs font-semibold text-emerald-200 tracking-wider uppercase">
-              <img src="/official_logo.png" alt="Official Constituency Seal" className="w-5 h-5 rounded-full object-contain border border-emerald-400/60" />
+            <div className="inline-flex items-center gap-2.5 px-4 py-2 rounded-full bg-[#C6A15B]/15 border border-[#C6A15B]/40 text-xs font-semibold text-[#D4AF37] tracking-wider uppercase">
+              <img src="/official_logo.png" alt="Official Constituency Seal" className="w-5 h-5 rounded-full object-contain border border-[#D4AF37]/60" />
               <span>{t('heroWelcome', currentLang, translations)}</span>
               <span className="text-white/40">·</span>
               <span className="text-white/80 font-medium">10th National Assembly</span>
@@ -179,15 +179,15 @@ export const Home: React.FC<Props> = ({
             <div className="space-y-2">
               <h1 className="text-3xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight text-white font-['Manrope'] leading-[1.15]">
                 Hon. Umar Yusuf
-                <span className="block text-emerald-300 text-2xl sm:text-4xl lg:text-5xl font-semibold mt-1">
+                <span className="block text-[#D4AF37] text-2xl sm:text-4xl lg:text-5xl font-semibold mt-1">
                   (Danmaje Yabo)
                 </span>
               </h1>
               <p className="text-base sm:text-xl text-emerald-100 font-medium pt-1 flex items-center gap-2">
                 <span>{t('constituencyTitle', currentLang, translations)}</span>
               </p>
-              <div className="flex items-center gap-2 text-xs sm:text-sm text-emerald-200 tracking-wide font-semibold">
-                <MapPin className="w-4 h-4 shrink-0 text-emerald-300" />
+              <div className="flex items-center gap-2 text-xs sm:text-sm text-[#C6A15B] tracking-wide font-semibold">
+                <MapPin className="w-4 h-4 shrink-0" />
                 <span>{t('constituencySubtitle', currentLang, translations)}</span>
               </div>
             </div>
@@ -200,7 +200,7 @@ export const Home: React.FC<Props> = ({
             <div className="flex flex-wrap items-center gap-4 pt-3">
               <button
                 onClick={() => navigateTo('projects')}
-                className="bg-white hover:bg-emerald-50 active:scale-[0.98] text-[#09291F] font-bold px-8 py-4 rounded-xl shadow-xl transition-all duration-200 transform hover:-translate-y-0.5 flex items-center gap-2.5 text-sm sm:text-base border border-emerald-400 cursor-pointer"
+                className="bg-gradient-to-r from-[#D4AF37] via-[#C6A15B] to-[#B38F44] hover:brightness-110 active:scale-[0.98] text-[#09291F] font-bold px-8 py-4 rounded-xl shadow-xl transition-all duration-200 transform hover:-translate-y-0.5 flex items-center gap-2.5 text-sm sm:text-base border border-[#E5C16C] cursor-pointer"
               >
                 <span>{t('exploreProjects', currentLang, translations).toUpperCase()}</span>
                 <ArrowRight className="w-4 h-4 shrink-0 text-[#09291F]" />
@@ -236,22 +236,20 @@ export const Home: React.FC<Props> = ({
           {/* Portrait Photo Presentation with Luxury Bezel */}
           <div className="lg:col-span-5 flex justify-center">
             <div className="relative w-full max-w-sm sm:max-w-md">
-              {/* Clean Polished Emerald Green Aura */}
-              <div className="absolute -inset-4 bg-gradient-to-tr from-[#09291F] via-emerald-800/30 to-[#0A261E] rounded-3xl blur-xl opacity-75"></div>
+              {/* Golden Ambient Aura */}
+              <div className="absolute -inset-4 bg-gradient-to-tr from-[#C6A15B]/30 via-emerald-600/20 to-[#C6A15B]/40 rounded-3xl blur-2xl opacity-75"></div>
               
               {/* Luxury Frame Container */}
-              <div className="relative rounded-2xl overflow-hidden shadow-2xl border-2 border-emerald-500/60 ring-4 ring-[#09291F]/80 bg-[#09291F] aspect-[3/4] group">
+              <div className="relative rounded-2xl overflow-hidden shadow-2xl border-2 border-[#C6A15B]/60 ring-4 ring-[#09291F]/80 bg-[#09291F] aspect-[3/4] group">
                 {/* Floating Official Seal Medallion */}
-                <div className="absolute top-3 left-3 z-20 flex items-center gap-2 bg-[#061B14]/90 backdrop-blur-md px-3 py-1.5 rounded-full border border-emerald-400/60 shadow-2xl">
-                  <img src="/official_logo.png" alt="Official Seal" loading="eager" decoding="sync" className="w-6 h-6 rounded-full object-contain" />
-                  <span className="text-[10px] font-extrabold uppercase tracking-wider text-emerald-200">National Assembly</span>
+                <div className="absolute top-3 left-3 z-20 flex items-center gap-2 bg-[#061B14]/90 backdrop-blur-md px-3 py-1.5 rounded-full border border-[#D4AF37]/60 shadow-2xl">
+                  <img src="/official_logo.png" alt="Official Seal" className="w-6 h-6 rounded-full object-contain" />
+                  <span className="text-[10px] font-extrabold uppercase tracking-wider text-[#D4AF37]">National Assembly</span>
                 </div>
 
                 <img
                   src="/portrait_danmaje_yabo_1792063283391.jpg"
                   alt="Hon. Umar Yusuf Danmaje Yabo - Member House of Representatives"
-                  loading="eager"
-                  decoding="sync"
                   className="w-full h-full object-cover object-top transition duration-700 group-hover:scale-105"
                   onError={(e) => {
                     (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=800';
@@ -259,21 +257,21 @@ export const Home: React.FC<Props> = ({
                 />
                 
                 {/* Official Title Plaque Overlay */}
-                <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-[#061B14] via-[#09291F]/90 to-transparent p-5 sm:p-6 text-white border-t border-emerald-500/30">
+                <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-[#061B14] via-[#09291F]/90 to-transparent p-5 sm:p-6 text-white border-t border-[#C6A15B]/30">
                   <div className="flex items-center justify-between mb-2">
-                    <span className="text-[10px] uppercase tracking-widest text-emerald-300 font-extrabold flex items-center gap-1.5">
-                      <Shield className="w-3 h-3 text-emerald-300" />
+                    <span className="text-[10px] uppercase tracking-widest text-[#D4AF37] font-extrabold flex items-center gap-1.5">
+                      <Shield className="w-3 h-3 text-[#D4AF37]" />
                       Official Representative
                     </span>
-                    <span className="text-[10px] font-bold bg-emerald-900/60 text-emerald-200 px-2 py-0.5 rounded border border-emerald-500/40">
+                    <span className="text-[10px] font-bold bg-[#C6A15B]/20 text-[#D4AF37] px-2 py-0.5 rounded border border-[#C6A15B]/30">
                       Federal Republic of Nigeria
                     </span>
                   </div>
                   <div className="flex items-center gap-3">
-                    <img src="/official_logo.png" alt="Constituency Seal" className="w-12 h-12 rounded-full border-2 border-emerald-400 p-0.5 bg-[#09291F] shadow-lg shrink-0 object-contain" />
+                    <img src="/official_logo.png" alt="Constituency Seal" className="w-12 h-12 rounded-full border-2 border-[#D4AF37] p-0.5 bg-[#09291F] shadow-lg shrink-0 object-contain" />
                     <div>
                       <p className="font-['Manrope'] font-bold text-lg sm:text-xl text-white leading-tight">Hon. Umar Yusuf</p>
-                      <p className="text-xs text-emerald-300 font-semibold">Danmaje Yabo</p>
+                      <p className="text-xs text-[#D4AF37] font-semibold">Danmaje Yabo</p>
                       <p className="text-[10px] text-white/80 mt-0.5">Yabo/Shagari Federal Constituency</p>
                     </div>
                   </div>
@@ -684,11 +682,11 @@ export const Home: React.FC<Props> = ({
 
       {/* 6B. FEATURED VIDEO & PARLIAMENTARY BROADCAST */}
       <section className="max-w-7xl mx-auto px-4 sm:px-8">
-        <div className="bg-gradient-to-br from-[#072118] via-[#0E3529] to-[#0A261E] rounded-3xl p-6 sm:p-10 lg:p-12 text-white border border-emerald-500/40 shadow-2xl relative overflow-hidden grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
-          <div className="absolute right-0 bottom-0 w-80 h-80 bg-emerald-600/10 rounded-full blur-3xl pointer-events-none"></div>
+        <div className="bg-gradient-to-br from-[#072118] via-[#0E3529] to-[#0A261E] rounded-3xl p-6 sm:p-10 lg:p-12 text-white border border-[#C6A15B]/40 shadow-2xl relative overflow-hidden grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
+          <div className="absolute right-0 bottom-0 w-80 h-80 bg-[#C6A15B]/10 rounded-full blur-3xl pointer-events-none"></div>
 
           <div className="lg:col-span-6 space-y-4 relative z-10">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-900/60 border border-emerald-500/40 text-xs font-semibold text-emerald-200 uppercase tracking-wider">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#C6A15B]/20 border border-[#C6A15B]/40 text-xs font-semibold text-[#D4AF37] uppercase tracking-wider">
               <span className="w-2 h-2 rounded-full bg-rose-500 animate-ping"></span>
               <span>Official Video Dispatch • {featuredVideo.category || 'Plenary Session'}</span>
             </div>
@@ -706,7 +704,7 @@ export const Home: React.FC<Props> = ({
                 onClick={() => {
                   setActiveVideoTheater(featuredVideo);
                 }}
-                className="bg-white hover:bg-emerald-50 active:scale-[0.98] text-[#09291F] font-extrabold px-6 py-3 rounded-xl shadow-lg transition-all flex items-center gap-2 text-xs sm:text-sm cursor-pointer border border-emerald-400 uppercase tracking-wider"
+                className="bg-gradient-to-r from-[#D4AF37] via-[#C6A15B] to-[#B38F44] hover:brightness-110 active:scale-[0.98] text-[#09291F] font-extrabold px-6 py-3 rounded-xl shadow-lg transition-all flex items-center gap-2 text-xs sm:text-sm cursor-pointer border border-[#E5C16C] uppercase tracking-wider"
               >
                 <Play className="w-4 h-4 fill-current" />
                 <span>WATCH WITH COMMENTS & REACTIONS</span>
@@ -965,10 +963,10 @@ export const Home: React.FC<Props> = ({
               <div className="px-6 pb-6 pt-2">
                 <button
                   onClick={() => setActiveNews(article)}
-                  className="w-full bg-gradient-to-r from-[#103C2E] to-[#0A261E] hover:from-[#09291F] hover:to-[#061D16] text-white py-3 rounded-xl font-bold text-xs transition-all shadow-md text-center flex items-center justify-center gap-1.5 cursor-pointer uppercase tracking-wider border border-emerald-500/40"
+                  className="w-full bg-gradient-to-r from-[#103C2E] to-[#0A261E] hover:from-[#09291F] hover:to-[#061D16] text-white py-3 rounded-xl font-bold text-xs transition-all shadow-md text-center flex items-center justify-center gap-1.5 cursor-pointer uppercase tracking-wider border border-[#C6A15B]/40"
                 >
                   <span>{t('readMore', currentLang, translations).toUpperCase()}</span>
-                  <ChevronRight className="w-3.5 h-3.5 text-emerald-300" />
+                  <ChevronRight className="w-3.5 h-3.5 text-[#C6A15B]" />
                 </button>
               </div>
             </div>
@@ -978,10 +976,11 @@ export const Home: React.FC<Props> = ({
 
       {/* 9. CITIZEN ENGAGEMENT AND ENQUIRY */}
       <section className="max-w-7xl mx-auto px-4 sm:px-8">
-        <div className="bg-gradient-to-r from-[#072118] via-[#0E3529] to-[#0A261E] text-white rounded-3xl p-8 sm:p-14 relative overflow-hidden shadow-2xl border border-emerald-500/30">
+        <div className="bg-gradient-to-r from-[#072118] via-[#0E3529] to-[#0A261E] text-white rounded-3xl p-8 sm:p-14 relative overflow-hidden shadow-2xl border border-[#C6A15B]/40">
+          <div className="absolute -right-20 -bottom-20 w-96 h-96 bg-[#C6A15B]/15 rounded-full blur-3xl pointer-events-none"></div>
           <div className="relative z-10 max-w-2xl space-y-4">
-            <span className="inline-block bg-emerald-700/80 text-white text-xs font-bold px-3 py-1 rounded-md border border-emerald-400/50 uppercase tracking-wider">
-              CONSTITUENCY LIAISON DESK
+            <span className="inline-block bg-[#D4AF37] text-[#09291F] text-xs font-bold px-3 py-1 rounded-md">
+              Constituency Liaison Desk
             </span>
             <h2 className="text-2xl sm:text-4xl font-extrabold font-['Manrope'] tracking-tight">
               {t('citizenEngagementTitle', currentLang, translations)}
@@ -992,13 +991,13 @@ export const Home: React.FC<Props> = ({
             <div className="pt-2 flex flex-wrap gap-4">
               <button
                 onClick={() => navigateTo('contact')}
-                className="bg-white hover:bg-emerald-50 active:scale-[0.98] text-[#09291F] font-extrabold px-8 py-4 rounded-xl shadow-lg transition-all transform hover:-translate-y-0.5 text-sm sm:text-base border border-emerald-400 cursor-pointer uppercase tracking-wider"
+                className="bg-[#D4AF37] hover:bg-[#C6A15B] active:scale-[0.98] text-[#09291F] font-bold px-8 py-4 rounded-xl shadow-lg transition-all transform hover:-translate-y-0.5 text-sm sm:text-base border border-[#D4AF37] cursor-pointer uppercase tracking-wider"
               >
                 <span>{t('submitEnquiryBtn', currentLang, translations).toUpperCase()}</span>
               </button>
               <button
                 onClick={() => navigateTo('empowerment')}
-                className="bg-[#0B3B2C] hover:bg-[#07241A] active:scale-[0.98] text-white font-extrabold px-8 py-4 rounded-xl shadow-xl transition-all transform hover:-translate-y-0.5 text-sm sm:text-base border border-emerald-400/50 cursor-pointer uppercase tracking-wider"
+                className="bg-[#103C2E] hover:bg-[#09291F] active:scale-[0.98] text-[#D4AF37] font-extrabold px-8 py-4 rounded-xl shadow-xl transition-all transform hover:-translate-y-0.5 text-sm sm:text-base border border-[#C6A15B]/60 cursor-pointer uppercase tracking-wider"
               >
                 <span>{t('applyEmpowermentBtn', currentLang, translations).toUpperCase()}</span>
               </button>

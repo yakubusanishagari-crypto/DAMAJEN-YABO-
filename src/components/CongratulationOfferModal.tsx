@@ -2,7 +2,7 @@ import React, { useRef } from 'react';
 import { ProgramApplication } from '../types';
 import { 
   Printer, Download, X, Award, CheckCircle2, ShieldCheck, 
-  MapPin, Calendar, FileText, Building2, User 
+  MapPin, Calendar, FileText, Sparkles, Building2, User 
 } from 'lucide-react';
 
 interface Props {
@@ -270,7 +270,7 @@ export const CongratulationOfferModal: React.FC<Props> = ({ application, onClose
           {/* Congratulations Highlight Banner */}
           <div className="bg-gradient-to-r from-[#103C2E] to-[#0A261E] text-white p-4 rounded-2xl border border-[#D4AF37]/60 flex items-center gap-3 shadow-md">
             <div className="w-10 h-10 rounded-full bg-[#D4AF37]/20 flex items-center justify-center text-[#D4AF37] shrink-0 border border-[#D4AF37]">
-              <Award className="w-5 h-5" />
+              <Sparkles className="w-5 h-5" />
             </div>
             <div>
               <h4 className="font-['Manrope'] font-bold text-sm sm:text-base text-[#D4AF37] uppercase tracking-wide">

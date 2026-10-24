@@ -359,9 +359,11 @@ export const EmpowermentPage: React.FC<Props> = ({
   return (
     <div className={`max-w-7xl mx-auto px-4 sm:px-8 py-12 space-y-12 ${isRtl ? 'rtl text-right' : ''}`}>
       {/* Header Banner */}
-      <div className="bg-gradient-to-br from-[#09291F] via-[#103C2E] to-[#0A261E] text-white rounded-3xl p-8 sm:p-14 shadow-2xl space-y-6 relative overflow-hidden border border-emerald-500/30">
+      <div className="bg-gradient-to-br from-[#09291F] via-[#103C2E] to-[#0A261E] text-white rounded-3xl p-8 sm:p-14 shadow-2xl space-y-6 relative overflow-hidden border border-[#C6A15B]/40">
+        <div className="absolute right-0 top-0 w-96 h-96 bg-[#C6A15B]/10 rounded-full blur-3xl pointer-events-none"></div>
+        
         <div className="relative z-10 max-w-4xl space-y-4">
-          <div className="inline-flex items-center gap-2.5 px-3.5 py-1.5 rounded-full bg-emerald-900/60 border border-emerald-500/40 text-xs font-black uppercase tracking-wider text-emerald-200">
+          <div className="inline-flex items-center gap-2.5 px-3.5 py-1.5 rounded-full bg-[#C6A15B]/20 border border-[#C6A15B]/40 text-xs font-black uppercase tracking-wider text-[#D4AF37]">
             <img src="/official_logo.png" alt="Official Seal" className="w-5 h-5 rounded-full object-contain shrink-0" />
             <span>FEDERAL CONSTITUENCY CITIZEN ADVANCEMENT & EMPOWERMENT PORTAL</span>
           </div>
@@ -381,10 +383,10 @@ export const EmpowermentPage: React.FC<Props> = ({
               className={`px-6 py-3.5 rounded-xl text-xs sm:text-sm font-black transition-all cursor-pointer shadow-md uppercase tracking-wider flex items-center gap-2 ${
                 activeMainTab === 'programs'
                   ? 'bg-emerald-600 text-white border border-emerald-400/50 shadow-lg'
-                  : 'bg-[#0A261E] text-stone-100 hover:bg-[#103C2E] hover:text-white border border-emerald-500/40'
+                  : 'bg-[#0A261E] text-stone-100 hover:bg-[#103C2E] hover:text-[#D4AF37] border border-[#C6A15B]/50'
               }`}
             >
-              <Award className="w-4 h-4 text-emerald-300" />
+              <Award className="w-4 h-4 text-[#C6A15B]" />
               <span>AVAILABLE SCHEMES & PROGRAMMES</span>
             </button>
 
@@ -393,10 +395,10 @@ export const EmpowermentPage: React.FC<Props> = ({
               className={`px-6 py-3.5 rounded-xl text-xs sm:text-sm font-black transition-all cursor-pointer shadow-md uppercase tracking-wider flex items-center gap-2 ${
                 activeMainTab === 'track'
                   ? 'bg-emerald-600 text-white border border-emerald-400/50 shadow-lg'
-                  : 'bg-[#0A261E] text-stone-100 hover:bg-[#103C2E] hover:text-white border border-emerald-500/40'
+                  : 'bg-[#0A261E] text-stone-100 hover:bg-[#103C2E] hover:text-[#D4AF37] border border-[#C6A15B]/50'
               }`}
             >
-              <Search className="w-4 h-4 text-emerald-300" />
+              <Search className="w-4 h-4 text-[#C6A15B]" />
               <span>TRACK APPLICATION STATUS & PRINT SLIP</span>
             </button>
           </div>

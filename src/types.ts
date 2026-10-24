@@ -206,36 +206,9 @@ export interface ElectionReport {
   totalValidVotes: number;
   rejectedVotes: number;
   danmajeVotes: number; 
-  danmajePartyName?: string;
   opponentVotes: number; 
-  opponentPartyName?: string;
   otherPartyVotes: number;
-  otherPartyName?: string;
   notes?: string;
-  inquiryDetails?: string;
-  incidentsReported?: string;
   submittedAt: string;
-}
-
-export interface SmsBroadcastRecord {
-  id: string;
-  senderId: string;
-  targetGroup: string;
-  recipientsCount: number;
-  message: string;
-  timestamp: string;
-  status: 'DELIVERED' | 'DISPATCHED' | 'FAILED';
-  deliveryRate: string;
-}
-
-export interface UssdSessionRecord {
-  id: string;
-  phoneNumber: string;
-  serviceCode: string;
-  sessionDuration: string;
-  menuAccessed: string;
-  networkCarrier: 'MTN' | 'AIRTEL' | 'GLO' | '9MOBILE';
-  timestamp: string;
-  status: 'COMPLETED' | 'TIMEOUT';
 }
 

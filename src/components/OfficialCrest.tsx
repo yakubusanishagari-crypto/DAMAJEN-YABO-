@@ -26,8 +26,6 @@ export const OfficialCrest: React.FC<Props> = ({ className = '', size = 'md' }) 
         <img
           src="/official_logo.png"
           alt="Hon. Umar Yusuf Yabo - Official Constituency Seal"
-          loading="eager"
-          decoding="sync"
           className="w-full h-full object-cover rounded-full"
           onError={() => setImgError(true)}
         />

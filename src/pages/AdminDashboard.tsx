@@ -13,13 +13,11 @@ import {
   Upload, Video, Film, Play, Check, Search, Filter, ChevronRight, CheckCircle2,
   Clock, Printer, ExternalLink, FileCheck, Star, Sparkles, RefreshCw, Menu,
   Send, Calendar, MapPin, Sliders, ChevronDown, Landmark, Smartphone, Monitor, Laptop,
-  Tablet, Compass, CheckSquare, BarChart2, Share2, Copy, User, Camera, ExternalLink as ExtLink, Radio
+  Tablet, Compass, CheckSquare, BarChart2, Share2, Copy, User, Camera, ExternalLink as ExtLink
 } from 'lucide-react';
 import { ApplicationSlipModal } from '../components/ApplicationSlipModal';
 import { CongratulationOfferModal } from '../components/CongratulationOfferModal';
 import { ElectionTab } from '../components/ElectionTab';
-import { CybersecurityTab } from '../components/CybersecurityTab';
-import { SmsUssdGatewayTab } from '../components/SmsUssdGatewayTab';
 import { 
   extractYouTubeId, 
   getYouTubeThumbnailUrl, 
@@ -64,12 +62,9 @@ export type DashboardTab =
   | 'legislative' 
   | 'empowerment' 
   | 'applications' 
-  | 'petitions'
   | 'gallery' 
   | 'enquiries' 
   | 'election'
-  | 'cybersecurity'
-  | 'sms_ussd'
   | 'settings';
 
 export const AdminDashboard: React.FC<Props> = ({
@@ -128,56 +123,6 @@ export const AdminDashboard: React.FC<Props> = ({
     localStorage.setItem('danmaje_applications', JSON.stringify(applications));
   }, [applications]);
 
-  // Petitions Persistence & Review State (100% Independent of Empowerment Applications)
-  const [petitions, setPetitions] = useState<ProgramApplication[]>(() => {
-    const saved = localStorage.getItem('danmaje_petitions');
-    if (saved) {
-      try { return JSON.parse(saved); } catch {}
-    }
-    return [
-      {
-        id: 'pet-1',
-        referenceNumber: 'DAN-PET-2026-99211',
-        programId: 'prog-ticket-1',
-        programTitle: 'Solar Borehole Maintenance & Rehabilitation Request',
-        programCategory: 'Constituency Petition',
-        applicantName: 'Malam Aliyu Dan-Yabo',
-        email: 'aliyu@danmayeyabo.gov.ng',
-        phone: '+234 803 555 7890',
-        wardOrTown: 'Yabo Central Ward',
-        qualifications: 'Community Request',
-        statement: 'Requesting urgent repair of community solar borehole in Yabo Central sector.',
-        date: '2026-10-18',
-        status: 'SUBMITTED',
-        notes: 'Initial committee logging complete.'
-      }
-    ];
-  });
-
-  useEffect(() => {
-    localStorage.setItem('danmaje_petitions', JSON.stringify(petitions));
-  }, [petitions]);
-
-  // Sync freshest records when opening petitions or applications
-  useEffect(() => {
-    if (activeTab === 'applications') {
-      try {
-        const saved = localStorage.getItem('danmaje_applications');
-        if (saved) {
-          setApplications(JSON.parse(saved));
-        }
-      } catch {}
-    }
-    if (activeTab === 'petitions') {
-      try {
-        const saved = localStorage.getItem('danmaje_petitions');
-        if (saved) {
-          setPetitions(JSON.parse(saved));
-        }
-      } catch {}
-    }
-  }, [activeTab]);
-
   const [selectedAppForReview, setSelectedAppForReview] = useState<ProgramApplication | null>(null);
   const [slipModalApp, setSlipModalApp] = useState<ProgramApplication | null>(null);
   const [offerModalApp, setOfferModalApp] = useState<ProgramApplication | null>(null);
@@ -185,9 +130,6 @@ export const AdminDashboard: React.FC<Props> = ({
   const [appSearchQuery, setAppSearchQuery] = useState('');
   const [appStatusFilter, setAppStatusFilter] = useState('ALL');
   const [appProgramFilter, setAppProgramFilter] = useState('ALL');
-  const [petitionSearchQuery, setPetitionSearchQuery] = useState('');
-  const [petitionStatusFilter, setPetitionStatusFilter] = useState('ALL');
-  const [petitionTypeFilter, setPetitionTypeFilter] = useState<'ALL' | 'PETITIONS_ONLY' | 'EMPOWERMENT'>('ALL');
   const [reviewStatusInput, setReviewStatusInput] = useState<ApplicationStatus>('SUBMITTED');
   const [reviewInternalNote, setReviewInternalNote] = useState('');
   const [reviewPublicFeedback, setReviewPublicFeedback] = useState('');
@@ -233,9 +175,6 @@ export const AdminDashboard: React.FC<Props> = ({
       return a;
     });
     setApplications(updated);
-    try {
-      localStorage.setItem('danmaje_applications', JSON.stringify(updated));
-    } catch {}
     if (selectedAppForReview && selectedAppForReview.id === appId) {
       setSelectedAppForReview(updated.find(a => a.id === appId) || null);
     }
@@ -251,9 +190,6 @@ export const AdminDashboard: React.FC<Props> = ({
   const handleDeleteApp = (appId: string) => {
     const updated = applications.filter(a => a.id !== appId);
     setApplications(updated);
-    try {
-      localStorage.setItem('danmaje_applications', JSON.stringify(updated));
-    } catch {}
     if (selectedAppForReview && selectedAppForReview.id === appId) {
       setSelectedAppForReview(null);
     }
@@ -295,99 +231,6 @@ export const AdminDashboard: React.FC<Props> = ({
     document.body.appendChild(downloadAnchor);
     downloadAnchor.click();
     downloadAnchor.remove();
-  };
-
-  const handleAdvancePetitionStage = (
-    petitionId: string, 
-    newStage: ApplicationStatus, 
-    internalNote: string, 
-    publicFeedback: string,
-    actionPackage?: string
-  ) => {
-    const now = new Date();
-    const timeStr = `${now.toISOString().split('T')[0]} ${now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
-    const updated = petitions.map(p => {
-      if (p.id === petitionId) {
-        const oldTimeline = p.timeline || [
-          {
-            stage: 'SUBMITTED',
-            timestamp: `${p.date} 09:00 AM`,
-            title: 'Petition Received',
-            note: 'Petition logged into constituency petition docket',
-            actor: 'Citizen Portal'
-          }
-        ];
-        const newEvent = {
-          stage: newStage,
-          timestamp: timeStr,
-          title: `Stage transitioned to ${newStage}`,
-          note: publicFeedback || internalNote || `Stage updated by ${adminRole || 'Administrator'}`,
-          actor: adminRole || 'Administrator'
-        };
-        return {
-          ...p,
-          status: newStage,
-          currentStage: newStage,
-          awardGrantPackage: actionPackage || p.awardGrantPackage || reviewAwardPackage,
-          notes: internalNote !== undefined ? internalNote : p.notes,
-          publicFeedback: publicFeedback !== undefined ? publicFeedback : p.publicFeedback,
-          timeline: [...oldTimeline, newEvent]
-        };
-      }
-      return p;
-    });
-    setPetitions(updated);
-    try {
-      localStorage.setItem('danmaje_petitions', JSON.stringify(updated));
-    } catch {}
-    if (selectedAppForReview && selectedAppForReview.id === petitionId) {
-      setSelectedAppForReview(updated.find(p => p.id === petitionId) || null);
-    }
-    setActivityLogs(prev => [{
-      id: `log-${Date.now()}`,
-      user: email,
-      action: `Updated petition stage for #${petitionId} to ${newStage}`,
-      timestamp: new Date().toISOString().replace('T', ' ').substring(0, 16),
-      role: adminRole
-    }, ...prev]);
-  };
-
-  const handleDeletePetition = (petitionId: string) => {
-    const updated = petitions.filter(p => p.id !== petitionId);
-    setPetitions(updated);
-    try {
-      localStorage.setItem('danmaje_petitions', JSON.stringify(updated));
-    } catch {}
-    if (selectedAppForReview && selectedAppForReview.id === petitionId) {
-      setSelectedAppForReview(null);
-    }
-  };
-
-  const handleExportPetitionsCSV = () => {
-    const headers = ['Reference Number', 'Applicant Name', 'Email', 'Phone', 'LGA', 'Ward/Town', 'Petition Subject', 'Category', 'Status', 'Date Submitted', 'Grievance / Statement', 'Public Feedback', 'Internal Notes'];
-    const rows = petitions.map(p => [
-      `"${p.referenceNumber}"`,
-      `"${p.applicantName}"`,
-      `"${p.email || ''}"`,
-      `"${p.phone}"`,
-      `"${p.lga || 'Yabo/Shagari'}"`,
-      `"${p.wardOrTown}"`,
-      `"${p.programTitle}"`,
-      `"${p.programCategory || 'Constituency Petition'}"`,
-      `"${p.status}"`,
-      `"${p.date}"`,
-      `"${(p.statement || '').replace(/"/g, '""')}"`,
-      `"${(p.publicFeedback || '').replace(/"/g, '""')}"`,
-      `"${(p.notes || '').replace(/"/g, '""')}"`
-    ]);
-    const csvContent = "data:text/csv;charset=utf-8," + [headers.join(','), ...rows.map(e => e.join(','))].join('\n');
-    const encodedUri = encodeURI(csvContent);
-    const link = document.createElement('a');
-    link.setAttribute('href', encodedUri);
-    link.setAttribute('download', `danmaje_constituency_petitions_${new Date().toISOString().split('T')[0]}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
   };
 
   // Programme Editing State
@@ -552,19 +395,6 @@ export const AdminDashboard: React.FC<Props> = ({
     updates: []
   });
   const [editingProject, setEditingProject] = useState<Project | null>(null);
-
-  const handleProjectImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      if (file.size > 8 * 1024 * 1024) return;
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        const result = reader.result as string;
-        setNewProj(prev => ({ ...prev, images: [result] }));
-      };
-      reader.readAsDataURL(file);
-    }
-  };
 
   const handleCreateProject = (e: React.FormEvent) => {
     e.preventDefault();
@@ -1123,7 +953,7 @@ export const AdminDashboard: React.FC<Props> = ({
     }
   };
 
-  // Navigation items with Cybersecurity and SMS/USSD Gateway
+  // Exact 10 Nav items
   const navItems: { id: DashboardTab; label: string; icon: any; count?: number }[] = [
     { id: 'overview', label: '1. SYSTEM OVERVIEW', icon: Activity },
     { id: 'analytics', label: '2. VISITORS ANALYTICS', icon: BarChart3 },
@@ -1132,13 +962,10 @@ export const AdminDashboard: React.FC<Props> = ({
     { id: 'legislative', label: '5. LEGISLATIVE', icon: Landmark, count: legislative.length },
     { id: 'empowerment', label: '6. EMPOWERMENT', icon: Users, count: programs.length },
     { id: 'applications', label: '7. APPLICATIONS', icon: CheckCircle2, count: applications.length },
-    { id: 'petitions', label: '8. PETITIONS & TICKETS', icon: FileCheck, count: applications.length },
-    { id: 'gallery', label: '9. PHOTOS & VIDEOS', icon: Film, count: gallery.length },
-    { id: 'enquiries', label: '10. ENQUIRIES', icon: Mail, count: contacts.length },
-    { id: 'election', label: '11. ELECTION RESULTS & AGENTS', icon: CheckSquare },
-    { id: 'cybersecurity', label: '12. CYBERSECURITY & THREAT DEFENSE', icon: Shield },
-    { id: 'sms_ussd', label: '13. SMS & USSD GATEWAY', icon: Radio },
-    { id: 'settings', label: '14. USER SETTINGS', icon: Settings },
+    { id: 'gallery', label: '8. PHOTOS & VIDEOS', icon: Film, count: gallery.length },
+    { id: 'enquiries', label: '9. ENQUIRIES', icon: Mail, count: contacts.length },
+    { id: 'election', label: '10. ELECTION RESULTS & AGENTS', icon: CheckSquare },
+    { id: 'settings', label: '11. USER SETTINGS', icon: Settings },
   ];
 
   // LOGIN SCREEN
@@ -2119,51 +1946,6 @@ export const AdminDashboard: React.FC<Props> = ({
                     className="w-full px-4 py-2.5 bg-stone-50 border border-stone-200 rounded-xl text-xs sm:text-sm"
                   ></textarea>
 
-                  {/* Project Photo Attachment */}
-                  <div className="space-y-3 bg-stone-50 p-4 rounded-2xl border border-stone-200">
-                    <label className="text-xs font-bold text-[#103C2E] block uppercase tracking-wider">
-                      Attach Project Site Photo / Progress Evidence
-                    </label>
-                    <div className="flex flex-wrap items-center gap-3">
-                      <label className="cursor-pointer bg-[#103C2E] hover:bg-[#09291F] text-white px-4 py-2.5 rounded-xl text-xs font-bold flex items-center gap-2 shadow-sm transition">
-                        <Camera className="w-4 h-4 text-[#C6A15B]" />
-                        <span>Upload Photo File</span>
-                        <input type="file" accept="image/*" onChange={handleProjectImageUpload} className="hidden" />
-                      </label>
-                      <span className="text-[11px] text-stone-500 font-medium">Supports JPG, PNG, WEBP (Direct Camera or Gallery)</span>
-                    </div>
-
-                    <div className="space-y-1">
-                      <label className="text-[11px] text-stone-500 font-semibold uppercase">Or Image URL</label>
-                      <input
-                        type="url"
-                        placeholder="https://images.unsplash.com/... or direct image link"
-                        value={newProj.images[0] || ''}
-                        onChange={(e) => setNewProj({...newProj, images: [e.target.value]})}
-                        className="w-full px-3 py-2 bg-white border border-stone-200 rounded-xl text-xs font-mono"
-                      />
-                    </div>
-
-                    {newProj.images[0] && (
-                      <div className="flex items-center gap-3 pt-1">
-                        <div className="w-20 h-14 rounded-xl overflow-hidden border border-stone-300 bg-stone-100 shadow-sm shrink-0">
-                          <img 
-                            src={newProj.images[0]} 
-                            alt="Project Preview" 
-                            className="w-full h-full object-cover"
-                            onError={(e) => {
-                              (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1541888946425-d0fbb18f764c?auto=format&fit=crop&q=80&w=200';
-                            }}
-                          />
-                        </div>
-                        <div className="text-xs">
-                          <span className="font-bold text-emerald-800 block">Photo Attached</span>
-                          <span className="text-stone-500 text-[11px]">Will display on project card & detailed transparency modal</span>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-
                   <div className="flex justify-end gap-3 pt-2">
                     <button
                       type="button"
@@ -2177,152 +1959,6 @@ export const AdminDashboard: React.FC<Props> = ({
                       className="px-6 py-2 bg-[#103C2E] hover:bg-[#09291F] text-white rounded-xl text-xs font-bold uppercase cursor-pointer shadow"
                     >
                       Save Project
-                    </button>
-                  </div>
-                </form>
-              )}
-
-              {/* Edit Project Form */}
-              {editingProject && (
-                <form onSubmit={handleUpdateProject} className="bg-emerald-50/70 p-6 sm:p-8 rounded-3xl shadow-lg border-2 border-[#103C2E] space-y-4">
-                  <div className="flex justify-between items-center border-b border-emerald-200 pb-3">
-                    <h4 className="font-['Manrope'] font-bold text-[#103C2E] text-base uppercase">
-                      EDIT PROJECT: {editingProject.title}
-                    </h4>
-                    <button onClick={() => setEditingProject(null)} className="text-stone-400 hover:text-stone-700 cursor-pointer">
-                      <X className="w-5 h-5" />
-                    </button>
-                  </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                    <div className="space-y-1">
-                      <label className="text-xs font-bold text-[#103C2E] uppercase">Project Title</label>
-                      <input
-                        type="text"
-                        required
-                        value={editingProject.title}
-                        onChange={(e) => setEditingProject({...editingProject, title: e.target.value})}
-                        className="w-full px-4 py-2.5 bg-white border border-stone-300 rounded-xl text-xs sm:text-sm font-semibold"
-                      />
-                    </div>
-                    <div className="space-y-1">
-                      <label className="text-xs font-bold text-[#103C2E] uppercase">Location</label>
-                      <input
-                        type="text"
-                        required
-                        value={editingProject.location}
-                        onChange={(e) => setEditingProject({...editingProject, location: e.target.value})}
-                        className="w-full px-4 py-2.5 bg-white border border-stone-300 rounded-xl text-xs sm:text-sm"
-                      />
-                    </div>
-                    <div className="space-y-1">
-                      <label className="text-xs font-bold text-[#103C2E] uppercase">Status</label>
-                      <select
-                        value={editingProject.status}
-                        onChange={(e) => setEditingProject({...editingProject, status: e.target.value as any})}
-                        className="w-full px-4 py-2.5 bg-white border border-stone-300 rounded-xl text-xs sm:text-sm font-bold"
-                      >
-                        <option value="Ongoing">Ongoing</option>
-                        <option value="Completed">Completed</option>
-                        <option value="Proposed">Proposed</option>
-                      </select>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                    <div className="space-y-1">
-                      <label className="text-xs font-bold text-[#103C2E] uppercase">Category</label>
-                      <select
-                        value={editingProject.category}
-                        onChange={(e) => setEditingProject({...editingProject, category: e.target.value as any})}
-                        className="w-full px-4 py-2.5 bg-white border border-stone-300 rounded-xl text-xs sm:text-sm"
-                      >
-                        <option value="Water & Sanitation">Water & Sanitation</option>
-                        <option value="Education">Education</option>
-                        <option value="Roads & Infrastructure">Roads & Infrastructure</option>
-                        <option value="Healthcare">Healthcare</option>
-                        <option value="Youth Development">Youth Development</option>
-                        <option value="Agriculture">Agriculture</option>
-                      </select>
-                    </div>
-                    <div className="space-y-1">
-                      <label className="text-xs font-bold text-[#103C2E] uppercase">Year</label>
-                      <input
-                        type="text"
-                        value={editingProject.year}
-                        onChange={(e) => setEditingProject({...editingProject, year: e.target.value})}
-                        className="w-full px-4 py-2.5 bg-white border border-stone-300 rounded-xl text-xs sm:text-sm"
-                      />
-                    </div>
-                    <div className="space-y-1">
-                      <label className="text-xs font-bold text-[#103C2E] uppercase">Expenditure / Budget</label>
-                      <input
-                        type="text"
-                        value={editingProject.expenditure || ''}
-                        onChange={(e) => setEditingProject({...editingProject, expenditure: e.target.value})}
-                        className="w-full px-4 py-2.5 bg-white border border-stone-300 rounded-xl text-xs sm:text-sm"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="space-y-1">
-                    <label className="text-xs font-bold text-[#103C2E] uppercase">Description</label>
-                    <textarea
-                      rows={3}
-                      value={editingProject.description}
-                      onChange={(e) => setEditingProject({...editingProject, description: e.target.value})}
-                      className="w-full px-4 py-2.5 bg-white border border-stone-300 rounded-xl text-xs sm:text-sm"
-                    ></textarea>
-                  </div>
-
-                  {/* Photo attachment for Edit */}
-                  <div className="space-y-3 bg-white p-4 rounded-2xl border border-stone-300">
-                    <label className="text-xs font-bold text-[#103C2E] block uppercase tracking-wider">
-                      Update Project Site Photo
-                    </label>
-                    <div className="flex flex-wrap items-center gap-3">
-                      <label className="cursor-pointer bg-[#103C2E] hover:bg-[#09291F] text-white px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2 shadow-sm transition">
-                        <Camera className="w-4 h-4 text-[#C6A15B]" />
-                        <span>Upload New Photo</span>
-                        <input
-                          type="file"
-                          accept="image/*"
-                          onChange={(e) => {
-                            const file = e.target.files?.[0];
-                            if (file) {
-                              const reader = new FileReader();
-                              reader.onloadend = () => {
-                                setEditingProject(prev => prev ? ({ ...prev, images: [reader.result as string] }) : null);
-                              };
-                              reader.readAsDataURL(file);
-                            }
-                          }}
-                          className="hidden"
-                        />
-                      </label>
-                    </div>
-                    <input
-                      type="url"
-                      placeholder="Or update image URL"
-                      value={editingProject.images?.[0] || ''}
-                      onChange={(e) => setEditingProject({...editingProject, images: [e.target.value]})}
-                      className="w-full px-3 py-2 bg-stone-50 border border-stone-300 rounded-xl text-xs font-mono"
-                    />
-                  </div>
-
-                  <div className="flex justify-end gap-3 pt-2">
-                    <button
-                      type="button"
-                      onClick={() => setEditingProject(null)}
-                      className="px-5 py-2.5 bg-stone-200 hover:bg-stone-300 rounded-xl text-xs font-bold uppercase cursor-pointer"
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      type="submit"
-                      className="px-6 py-2.5 bg-[#103C2E] hover:bg-[#09291F] text-white rounded-xl text-xs font-bold uppercase cursor-pointer shadow"
-                    >
-                      Save Changes
                     </button>
                   </div>
                 </form>
@@ -3364,233 +3000,378 @@ export const AdminDashboard: React.FC<Props> = ({
                   </table>
                 </div>
               </div>
+
+              {/* Dossier Review Modal */}
+              {selectedAppForReview && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-xs p-4 overflow-y-auto">
+                  <div className="bg-white rounded-3xl max-w-4xl w-full p-6 sm:p-8 space-y-6 shadow-2xl my-8 border border-stone-200 max-h-[92vh] overflow-y-auto">
+                    
+                    {/* Header with Applicant Biometric Passport & Info */}
+                    <div className="flex flex-col sm:flex-row items-center sm:items-start justify-between gap-4 border-b border-stone-100 pb-5">
+                      <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4 text-center sm:text-left">
+                        {/* Biometric Passport Frame */}
+                        <div className="w-24 h-32 rounded-xl overflow-hidden border-2 border-[#103C2E] bg-stone-100 shrink-0 shadow-md flex flex-col items-center justify-center relative">
+                          {selectedAppForReview.passportPhoto ? (
+                            <img
+                              src={selectedAppForReview.passportPhoto}
+                              alt={selectedAppForReview.applicantName}
+                              className="w-full h-full object-cover"
+                            />
+                          ) : (
+                            <div className="text-center p-2 text-stone-400">
+                              <User className="w-10 h-10 mx-auto text-stone-300" />
+                              <span className="text-[9px] font-bold uppercase mt-1 block">No Passport</span>
+                            </div>
+                          )}
+                          <div className="absolute bottom-0 inset-x-0 bg-[#103C2E] text-[#D4AF37] text-[8px] font-black py-0.5 text-center uppercase tracking-widest">
+                            Official Photo
+                          </div>
+                        </div>
+
+                        <div className="space-y-1">
+                          <span className="text-[10px] font-black uppercase tracking-wider text-[#C6A15B] bg-[#C6A15B]/15 px-2.5 py-0.5 rounded-full border border-[#C6A15B]/30 inline-block">
+                            CONSTITUENCY BENEFICIARY DOSSIER
+                          </span>
+                          <h3 className="font-['Manrope'] font-black text-2xl text-[#103C2E] uppercase">
+                            {selectedAppForReview.applicantName}
+                          </h3>
+                          <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2 text-xs text-stone-600 font-mono">
+                            <span className="font-bold text-[#103C2E]">REF: {selectedAppForReview.referenceNumber}</span>
+                            <span>•</span>
+                            <span className="font-sans font-medium text-stone-500">{selectedAppForReview.programTitle}</span>
+                          </div>
+                          <div className="pt-1 flex flex-wrap items-center justify-center sm:justify-start gap-2">
+                            <span className={`px-3 py-0.5 rounded-full text-[11px] font-black uppercase tracking-wider ${
+                              selectedAppForReview.status === 'APPROVED' ? 'bg-emerald-100 text-emerald-800 border border-emerald-300' :
+                              selectedAppForReview.status === 'REJECTED' ? 'bg-rose-100 text-rose-800' :
+                              'bg-amber-100 text-amber-800 border border-amber-300'
+                            }`}>
+                              STATUS: {selectedAppForReview.status}
+                            </span>
+                            {selectedAppForReview.lga && (
+                              <span className="bg-stone-100 text-stone-700 px-2.5 py-0.5 rounded-full text-[11px] font-bold">
+                                LGA: {selectedAppForReview.lga}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => setSlipModalApp(selectedAppForReview)}
+                          className="bg-stone-100 hover:bg-stone-200 text-[#103C2E] px-3 py-1.5 rounded-xl text-xs font-bold uppercase transition flex items-center gap-1.5"
+                          title="Print official application slip"
+                        >
+                          <Printer className="w-3.5 h-3.5" />
+                          <span>Slip</span>
+                        </button>
+                        <button 
+                          onClick={() => setSelectedAppForReview(null)} 
+                          className="bg-stone-100 hover:bg-rose-600 text-stone-600 hover:text-white p-2 rounded-xl border border-stone-200 transition shadow-xs cursor-pointer"
+                          title="Close Review"
+                        >
+                          <X className="w-5 h-5" />
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="space-y-5 text-xs">
+                      
+                      {/* Section 1: Detailed Personal Bio */}
+                      <div className="space-y-2">
+                        <h4 className="font-black text-xs uppercase tracking-wider text-[#103C2E] flex items-center gap-1.5 border-b border-stone-200 pb-1">
+                          <span className="w-2 h-2 rounded-full bg-[#C6A15B]"></span>
+                          1. APPLICANT BIO-DATA & RESIDENCY
+                        </h4>
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 bg-stone-50 p-4 rounded-2xl border border-stone-200">
+                          <div>
+                            <span className="text-stone-500 text-[10px] uppercase font-bold block">National ID (NIN)</span>
+                            <strong className="text-[#103C2E] font-mono text-sm">{selectedAppForReview.nin || 'On File'}</strong>
+                          </div>
+                          <div>
+                            <span className="text-stone-500 text-[10px] uppercase font-bold block">Phone Number</span>
+                            <strong className="text-[#103C2E] font-mono">{selectedAppForReview.phone}</strong>
+                          </div>
+                          <div>
+                            <span className="text-stone-500 text-[10px] uppercase font-bold block">Email Address</span>
+                            <strong className="text-[#103C2E]">{selectedAppForReview.email || 'None Provided'}</strong>
+                          </div>
+                          <div>
+                            <span className="text-stone-500 text-[10px] uppercase font-bold block">LGA / Ward</span>
+                            <strong className="text-[#103C2E]">{selectedAppForReview.lga || 'Constituency'} • {selectedAppForReview.wardOrTown}</strong>
+                          </div>
+                          <div>
+                            <span className="text-stone-500 text-[10px] uppercase font-bold block">Gender</span>
+                            <strong className="text-[#103C2E]">{selectedAppForReview.gender || 'Not Specified'}</strong>
+                          </div>
+                          <div>
+                            <span className="text-stone-500 text-[10px] uppercase font-bold block">Date of Birth</span>
+                            <strong className="text-[#103C2E] font-mono">{selectedAppForReview.dob || 'Not Provided'}</strong>
+                          </div>
+                          <div>
+                            <span className="text-stone-500 text-[10px] uppercase font-bold block">Residential Address</span>
+                            <strong className="text-[#103C2E] truncate block">{selectedAppForReview.residentialAddress || selectedAppForReview.wardOrTown}</strong>
+                          </div>
+                          <div>
+                            <span className="text-stone-500 text-[10px] uppercase font-bold block">Submission Date</span>
+                            <strong className="text-stone-700 font-mono">{selectedAppForReview.date}</strong>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Section 2: Education, Vocation & Disbursement Bank */}
+                      <div className="space-y-2">
+                        <h4 className="font-black text-xs uppercase tracking-wider text-[#103C2E] flex items-center gap-1.5 border-b border-stone-200 pb-1">
+                          <span className="w-2 h-2 rounded-full bg-[#C6A15B]"></span>
+                          2. EDUCATION, VOCATION & DISBURSEMENT ACCOUNT
+                        </h4>
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 bg-stone-50 p-4 rounded-2xl border border-stone-200">
+                          <div>
+                            <span className="text-stone-500 text-[10px] uppercase font-bold block">Education</span>
+                            <strong className="text-[#103C2E]">{selectedAppForReview.highestEducation || 'SSCE / Primary'}</strong>
+                          </div>
+                          <div>
+                            <span className="text-stone-500 text-[10px] uppercase font-bold block">Current Employment</span>
+                            <strong className="text-[#103C2E]">{selectedAppForReview.employmentStatus || 'Unemployed / Youth'}</strong>
+                          </div>
+                          <div>
+                            <span className="text-stone-500 text-[10px] uppercase font-bold block">Disbursement Bank</span>
+                            <strong className="text-[#103C2E]">{selectedAppForReview.bankName || 'Awaiting Account Details'}</strong>
+                          </div>
+                          <div>
+                            <span className="text-stone-500 text-[10px] uppercase font-bold block">Account Number</span>
+                            <strong className="text-[#103C2E] font-mono">{selectedAppForReview.accountNumber || 'None'}</strong>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Section 3: Applicant Uploaded Documents Review */}
+                      <div className="space-y-2">
+                        <h4 className="font-black text-xs uppercase tracking-wider text-[#103C2E] flex items-center justify-between border-b border-stone-200 pb-1">
+                          <span className="flex items-center gap-1.5">
+                            <span className="w-2 h-2 rounded-full bg-[#C6A15B]"></span>
+                            <span>3. APPLICANT SUPPORTING DOCUMENTS & CREDENTIALS</span>
+                          </span>
+                          <span className="text-[10px] font-bold text-stone-500">
+                            {selectedAppForReview.documents ? selectedAppForReview.documents.length : 0} Document(s) Attached
+                          </span>
+                        </h4>
+
+                        {selectedAppForReview.documents && selectedAppForReview.documents.length > 0 ? (
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            {selectedAppForReview.documents.map((doc, idx) => (
+                              <div key={doc.id || idx} className="bg-stone-50 p-3.5 rounded-xl border border-stone-200 flex items-center justify-between gap-3">
+                                <div className="flex items-center gap-3 min-w-0">
+                                  <div className="w-9 h-9 rounded-lg bg-emerald-100 text-emerald-800 flex items-center justify-center shrink-0 font-bold">
+                                    <FileText className="w-5 h-5" />
+                                  </div>
+                                  <div className="min-w-0">
+                                    <span className="font-bold text-[#103C2E] text-xs block truncate">{doc.type || 'Supporting Document'}</span>
+                                    <span className="text-[10px] text-stone-500 block truncate">{doc.name} {doc.size ? `(${doc.size})` : ''}</span>
+                                  </div>
+                                </div>
+                                <button
+                                  type="button"
+                                  onClick={() => setPreviewDocModal(doc)}
+                                  className="bg-[#103C2E] hover:bg-[#09291F] text-white px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase transition shrink-0 cursor-pointer flex items-center gap-1"
+                                >
+                                  <Eye className="w-3 h-3 text-[#C6A15B]" />
+                                  <span>Review</span>
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <div className="bg-stone-50 p-4 rounded-xl border border-stone-200 text-stone-500 text-center space-y-1">
+                            <FileText className="w-6 h-6 mx-auto text-stone-400" />
+                            <p className="text-xs font-semibold">Physical credentials presented during in-person constituency screening.</p>
+                            <span className="text-[10px] text-stone-400 block">NIN and residency certificates verified via parliamentary register.</span>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Section 4: Statement of Purpose */}
+                      <div className="space-y-1">
+                        <span className="text-[10px] font-bold uppercase text-stone-500 block">Applicant Statement of Purpose / Socio-Economic Need:</span>
+                        <div className="bg-stone-50 p-3.5 rounded-xl border border-stone-200 italic text-stone-700 leading-relaxed">
+                          "{selectedAppForReview.statement || 'Applicant committed to participating fully in constituency empowerment activities.'}"
+                        </div>
+                      </div>
+
+                      {/* Transition Form & Award Settlement */}
+                      <div className="bg-emerald-50/70 p-5 rounded-2xl border-2 border-emerald-300 space-y-4">
+                        <div className="flex items-center justify-between">
+                          <h4 className="font-black text-[#103C2E] uppercase text-xs flex items-center gap-1.5">
+                            <Shield className="w-4 h-4 text-emerald-700" />
+                            <span>Advance Application Stage & Settle Allocation</span>
+                          </h4>
+                          {selectedAppForReview.status === 'APPROVED' && (
+                            <button
+                              type="button"
+                              onClick={() => setOfferModalApp(selectedAppForReview)}
+                              className="bg-gradient-to-r from-[#D4AF37] to-[#B38F44] text-[#09291F] px-3 py-1 rounded-lg text-[10px] font-black uppercase shadow-xs flex items-center gap-1 cursor-pointer"
+                            >
+                              <Award className="w-3.5 h-3.5" />
+                              <span>Preview Congratulation Offer Letter</span>
+                            </button>
+                          )}
+                        </div>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                          <div>
+                            <label className="text-[11px] font-bold text-[#103C2E] block uppercase mb-1">Select Stage</label>
+                            <select
+                              value={reviewStatusInput}
+                              onChange={(e) => setReviewStatusInput(e.target.value as ApplicationStatus)}
+                              className="w-full px-3 py-2 bg-white border border-stone-300 rounded-xl text-xs font-bold text-[#103C2E]"
+                            >
+                              <option value="SUBMITTED">1. SUBMITTED</option>
+                              <option value="INITIAL REVIEW">2. INITIAL REVIEW</option>
+                              <option value="DOCUMENT VERIFICATION">3. DOCUMENT VERIFICATION</option>
+                              <option value="ELIGIBILITY ASSESSMENT">4. ELIGIBILITY ASSESSMENT</option>
+                              <option value="FINAL REVIEW">5. FINAL REVIEW</option>
+                              <option value="APPROVED">6. APPROVED (Award Official Congratulatory Offer)</option>
+                              <option value="WAITLISTED">WAITLISTED</option>
+                              <option value="REJECTED">REJECTED</option>
+                            </select>
+                          </div>
+
+                          <div>
+                            <label className="text-[11px] font-bold text-[#103C2E] block uppercase mb-1">Public Feedback (Visible to Applicant on Tracker)</label>
+                            <input
+                              type="text"
+                              placeholder="e.g. Approved. Please bring printed slip and NIN for physical handover..."
+                              value={reviewPublicFeedback}
+                              onChange={(e) => setReviewPublicFeedback(e.target.value)}
+                              className="w-full px-3 py-2 bg-white border border-stone-300 rounded-xl text-xs text-stone-800"
+                            />
+                          </div>
+                        </div>
+
+                        {/* Grant Package Allocation Field (crucial when approving) */}
+                        <div className="bg-white p-3.5 rounded-xl border border-emerald-300 space-y-1">
+                          <label className="text-[11px] font-black text-[#103C2E] uppercase block flex items-center justify-between">
+                            <span>Approved Award Package / Allocation (Printed on Congratulation Offer Letter):</span>
+                            <span className="text-[10px] text-emerald-700 font-bold">Official Allocation</span>
+                          </label>
+                          <input
+                            type="text"
+                            placeholder="e.g. 1x Complete Solar Irrigation Pumping Unit + Industrial Hose + ₦50,000 Agricultural Seed Fund"
+                            value={reviewAwardPackage}
+                            onChange={(e) => setReviewAwardPackage(e.target.value)}
+                            className="w-full px-3 py-2 bg-emerald-50/40 border border-emerald-200 rounded-lg text-xs font-bold text-[#103C2E]"
+                          />
+                        </div>
+
+                        <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-emerald-200/80">
+                          <div className="text-[10px] text-stone-500 font-medium">
+                            Approved applicants can immediately view and download their official Congratulatory Offer letter.
+                          </div>
+
+                          <div className="flex items-center gap-2">
+                            <button
+                              type="button"
+                              onClick={() => setSelectedAppForReview(null)}
+                              className="px-4 py-2 bg-stone-200 hover:bg-stone-300 rounded-xl text-xs font-bold uppercase cursor-pointer"
+                            >
+                              Close
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleAdvanceApplicationStage(selectedAppForReview.id, reviewStatusInput, reviewInternalNote, reviewPublicFeedback, reviewAwardPackage)}
+                              className="bg-[#103C2E] hover:bg-[#09291F] text-white px-5 py-2 rounded-xl text-xs font-bold uppercase shadow cursor-pointer flex items-center gap-1.5"
+                            >
+                              <CheckCircle className="w-4 h-4 text-[#C6A15B]" />
+                              <span>Save & Commit Stage</span>
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Document Preview Modal */}
+              {previewDocModal && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-xs p-4">
+                  <div className="bg-white rounded-3xl max-w-xl w-full p-6 space-y-4 shadow-2xl border border-stone-200 animate-fadeIn">
+                    <div className="flex justify-between items-center border-b border-stone-100 pb-3">
+                      <div>
+                        <span className="text-[10px] font-black uppercase text-[#C6A15B]">DOCUMENT PREVIEW</span>
+                        <h4 className="font-bold text-base text-[#103C2E]">{previewDocModal.type || 'Supporting Document'}</h4>
+                      </div>
+                      <button
+                        onClick={() => setPreviewDocModal(null)}
+                        className="p-1.5 hover:bg-stone-100 rounded-lg text-stone-500 cursor-pointer"
+                      >
+                        <X className="w-5 h-5" />
+                      </button>
+                    </div>
+
+                    <div className="bg-stone-50 p-6 rounded-2xl border border-stone-200 text-center space-y-3">
+                      {previewDocModal.dataUrl && previewDocModal.dataUrl.startsWith('data:image') ? (
+                        <img
+                          src={previewDocModal.dataUrl}
+                          alt={previewDocModal.name}
+                          className="max-h-80 mx-auto rounded-lg shadow-sm border border-stone-300"
+                        />
+                      ) : (
+                        <div className="space-y-2 py-4">
+                          <FileText className="w-16 h-16 mx-auto text-[#103C2E]" />
+                          <p className="font-bold text-sm text-[#103C2E]">{previewDocModal.name}</p>
+                          <p className="text-xs text-stone-500">{previewDocModal.size || 'Verified Document'} • Uploaded {previewDocModal.uploadedAt || 'During Submission'}</p>
+                          <div className="inline-block bg-emerald-100 text-emerald-800 text-xs font-bold px-3 py-1 rounded-full mt-2">
+                            ✓ Verified Constituency Credential
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="flex justify-end gap-2">
+                      {previewDocModal.dataUrl && (
+                        <a
+                          href={previewDocModal.dataUrl}
+                          download={previewDocModal.name}
+                          className="bg-[#103C2E] hover:bg-[#09291F] text-white px-4 py-2 rounded-xl text-xs font-bold uppercase transition flex items-center gap-1.5 shadow-sm"
+                        >
+                          <Download className="w-4 h-4 text-[#C6A15B]" />
+                          <span>Download File</span>
+                        </a>
+                      )}
+                      <button
+                        onClick={() => setPreviewDocModal(null)}
+                        className="bg-stone-200 hover:bg-stone-300 text-stone-700 px-4 py-2 rounded-xl text-xs font-bold uppercase transition cursor-pointer"
+                      >
+                        Close
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Offer Modal in Admin */}
+              {offerModalApp && (
+                <CongratulationOfferModal
+                  application={offerModalApp}
+                  onClose={() => setOfferModalApp(null)}
+                />
+              )}
+
+              {/* Slip Modal */}
+              {slipModalApp && (
+                <ApplicationSlipModal
+                  application={slipModalApp}
+                  onClose={() => setSlipModalApp(null)}
+                />
+              )}
             </div>
           )}
 
           {/* ========================================================
-              TAB 8: PETITIONS & SERVICE TICKETS
-             ======================================================== */}
-          {activeTab === 'petitions' && (() => {
-            const filteredPetitions = petitions.filter(app => {
-              if (petitionStatusFilter !== 'ALL' && app.status !== petitionStatusFilter) return false;
-              if (petitionSearchQuery.trim()) {
-                const q = petitionSearchQuery.toLowerCase();
-                const match =
-                  app.applicantName?.toLowerCase().includes(q) ||
-                  app.referenceNumber?.toLowerCase().includes(q) ||
-                  app.phone?.toLowerCase().includes(q) ||
-                  app.wardOrTown?.toLowerCase().includes(q) ||
-                  app.programTitle?.toLowerCase().includes(q) ||
-                  (app.statement && app.statement.toLowerCase().includes(q));
-                if (!match) return false;
-              }
-              return true;
-            });
-
-            const pendingCount = petitions.filter(a => a.status === 'SUBMITTED').length;
-            const investigatingCount = petitions.filter(a => a.status === 'INITIAL REVIEW' || a.status === 'DOCUMENT VERIFICATION' || a.status === 'ELIGIBILITY ASSESSMENT').length;
-            const approvedCount = petitions.filter(a => a.status === 'APPROVED').length;
-
-            return (
-              <div className="w-full min-w-0 space-y-6">
-                {/* Header & Controls */}
-                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-stone-200 pb-4">
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <h3 className="font-['Manrope'] font-extrabold text-2xl text-[#103C2E] uppercase">
-                        8. CONSTITUENCY PETITIONS & SERVICE TICKETS
-                      </h3>
-                      <span className="bg-[#103C2E] text-[#D4AF37] px-2.5 py-0.5 rounded-full text-xs font-black">
-                        {petitions.length} Independent Petitions
-                      </span>
-                    </div>
-                    <p className="text-xs text-stone-500 mt-0.5">
-                      Dedicated docket of citizen grievances, community requests, and service petitions. Fully independent from empowerment records.
-                    </p>
-                  </div>
-                  <div className="flex flex-wrap items-center gap-2">
-                    <button
-                      onClick={() => {
-                        try {
-                          const saved = localStorage.getItem('danmaje_petitions');
-                          if (saved) setPetitions(JSON.parse(saved));
-                        } catch {}
-                      }}
-                      className="bg-white hover:bg-stone-100 text-[#103C2E] border border-stone-300 px-4 py-2 rounded-xl font-bold text-xs flex items-center gap-1.5 shadow-sm cursor-pointer uppercase transition"
-                      title="Sync freshest records from database"
-                    >
-                      <RefreshCw className="w-3.5 h-3.5 text-[#C6A15B]" />
-                      <span>Sync Latest</span>
-                    </button>
-                    <button
-                      onClick={handleExportPetitionsCSV}
-                      className="bg-[#103C2E] hover:bg-[#09291F] text-white px-4 py-2 rounded-xl font-bold text-xs flex items-center gap-2 shadow cursor-pointer transition uppercase"
-                    >
-                      <Download className="w-3.5 h-3.5 text-[#C6A15B]" />
-                      <span>Export CSV</span>
-                    </button>
-                  </div>
-                </div>
-
-                {/* Metrics Badges */}
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
-                  <div className="p-3.5 bg-stone-50 rounded-2xl border border-stone-200">
-                    <span className="text-stone-400 text-[10px] uppercase font-bold block">Total Petitions</span>
-                    <strong className="text-xl font-extrabold text-[#103C2E]">{petitions.length}</strong>
-                    <span className="text-[11px] text-stone-500 block mt-0.5">Dedicated petitions store</span>
-                  </div>
-                  <div className="p-3.5 bg-amber-50 rounded-2xl border border-amber-200">
-                    <span className="text-amber-700 text-[10px] uppercase font-bold block">Pending / Logged</span>
-                    <strong className="text-xl font-extrabold text-amber-800">{pendingCount}</strong>
-                    <span className="text-[11px] text-amber-600 block mt-0.5">Awaiting committee review</span>
-                  </div>
-                  <div className="p-3.5 bg-blue-50 rounded-2xl border border-blue-200">
-                    <span className="text-blue-700 text-[10px] uppercase font-bold block">Under Investigation</span>
-                    <strong className="text-xl font-extrabold text-blue-800">{investigatingCount}</strong>
-                    <span className="text-[11px] text-blue-600 block mt-0.5">Fact-finding & hearing</span>
-                  </div>
-                  <div className="p-3.5 bg-emerald-50 rounded-2xl border border-emerald-200">
-                    <span className="text-emerald-700 text-[10px] uppercase font-bold block">Upheld / Relief Committed</span>
-                    <strong className="text-xl font-extrabold text-emerald-800">{approvedCount}</strong>
-                    <span className="text-[11px] text-emerald-600 block mt-0.5">Executive action approved</span>
-                  </div>
-                </div>
-
-                {/* Search & Filter Bar */}
-                <div className="bg-white p-4 rounded-2xl border border-stone-200 shadow-sm grid grid-cols-1 sm:grid-cols-12 gap-3 items-center">
-                  <div className="sm:col-span-8 relative">
-                    <Search className="w-4 h-4 text-stone-400 absolute left-3 top-3" />
-                    <input
-                      type="text"
-                      placeholder="Search by constituent name, ref #, phone, ward, or grievance..."
-                      value={petitionSearchQuery}
-                      onChange={(e) => setPetitionSearchQuery(e.target.value)}
-                      className="w-full pl-9 pr-4 py-2 bg-stone-50 border border-stone-200 rounded-xl text-xs sm:text-sm text-[#103C2E] focus:outline-none focus:border-[#103C2E]"
-                    />
-                  </div>
-
-                  <div className="sm:col-span-4">
-                    <select
-                      value={petitionStatusFilter}
-                      onChange={(e) => setPetitionStatusFilter(e.target.value)}
-                      className="w-full px-3 py-2 bg-stone-50 border border-stone-200 rounded-xl text-xs text-stone-700 font-bold"
-                    >
-                      <option value="ALL">All Petition Statuses ({petitions.length})</option>
-                      <option value="SUBMITTED">SUBMITTED</option>
-                      <option value="INITIAL REVIEW">INITIAL REVIEW / INVESTIGATION</option>
-                      <option value="DOCUMENT VERIFICATION">DOCUMENT VERIFICATION</option>
-                      <option value="ELIGIBILITY ASSESSMENT">ELIGIBILITY ASSESSMENT</option>
-                      <option value="FINAL REVIEW">FINAL REVIEW</option>
-                      <option value="APPROVED">APPROVED / UPHELD</option>
-                      <option value="WAITLISTED">WAITLISTED / SUSPENDED</option>
-                      <option value="REJECTED">REJECTED / DISMISSED</option>
-                    </select>
-                  </div>
-                </div>
-
-                {/* Petitions Table */}
-                <div className="bg-white rounded-3xl shadow-sm border border-stone-200 overflow-hidden">
-                  <div className="overflow-x-auto w-full">
-                    <table className="w-full text-left border-collapse text-xs sm:text-sm">
-                      <thead>
-                        <tr className="bg-[#103C2E] text-white">
-                          <th className="p-4 uppercase text-[11px] font-bold">Reference #</th>
-                          <th className="p-4 uppercase text-[11px] font-bold">Constituent Name</th>
-                          <th className="p-4 uppercase text-[11px] font-bold">Subject / Grievance</th>
-                          <th className="p-4 uppercase text-[11px] font-bold">Ward / LGA</th>
-                          <th className="p-4 uppercase text-[11px] font-bold">Stage / Status</th>
-                          <th className="p-4 uppercase text-[11px] font-bold">Date</th>
-                          <th className="p-4 text-right uppercase text-[11px] font-bold">Actions</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-stone-200">
-                        {filteredPetitions.map(app => (
-                          <tr key={app.id} className="hover:bg-stone-50 transition">
-                            <td className="p-4 font-mono font-bold text-[#103C2E]">
-                              <span className="block">{app.referenceNumber}</span>
-                              <span className="inline-block mt-0.5 text-[9px] bg-amber-100 text-amber-800 px-2 py-0.5 rounded-full font-bold">
-                                Petition Record
-                              </span>
-                            </td>
-                            <td className="p-4">
-                              <strong className="text-stone-900 block font-bold">{app.applicantName}</strong>
-                              <span className="text-stone-500 text-[11px] font-mono">{app.phone}</span>
-                            </td>
-                            <td className="p-4 max-w-xs">
-                              <span className="font-bold text-[#103C2E] block truncate">{app.programTitle}</span>
-                              <span className="text-stone-500 text-[11px] line-clamp-2 mt-0.5">{app.statement}</span>
-                            </td>
-                            <td className="p-4 text-stone-600">
-                              <span className="font-semibold block">{app.wardOrTown}</span>
-                              <span className="text-[10px] text-stone-400 block">{app.lga || 'Constituency'}</span>
-                            </td>
-                            <td className="p-4">
-                              <span className={`px-2.5 py-1 rounded-full text-xs font-bold inline-block ${
-                                app.status === 'APPROVED' ? 'bg-emerald-100 text-emerald-800 border border-emerald-300' :
-                                app.status === 'REJECTED' ? 'bg-rose-100 text-rose-800 border border-rose-300' :
-                                app.status === 'INITIAL REVIEW' ? 'bg-blue-100 text-blue-800 border border-blue-300' :
-                                'bg-amber-100 text-amber-800 border border-amber-300'
-                              }`}>
-                                {app.status}
-                              </span>
-                              {app.awardGrantPackage && (
-                                <span className="block text-[10px] text-emerald-700 font-bold truncate max-w-[140px] mt-1" title={app.awardGrantPackage}>
-                                  Action: {app.awardGrantPackage}
-                                </span>
-                              )}
-                            </td>
-                            <td className="p-4 text-stone-500 font-mono text-xs whitespace-nowrap">{app.date}</td>
-                            <td className="p-4 text-right space-x-1.5 whitespace-nowrap">
-                              <button
-                                onClick={() => {
-                                  setSelectedAppForReview(app);
-                                  setReviewStatusInput(app.status || 'SUBMITTED');
-                                  setReviewInternalNote(app.notes || '');
-                                  setReviewPublicFeedback(app.publicFeedback || '');
-                                  setReviewAwardPackage(app.awardGrantPackage || '');
-                                }}
-                                className="inline-flex items-center gap-1 bg-[#103C2E] hover:bg-[#09291F] text-white px-3 py-1.5 rounded-xl text-xs font-bold cursor-pointer uppercase shadow-xs transition"
-                                title="Open Review & Decision Dossier"
-                              >
-                                <Eye className="w-3.5 h-3.5 text-[#D4AF37]" />
-                                <span>REVIEW</span>
-                              </button>
-                              <button
-                                onClick={() => setSlipModalApp(app)}
-                                className="inline-flex items-center gap-1 bg-stone-100 hover:bg-stone-700 text-stone-700 hover:text-white px-2.5 py-1.5 rounded-xl border border-stone-300 transition-all shadow-xs cursor-pointer text-xs font-bold uppercase"
-                                title="Print Official Slip"
-                              >
-                                <Printer className="w-3.5 h-3.5" />
-                                <span>Slip</span>
-                              </button>
-                              <button
-                                onClick={() => handleDeletePetition(app.id)}
-                                className="inline-flex items-center gap-1 bg-rose-50 hover:bg-rose-700 text-rose-700 hover:text-white px-2.5 py-1.5 rounded-xl border border-rose-200 transition-all shadow-xs cursor-pointer text-xs font-bold uppercase"
-                                title="Delete Petition"
-                              >
-                                <Trash2 className="w-3.5 h-3.5" />
-                                <span>DELETE</span>
-                              </button>
-                            </td>
-                          </tr>
-                        ))}
-                        {filteredPetitions.length === 0 && (
-                          <tr>
-                            <td colSpan={7} className="p-8 text-center text-stone-500">
-                              No petitions or service tickets found in the dedicated petition store.
-                            </td>
-                          </tr>
-                        )}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              </div>
-            );
-          })()}
-
-          {/* ========================================================
-              TAB 9: PHOTOS & VIDEOS
+              TAB 8: PHOTOS & VIDEOS
              ======================================================== */}
           {activeTab === 'gallery' && (
             <div className="w-full min-w-0 space-y-6">
@@ -3967,27 +3748,13 @@ export const AdminDashboard: React.FC<Props> = ({
           )}
 
           {/* ========================================================
-               TAB 12: CYBERSECURITY COMMAND CENTER & DEFENSE
-              ======================================================== */}
-          {activeTab === 'cybersecurity' && (
-            <CybersecurityTab currentAdminEmail={email} />
-          )}
-
-          {/* ========================================================
-               TAB 13: AUTOMATED SMS & USSD CONSTITUENCY GATEWAY
-              ======================================================== */}
-          {activeTab === 'sms_ussd' && (
-            <SmsUssdGatewayTab applications={applications} />
-          )}
-
-          {/* ========================================================
-              TAB 14: USER SETTINGS (MANAGEMENT & CONFIGURATION)
+              TAB 11: USER SETTINGS (MANAGEMENT & CONFIGURATION)
              ======================================================== */}
           {activeTab === 'settings' && (
             <div className="w-full min-w-0 space-y-6">
               <div className="border-b border-stone-200 pb-4">
                 <h3 className="font-['Manrope'] font-extrabold text-2xl text-[#103C2E] uppercase">
-                  12. USER SETTINGS & ENTERPRISE CONFIGURATION
+                  11. USER SETTINGS & ENTERPRISE CONFIGURATION
                 </h3>
                 <p className="text-xs text-stone-500 mt-0.5">
                   Manage authorized administrators, portal headline statistics, multilingual translations dictionary, and security controls.
@@ -4269,21 +4036,8 @@ export const AdminDashboard: React.FC<Props> = ({
 
               {/* Sub-Tab 4: Security & Session */}
               {settingsTab === 'security' && (
-                <div className="bg-white rounded-3xl shadow-sm border border-stone-200 p-6 sm:p-8 space-y-5">
-                  <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-stone-100 pb-4">
-                    <div>
-                      <h4 className="font-bold text-[#103C2E] text-base uppercase">Session & Password Security</h4>
-                      <p className="text-xs text-stone-500">Active authentication parameters and site-wide cyber protection.</p>
-                    </div>
-                    <button
-                      onClick={() => setActiveTab('cybersecurity')}
-                      className="bg-[#103C2E] hover:bg-[#09291F] text-white px-5 py-2.5 rounded-xl font-bold text-xs uppercase shadow flex items-center gap-2 cursor-pointer transition"
-                    >
-                      <Shield className="w-4 h-4 text-emerald-300" />
-                      <span>LAUNCH FULL CYBERSECURITY SUITE</span>
-                    </button>
-                  </div>
-
+                <div className="bg-white rounded-3xl shadow-sm border border-stone-200 p-6 sm:p-8 space-y-4">
+                  <h4 className="font-bold text-[#103C2E] text-base uppercase">Session & Password Security</h4>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
                     <div className="p-4 bg-stone-50 rounded-2xl border border-stone-200 space-y-1">
                       <span className="text-stone-400 text-[10px] uppercase font-bold block">Current Session User</span>
@@ -4293,438 +4047,14 @@ export const AdminDashboard: React.FC<Props> = ({
 
                     <div className="p-4 bg-stone-50 rounded-2xl border border-stone-200 space-y-1">
                       <span className="text-stone-400 text-[10px] uppercase font-bold block">Security Standard</span>
-                      <strong className="text-[#103C2E] text-sm block">TLS 1.3 / HTTPS • Cryptographic SHA-256 Hashing</strong>
-                      <span className="text-stone-500 font-medium">Session protected with anti-tamper token rotation</span>
+                      <strong className="text-[#103C2E] text-sm block">TLS / HTTPS • Local Storage Encrypted</strong>
+                      <span className="text-stone-500 font-medium">Session valid for current browser window</span>
                     </div>
                   </div>
                 </div>
               )}
 
             </div>
-          )}
-
-          {/* ========================================================
-              GLOBAL REVIEW, DOCUMENT PREVIEW, OFFER & SLIP MODALS
-             ======================================================== */}
-
-          {/* Global Dossier & Petition Review Modal */}
-          {selectedAppForReview && (() => {
-            const isPetition = Boolean(
-              selectedAppForReview.referenceNumber?.startsWith('DAN-PET') ||
-              selectedAppForReview.programCategory?.toLowerCase().includes('petition') ||
-              selectedAppForReview.programId?.includes('ticket') ||
-              selectedAppForReview.programId?.includes('petition') ||
-              activeTab === 'petitions'
-            );
-
-            return (
-              <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-xs p-4 overflow-y-auto">
-                <div className="bg-white rounded-3xl max-w-4xl w-full p-6 sm:p-8 space-y-6 shadow-2xl my-8 border border-stone-200 max-h-[92vh] overflow-y-auto">
-                  
-                  {/* Header with Applicant/Petitioner Photo & Key Info */}
-                  <div className="flex flex-col sm:flex-row items-center sm:items-start justify-between gap-4 border-b border-stone-100 pb-5">
-                    <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4 text-center sm:text-left">
-                      {/* Biometric Passport Frame */}
-                      <div className="w-24 h-32 rounded-xl overflow-hidden border-2 border-[#103C2E] bg-stone-100 shrink-0 shadow-md flex flex-col items-center justify-center relative">
-                        {selectedAppForReview.passportPhoto ? (
-                          <img
-                            src={selectedAppForReview.passportPhoto}
-                            alt={selectedAppForReview.applicantName}
-                            className="w-full h-full object-cover"
-                          />
-                        ) : (
-                          <div className="text-center p-2 text-stone-400">
-                            <User className="w-10 h-10 mx-auto text-stone-300" />
-                            <span className="text-[9px] font-bold uppercase mt-1 block">
-                              {isPetition ? 'Citizen' : 'No Passport'}
-                            </span>
-                          </div>
-                        )}
-                        <div className="absolute bottom-0 inset-x-0 bg-[#103C2E] text-[#D4AF37] text-[8px] font-black py-0.5 text-center uppercase tracking-widest">
-                          {isPetition ? 'Verified File' : 'Official Photo'}
-                        </div>
-                      </div>
-
-                      <div className="space-y-1">
-                        <span className="text-[10px] font-black uppercase tracking-wider text-[#C6A15B] bg-[#C6A15B]/15 px-2.5 py-0.5 rounded-full border border-[#C6A15B]/30 inline-block">
-                          {isPetition ? 'CONSTITUENCY CITIZEN PETITION & GRIEVANCE DOSSIER' : 'CONSTITUENCY BENEFICIARY DOSSIER'}
-                        </span>
-                        <h3 className="font-['Manrope'] font-black text-2xl text-[#103C2E] uppercase">
-                          {selectedAppForReview.applicantName}
-                        </h3>
-                        <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2 text-xs text-stone-600 font-mono">
-                          <span className="font-bold text-[#103C2E]">REF: {selectedAppForReview.referenceNumber}</span>
-                          <span>•</span>
-                          <span className="font-sans font-medium text-stone-500">{selectedAppForReview.programTitle}</span>
-                        </div>
-                        <div className="pt-1 flex flex-wrap items-center justify-center sm:justify-start gap-2">
-                          <span className={`px-3 py-0.5 rounded-full text-[11px] font-black uppercase tracking-wider ${
-                            selectedAppForReview.status === 'APPROVED' ? 'bg-emerald-100 text-emerald-800 border border-emerald-300' :
-                            selectedAppForReview.status === 'REJECTED' ? 'bg-rose-100 text-rose-800' :
-                            'bg-amber-100 text-amber-800 border border-amber-300'
-                          }`}>
-                            STATUS: {selectedAppForReview.status}
-                          </span>
-                          {selectedAppForReview.wardOrTown && (
-                            <span className="bg-stone-100 text-stone-700 px-2.5 py-0.5 rounded-full text-[11px] font-bold">
-                              WARD: {selectedAppForReview.wardOrTown}
-                            </span>
-                          )}
-                          {selectedAppForReview.programCategory && (
-                            <span className="bg-emerald-50 text-emerald-800 px-2.5 py-0.5 rounded-full text-[11px] font-bold border border-emerald-200">
-                              {selectedAppForReview.programCategory}
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center gap-2">
-                      <button
-                        type="button"
-                        onClick={() => setSlipModalApp(selectedAppForReview)}
-                        className="bg-stone-100 hover:bg-stone-200 text-[#103C2E] px-3 py-1.5 rounded-xl text-xs font-bold uppercase transition flex items-center gap-1.5"
-                        title="Print official slip / docket"
-                      >
-                        <Printer className="w-3.5 h-3.5" />
-                        <span>Print Slip</span>
-                      </button>
-                      <button 
-                        onClick={() => setSelectedAppForReview(null)} 
-                        className="bg-stone-100 hover:bg-rose-600 text-stone-600 hover:text-white p-2 rounded-xl border border-stone-200 transition shadow-xs cursor-pointer"
-                        title="Close Review"
-                      >
-                        <X className="w-5 h-5" />
-                      </button>
-                    </div>
-                  </div>
-
-                  <div className="space-y-5 text-xs">
-                    
-                    {/* Section 1: Detailed Personal / Contact Info */}
-                    <div className="space-y-2">
-                      <h4 className="font-black text-xs uppercase tracking-wider text-[#103C2E] flex items-center gap-1.5 border-b border-stone-200 pb-1">
-                        <span className="w-2 h-2 rounded-full bg-[#C6A15B]"></span>
-                        <span>{isPetition ? '1. CITIZEN PETITIONER CONTACT & RESIDENCY' : '1. APPLICANT BIO-DATA & RESIDENCY'}</span>
-                      </h4>
-                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 bg-stone-50 p-4 rounded-2xl border border-stone-200">
-                        <div>
-                          <span className="text-stone-500 text-[10px] uppercase font-bold block">
-                            {isPetition ? 'Citizen Identifier' : 'National ID (NIN)'}
-                          </span>
-                          <strong className="text-[#103C2E] font-mono text-sm">{selectedAppForReview.nin || selectedAppForReview.referenceNumber}</strong>
-                        </div>
-                        <div>
-                          <span className="text-stone-500 text-[10px] uppercase font-bold block">Phone Number</span>
-                          <strong className="text-[#103C2E] font-mono">{selectedAppForReview.phone}</strong>
-                        </div>
-                        <div>
-                          <span className="text-stone-500 text-[10px] uppercase font-bold block">Email Address</span>
-                          <strong className="text-[#103C2E]">{selectedAppForReview.email || 'None Provided'}</strong>
-                        </div>
-                        <div>
-                          <span className="text-stone-500 text-[10px] uppercase font-bold block">Constituency Ward</span>
-                          <strong className="text-[#103C2E]">{selectedAppForReview.wardOrTown}</strong>
-                        </div>
-                        <div>
-                          <span className="text-stone-500 text-[10px] uppercase font-bold block">Gender</span>
-                          <strong className="text-[#103C2E]">{selectedAppForReview.gender || 'Not Specified'}</strong>
-                        </div>
-                        <div>
-                          <span className="text-stone-500 text-[10px] uppercase font-bold block">Date Logged</span>
-                          <strong className="text-stone-700 font-mono">{selectedAppForReview.date}</strong>
-                        </div>
-                        <div className="sm:col-span-2">
-                          <span className="text-stone-500 text-[10px] uppercase font-bold block">Residential Address</span>
-                          <strong className="text-[#103C2E] truncate block">{selectedAppForReview.residentialAddress || selectedAppForReview.wardOrTown}</strong>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Section 2: Petition or Application Inquiry & Plea Details */}
-                    <div className="space-y-2">
-                      <h4 className="font-black text-xs uppercase tracking-wider text-[#103C2E] flex items-center gap-1.5 border-b border-stone-200 pb-1">
-                        <span className="w-2 h-2 rounded-full bg-[#C6A15B]"></span>
-                        <span>{isPetition ? '2. PETITION STATEMENT, GRIEVANCE & CITIZEN PLEA' : '2. STATEMENT OF PURPOSE & SOCIO-ECONOMIC NEED'}</span>
-                      </h4>
-                      <div className="bg-stone-50 p-4 rounded-2xl border border-stone-200 space-y-2">
-                        <div className="text-stone-800 text-xs sm:text-sm leading-relaxed whitespace-pre-wrap font-sans">
-                          {selectedAppForReview.statement || 'No detailed statement provided by constituent.'}
-                        </div>
-                        {selectedAppForReview.qualifications && (
-                          <div className="pt-2 border-t border-stone-200 text-stone-600 text-[11px]">
-                            <span className="font-bold text-[#103C2E]">Classification / Category: </span>
-                            <span>{selectedAppForReview.qualifications}</span>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* Section 3: Supporting Documents & Evidence */}
-                    <div className="space-y-2">
-                      <h4 className="font-black text-xs uppercase tracking-wider text-[#103C2E] flex items-center justify-between border-b border-stone-200 pb-1">
-                        <span className="flex items-center gap-1.5">
-                          <span className="w-2 h-2 rounded-full bg-[#C6A15B]"></span>
-                          <span>3. SUPPORTING DOCUMENTS, ATTACHMENTS & CREDENTIALS</span>
-                        </span>
-                        <span className="text-[10px] font-bold text-stone-500">
-                          {selectedAppForReview.documents ? selectedAppForReview.documents.length : 0} Document(s) Attached
-                        </span>
-                      </h4>
-
-                      {selectedAppForReview.documents && selectedAppForReview.documents.length > 0 ? (
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                          {selectedAppForReview.documents.map((doc, idx) => (
-                            <div key={doc.id || idx} className="bg-stone-50 p-3.5 rounded-xl border border-stone-200 flex items-center justify-between gap-3">
-                              <div className="flex items-center gap-3 min-w-0">
-                                <div className="w-9 h-9 rounded-lg bg-emerald-100 text-emerald-800 flex items-center justify-center shrink-0 font-bold">
-                                  <FileText className="w-5 h-5" />
-                                </div>
-                                <div className="min-w-0">
-                                  <span className="font-bold text-[#103C2E] text-xs block truncate">{doc.type || 'Supporting Document'}</span>
-                                  <span className="text-[10px] text-stone-500 block truncate">{doc.name} {doc.size ? `(${doc.size})` : ''}</span>
-                                </div>
-                              </div>
-                              <button
-                                type="button"
-                                onClick={() => setPreviewDocModal(doc)}
-                                className="bg-[#103C2E] hover:bg-[#09291F] text-white px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase transition shrink-0 cursor-pointer flex items-center gap-1"
-                              >
-                                <Eye className="w-3 h-3 text-[#C6A15B]" />
-                                <span>Review</span>
-                              </button>
-                            </div>
-                          ))}
-                        </div>
-                      ) : (
-                        <div className="bg-stone-50 p-4 rounded-xl border border-stone-200 text-stone-500 text-center space-y-1">
-                          <FileText className="w-6 h-6 mx-auto text-stone-400" />
-                          <p className="text-xs font-semibold">
-                            {isPetition ? 'Citizen submitted written petition directly via parliamentary tracking desk.' : 'Physical credentials presented during in-person constituency screening.'}
-                          </p>
-                          <span className="text-[10px] text-stone-400 block">
-                            Direct constituency liaison and National Assembly oversight recorded.
-                          </span>
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Section 4: Activity Timeline Trail */}
-                    {selectedAppForReview.timeline && selectedAppForReview.timeline.length > 0 && (
-                      <div className="space-y-2">
-                        <h4 className="font-black text-xs uppercase tracking-wider text-[#103C2E] flex items-center gap-1.5 border-b border-stone-200 pb-1">
-                          <span className="w-2 h-2 rounded-full bg-[#C6A15B]"></span>
-                          <span>4. DOCKET AUDIT LOG & TIMELINE TRAIL</span>
-                        </h4>
-                        <div className="bg-stone-50 p-3 rounded-xl border border-stone-200 space-y-2">
-                          {selectedAppForReview.timeline.map((evt, idx) => (
-                            <div key={idx} className="flex items-start gap-2.5 text-[11px] pb-1.5 border-b border-stone-100 last:border-0 last:pb-0">
-                              <span className="w-2 h-2 rounded-full bg-emerald-600 mt-1 shrink-0"></span>
-                              <div className="flex-1">
-                                <strong className="text-[#103C2E]">{evt.title || evt.stage}</strong>
-                                {evt.note && <p className="text-stone-600 mt-0.5">{evt.note}</p>}
-                              </div>
-                              <span className="text-[10px] text-stone-400 font-mono shrink-0">{evt.timestamp}</span>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Section 5: Committee Review, Stage Advance & Executive Decision */}
-                    <div className="bg-emerald-50/70 p-5 rounded-2xl border-2 border-emerald-300 space-y-4">
-                      <div className="flex items-center justify-between">
-                        <h4 className="font-black text-[#103C2E] uppercase text-xs flex items-center gap-1.5">
-                          <Shield className="w-4 h-4 text-emerald-700" />
-                          <span>{isPetition ? 'COMMITTEE INVESTIGATION & EXECUTIVE ACTION COMMIT' : 'ADVANCE APPLICATION STAGE & SETTLE ALLOCATION'}</span>
-                        </h4>
-                        {selectedAppForReview.status === 'APPROVED' && !isPetition && (
-                          <button
-                            type="button"
-                            onClick={() => setOfferModalApp(selectedAppForReview)}
-                            className="bg-gradient-to-r from-[#D4AF37] to-[#B38F44] text-[#09291F] px-3 py-1 rounded-lg text-[10px] font-black uppercase shadow-xs flex items-center gap-1 cursor-pointer"
-                          >
-                            <Award className="w-3.5 h-3.5" />
-                            <span>Preview Congratulation Offer Letter</span>
-                          </button>
-                        )}
-                      </div>
-
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                        <div>
-                          <label className="text-[11px] font-bold text-[#103C2E] block uppercase mb-1">
-                            {isPetition ? 'Petition Investigation Stage' : 'Select Stage'}
-                          </label>
-                          <select
-                            value={reviewStatusInput}
-                            onChange={(e) => setReviewStatusInput(e.target.value as ApplicationStatus)}
-                            className="w-full px-3 py-2 bg-white border border-stone-300 rounded-xl text-xs font-bold text-[#103C2E]"
-                          >
-                            <option value="SUBMITTED">{isPetition ? '1. SUBMITTED / LOGGED' : '1. SUBMITTED'}</option>
-                            <option value="INITIAL REVIEW">{isPetition ? '2. UNDER CONSTITUENCY INVESTIGATION' : '2. INITIAL REVIEW'}</option>
-                            <option value="DOCUMENT VERIFICATION">{isPetition ? '3. FACT-FINDING & FIELD VERIFICATION' : '3. DOCUMENT VERIFICATION'}</option>
-                            <option value="ELIGIBILITY ASSESSMENT">{isPetition ? '4. COMMITTEE HEARING & ASSESSMENT' : '4. ELIGIBILITY ASSESSMENT'}</option>
-                            <option value="FINAL REVIEW">{isPetition ? '5. LEGISLATIVE DELIBERATION' : '5. FINAL REVIEW'}</option>
-                            <option value="APPROVED">{isPetition ? '6. UPHELD & RELIEF ACTION APPROVED' : '6. APPROVED (Award Official Offer)'}</option>
-                            <option value="WAITLISTED">{isPetition ? 'SUSPENDED / PENDING FURTHER EVIDENCE' : 'WAITLISTED'}</option>
-                            <option value="REJECTED">{isPetition ? 'DISMISSED / INSUFFICIENT GROUNDS' : 'REJECTED'}</option>
-                          </select>
-                        </div>
-
-                        <div>
-                          <label className="text-[11px] font-bold text-[#103C2E] block uppercase mb-1">
-                            {isPetition ? 'Official Resolution Notice (Public on Tracker)' : 'Public Feedback (Visible to Applicant on Tracker)'}
-                          </label>
-                          <input
-                            type="text"
-                            placeholder={isPetition ? "e.g. Investigation concluded. Relief materials & engineering team dispatched to site." : "e.g. Approved. Please bring printed slip and NIN for physical handover..."}
-                            value={reviewPublicFeedback}
-                            onChange={(e) => setReviewPublicFeedback(e.target.value)}
-                            className="w-full px-3 py-2 bg-white border border-stone-300 rounded-xl text-xs text-stone-800"
-                          />
-                        </div>
-                      </div>
-
-                      {/* Internal Confidential Notes Field */}
-                      <div>
-                        <label className="text-[11px] font-bold text-[#103C2E] block uppercase mb-1">
-                          Confidential Committee / Admin Review Notes (Internal Audit):
-                        </label>
-                        <input
-                          type="text"
-                          placeholder="e.g. Verified by Ward Representative. Liaison team dispatched to inspect community borehole on 24th Oct."
-                          value={reviewInternalNote}
-                          onChange={(e) => setReviewInternalNote(e.target.value)}
-                          className="w-full px-3 py-2 bg-white border border-stone-300 rounded-xl text-xs text-stone-800"
-                        />
-                      </div>
-
-                      {/* Grant Package / Executive Action Allocation Field */}
-                      <div className="bg-white p-3.5 rounded-xl border border-emerald-300 space-y-1">
-                        <label className="text-[11px] font-black text-[#103C2E] uppercase block flex items-center justify-between">
-                          <span>
-                            {isPetition 
-                              ? 'Committed Relief / Executive Action (e.g. Borehole Drilling, Infrastructure Repair, Aid):' 
-                              : 'Approved Award Package / Allocation (Printed on Congratulation Offer Letter):'}
-                          </span>
-                          <span className="text-[10px] text-emerald-700 font-bold">Executive Action</span>
-                        </label>
-                        <input
-                          type="text"
-                          placeholder={isPetition ? "e.g. Deployment of 1x 10KVA Solar Submersible Pump & Pipe Replacement" : "e.g. 1x Complete Solar Irrigation Pumping Unit + Industrial Hose + ₦50,000 Agricultural Seed Fund"}
-                          value={reviewAwardPackage}
-                          onChange={(e) => setReviewAwardPackage(e.target.value)}
-                          className="w-full px-3 py-2 bg-emerald-50/40 border border-emerald-200 rounded-lg text-xs font-bold text-[#103C2E]"
-                        />
-                      </div>
-
-                      <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-emerald-200/80">
-                        <div className="text-[10px] text-stone-500 font-medium">
-                          {isPetition 
-                            ? 'Citizens can instantly track official status and resolution notes using their Reference Number.' 
-                            : 'Approved applicants can immediately view and download their official Congratulatory Offer letter.'}
-                        </div>
-
-                        <div className="flex items-center gap-2">
-                          <button
-                            type="button"
-                            onClick={() => setSelectedAppForReview(null)}
-                            className="px-4 py-2 bg-stone-200 hover:bg-stone-300 rounded-xl text-xs font-bold uppercase cursor-pointer"
-                          >
-                            Close
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              handleAdvanceApplicationStage(selectedAppForReview.id, reviewStatusInput, reviewInternalNote, reviewPublicFeedback, reviewAwardPackage);
-                              setSelectedAppForReview(null);
-                            }}
-                            className="bg-[#103C2E] hover:bg-[#09291F] text-white px-5 py-2 rounded-xl text-xs font-bold uppercase shadow cursor-pointer flex items-center gap-1.5"
-                          >
-                            <CheckCircle className="w-4 h-4 text-[#C6A15B]" />
-                            <span>{isPetition ? 'Save & Commit Decision' : 'Save & Commit Stage'}</span>
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            );
-          })()}
-
-          {/* Document Preview Modal */}
-          {previewDocModal && (
-            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-xs p-4">
-              <div className="bg-white rounded-3xl max-w-xl w-full p-6 space-y-4 shadow-2xl border border-stone-200 animate-fadeIn">
-                <div className="flex justify-between items-center border-b border-stone-100 pb-3">
-                  <div>
-                    <span className="text-[10px] font-black uppercase text-[#C6A15B]">DOCUMENT PREVIEW</span>
-                    <h4 className="font-bold text-base text-[#103C2E]">{previewDocModal.type || 'Supporting Document'}</h4>
-                  </div>
-                  <button
-                    onClick={() => setPreviewDocModal(null)}
-                    className="p-1.5 hover:bg-stone-100 rounded-lg text-stone-500 cursor-pointer"
-                  >
-                    <X className="w-5 h-5" />
-                  </button>
-                </div>
-
-                <div className="bg-stone-50 p-6 rounded-2xl border border-stone-200 text-center space-y-3">
-                  {previewDocModal.dataUrl && previewDocModal.dataUrl.startsWith('data:image') ? (
-                    <img
-                      src={previewDocModal.dataUrl}
-                      alt={previewDocModal.name}
-                      className="max-h-80 mx-auto rounded-lg shadow-sm border border-stone-300"
-                    />
-                  ) : (
-                    <div className="space-y-2 py-4">
-                      <FileText className="w-16 h-16 mx-auto text-[#103C2E]" />
-                      <p className="font-bold text-sm text-[#103C2E]">{previewDocModal.name}</p>
-                      <p className="text-xs text-stone-500">{previewDocModal.size || 'Verified Document'} • Uploaded {previewDocModal.uploadedAt || 'During Submission'}</p>
-                      <div className="inline-block bg-emerald-100 text-emerald-800 text-xs font-bold px-3 py-1 rounded-full mt-2">
-                        ✓ Verified Constituency Credential
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-                <div className="flex justify-end gap-2">
-                  {previewDocModal.dataUrl && (
-                    <a
-                      href={previewDocModal.dataUrl}
-                      download={previewDocModal.name}
-                      className="bg-[#103C2E] hover:bg-[#09291F] text-white px-4 py-2 rounded-xl text-xs font-bold uppercase transition flex items-center gap-1.5 shadow-sm"
-                    >
-                      <Download className="w-4 h-4 text-[#C6A15B]" />
-                      <span>Download File</span>
-                    </a>
-                  )}
-                  <button
-                    onClick={() => setPreviewDocModal(null)}
-                    className="bg-stone-200 hover:bg-stone-300 text-stone-700 px-4 py-2 rounded-xl text-xs font-bold uppercase transition cursor-pointer"
-                  >
-                    Close
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Offer Modal in Admin */}
-          {offerModalApp && (
-            <CongratulationOfferModal
-              application={offerModalApp}
-              onClose={() => setOfferModalApp(null)}
-            />
-          )}
-
-          {/* Slip Modal */}
-          {slipModalApp && (
-            <ApplicationSlipModal
-              application={slipModalApp}
-              onClose={() => setSlipModalApp(null)}
-            />
           )}
 
         </main>

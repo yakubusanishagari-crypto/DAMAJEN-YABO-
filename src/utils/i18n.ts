@@ -65,7 +65,7 @@ export const DEFAULT_TRANSLATIONS: Translations = {
     ar: 'استكشاف المشاريع'
   },
   contactOffice: {
-    en: 'CONTACT THE OFFICE',
+    en: 'CONTACT OFFICE',
     ha: 'Tuntubi Ofishin',
     ar: 'اتصل بالمكتب'
   },
@@ -425,7 +425,7 @@ export const DEFAULT_TRANSLATIONS: Translations = {
     ar: 'يعتمد النائب عمر يوسف دانماجي سياسة الباب المفتوح الدائم. يمكن للمواطنين ووجهاء الدوائر والشباب تقديم العرائض وطلبات المشاريع في أي وقت عبر بوابتنا الرقمية أو مكاتب الاتصال.'
   },
   officeLocationsTitle: {
-    en: 'OFFICE LOCATIONS & LIAISON DESKS',
+    en: 'Office Locations & Liaison Desks',
     ha: 'Wuraren Ofisoshi da Sadarwa',
     ar: 'مواقع المكاتب ومراكز الاتصال'
   },

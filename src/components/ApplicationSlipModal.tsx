@@ -1,6 +1,6 @@
 import React, { useRef, useState } from 'react';
 import { ProgramApplication } from '../types';
-import { Printer, Download, X, CheckCircle2, ShieldCheck, QrCode, FileText, ArrowRight, Award, User } from 'lucide-react';
+import { Printer, Download, X, CheckCircle2, ShieldCheck, QrCode, FileText, ArrowRight, Award, Sparkles, User } from 'lucide-react';
 import { CongratulationOfferModal } from './CongratulationOfferModal';
 
 interface Props {
@@ -328,7 +328,7 @@ export const ApplicationSlipModal: React.FC<Props> = ({ application, onClose, on
             <div className="no-print bg-gradient-to-r from-[#103C2E] via-[#09291F] to-[#103C2E] border-2 border-[#D4AF37] p-4 sm:p-5 rounded-2xl flex flex-col sm:flex-row items-center justify-between gap-4 text-white shadow-xl">
               <div className="flex items-center gap-3.5">
                 <div className="w-11 h-11 rounded-full bg-[#D4AF37]/20 border border-[#D4AF37] flex items-center justify-center text-[#D4AF37] shrink-0">
-                  <Award className="w-6 h-6" />
+                  <Sparkles className="w-6 h-6" />
                 </div>
                 <div>
                   <h4 className="font-['Manrope'] font-extrabold text-sm sm:text-base text-[#D4AF37] uppercase tracking-wide">
