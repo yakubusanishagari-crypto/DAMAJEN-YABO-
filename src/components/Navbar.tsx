@@ -41,6 +41,7 @@ export const Navbar: React.FC<Props> = ({
     { id: 'biography', labelKey: 'biography' },
     { id: 'projects', labelKey: 'projects' },
     { id: 'legislative', labelKey: 'legislative' },
+    { id: 'petitions', labelKey: 'petitions' },
     { id: 'townhall', labelKey: 'townhall' },
     { id: 'empowerment', labelKey: 'empowerment' },
     { id: 'gallery', labelKey: 'media' },
@@ -146,18 +147,6 @@ export const Navbar: React.FC<Props> = ({
                     </button>
                   );
                 })}
-                <div className="border-t border-white/10 my-1"></div>
-                <button
-                  onClick={() => handleNavClick('agent-portal')}
-                  className={`w-full text-left px-3 py-2 text-xs font-bold tracking-wider uppercase transition cursor-pointer flex items-center justify-between ${
-                    currentTab === 'agent-portal' 
-                      ? 'bg-[#D4AF37] text-[#09291F]' 
-                      : 'text-[#D4AF37] hover:bg-white/10'
-                  }`}
-                >
-                  <span>AGENT TRANSMISSION DESK</span>
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
-                </button>
               </div>
             )}
           </div>
@@ -222,17 +211,6 @@ export const Navbar: React.FC<Props> = ({
                     {t(item.labelKey, currentLang, translations).toUpperCase()}
                   </button>
                 ))}
-                <button
-                  onClick={() => handleNavClick('agent-portal')}
-                  className={`w-full text-left px-4 py-2 text-xs font-bold tracking-wider uppercase transition cursor-pointer flex items-center justify-between ${
-                    currentTab === 'agent-portal'
-                      ? 'bg-[#D4AF37] text-[#09291F]'
-                      : 'text-[#D4AF37] hover:bg-white/10'
-                  }`}
-                >
-                  <span>AGENT TRANSMISSION DESK</span>
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
-                </button>
               </div>
             )}
           </div>
@@ -345,20 +323,6 @@ export const Navbar: React.FC<Props> = ({
               </button>
             );
           })}
-
-          <div className="pt-2 border-t border-white/10 mt-2">
-            <button
-              onClick={() => handleNavClick('agent-portal')}
-              className={`w-full text-left px-4 py-2.5 rounded-xl text-xs font-black tracking-wider uppercase transition cursor-pointer flex items-center justify-between ${
-                currentTab === 'agent-portal'
-                  ? 'bg-[#D4AF37] text-[#09291F]'
-                  : 'bg-emerald-900/60 text-[#D4AF37] border border-[#C6A15B]/30'
-              }`}
-            >
-              <span>AGENT TRANSMISSION DESK</span>
-              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-            </button>
-          </div>
         </div>
       )}
     </header>

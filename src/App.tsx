@@ -17,6 +17,7 @@ import { GalleryPage } from './pages/GalleryPage';
 import { ContactPage } from './pages/ContactPage';
 import { LegalPage } from './pages/LegalPage';
 import { TownHallPage } from './pages/TownHallPage';
+import { PetitionsPage } from './pages/PetitionsPage';
 import { AdminDashboard } from './pages/AdminDashboard';
 import { 
   INITIAL_PROJECTS, 
@@ -333,6 +334,15 @@ export default function App() {
             setPolls={setPolls}
             currentLang={currentLang}
             translations={translations}
+          />
+        )}
+        {currentTab === 'petitions' && (
+          <PetitionsPage 
+            petitions={petitions}
+            setPetitions={setPetitions}
+            currentLang={currentLang}
+            translations={translations}
+            setCurrentTab={setCurrentTab}
           />
         )}
         {currentTab === 'empowerment' && (

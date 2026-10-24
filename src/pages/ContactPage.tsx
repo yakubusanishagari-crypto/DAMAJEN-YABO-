@@ -736,7 +736,7 @@ export const ContactPage: React.FC<Props> = ({ currentLang = 'en', translations 
                               Official Executive Communication
                             </h5>
                             <span className="text-[10px] text-stone-400">
-                              Dispatched: {trackedPetition.decisionMessage.sentAt} • By {trackedPetition.decisionMessage.sentBy}
+                              Dispatched: {(trackedPetition.decisionMessage as any).sentAt} • By {(trackedPetition.decisionMessage as any).sentBy}
                             </span>
                           </div>
                         </div>
@@ -751,19 +751,19 @@ export const ContactPage: React.FC<Props> = ({ currentLang = 'en', translations 
                       {/* Letter Content */}
                       <div className="space-y-4 text-xs sm:text-sm text-stone-800 leading-relaxed font-light">
                         <p className="font-bold text-stone-900">
-                          {trackedPetition.decisionMessage.officialGreeting}
+                          {(trackedPetition.decisionMessage as any).officialGreeting}
                         </p>
 
                         <div className={`p-4 rounded-xl border ${
                           trackedPetition.status === 'Approved' ? 'bg-emerald-50/70 border-emerald-200 text-emerald-950 font-medium' : 'bg-rose-50/70 border-rose-200 text-rose-950 font-medium'
                         }`}>
-                          {trackedPetition.decisionMessage.decisionSummary}
+                          {(trackedPetition.decisionMessage as any).decisionSummary}
                         </div>
 
                         <div className="space-y-1.5">
                           <strong className="text-[#103C2E] block font-semibold">Administrative Rationale & Technical Context:</strong>
                           <p className="text-stone-700 bg-stone-50 p-3.5 rounded-xl border border-stone-200">
-                            {trackedPetition.decisionMessage.detailedRationale}
+                            {(trackedPetition.decisionMessage as any).detailedRationale}
                           </p>
                         </div>
 
@@ -774,20 +774,20 @@ export const ContactPage: React.FC<Props> = ({ currentLang = 'en', translations 
                             Community Engagement & Democratic Encouragement:
                           </strong>
                           <p className="text-amber-900 leading-relaxed">
-                            {trackedPetition.decisionMessage.communityEncouragement}
+                            {(trackedPetition.decisionMessage as any).communityEncouragement}
                           </p>
                         </div>
 
                         <div className="space-y-1">
                           <strong className="text-[#103C2E] block font-semibold">Next Steps & Recommendations:</strong>
                           <p className="text-stone-700">
-                            {trackedPetition.decisionMessage.nextStepsOrAlternatives}
+                            {(trackedPetition.decisionMessage as any).nextStepsOrAlternatives}
                           </p>
                         </div>
 
                         <div className="pt-4 border-t border-stone-200 text-xs font-mono text-stone-600 space-y-1">
-                          <p className="font-bold text-[#103C2E]">{trackedPetition.decisionMessage.signatory}</p>
-                          <p className="text-[11px] text-stone-400">Channels Dispatched: {trackedPetition.decisionMessage.deliveryChannels ? trackedPetition.decisionMessage.deliveryChannels.join(' • ') : 'SMS • Portal • Email'}</p>
+                          <p className="font-bold text-[#103C2E]">{(trackedPetition.decisionMessage as any).signatory}</p>
+                          <p className="text-[11px] text-stone-400">Channels Dispatched: {(trackedPetition.decisionMessage as any).deliveryChannels ? (trackedPetition.decisionMessage as any).deliveryChannels.join(' • ') : 'SMS • Portal • Email'}</p>
                         </div>
                       </div>
 

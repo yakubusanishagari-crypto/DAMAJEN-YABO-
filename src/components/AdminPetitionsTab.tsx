@@ -58,7 +58,7 @@ export const AdminPetitionsTab: React.FC<Props> = ({
   const handleOpenReview = (p: CommunityPetition) => {
     setReviewPetition(p);
     setSelectedDecision(p.status === 'Rejected' ? 'Rejected' : 'Approved');
-    const existingNotes = (typeof p.decision === 'object' && p.decision ? p.decision.decisionNotes : '') || (p.decisionMessage ? p.decisionMessage.detailedRationale || p.decisionMessage.detailedReason : '');
+    const existingNotes = (typeof p.decision === 'object' && p.decision ? p.decision.decisionNotes : '') || (typeof p.decisionMessage === 'object' && p.decisionMessage ? p.decisionMessage.detailedRationale || p.decisionMessage.detailedReason : '');
     setDecisionRationale(existingNotes || '');
     setDispatchSuccessMsg(false);
   };
@@ -694,7 +694,7 @@ Federal Republic of Nigeria`;
 
             {/* Letter Content Preview */}
             <div className="bg-[#FAF9F5] p-6 sm:p-8 rounded-2xl border border-stone-300 font-mono text-xs text-stone-800 leading-relaxed whitespace-pre-wrap">
-              {(typeof letterViewPetition.decision === 'object' && letterViewPetition.decision ? letterViewPetition.decision.officialLetter : null) || (letterViewPetition.decisionMessage ? letterViewPetition.decisionMessage.detailedRationale || letterViewPetition.decisionMessage.detailedReason : generateRespectfulDecisionLetter(
+              {(typeof letterViewPetition.decision === 'object' && letterViewPetition.decision ? letterViewPetition.decision.officialLetter : null) || (typeof letterViewPetition.decisionMessage === 'object' && letterViewPetition.decisionMessage ? letterViewPetition.decisionMessage.detailedRationale || letterViewPetition.decisionMessage.detailedReason : generateRespectfulDecisionLetter(
                 letterViewPetition,
                 letterViewPetition.status === 'Approved' ? 'Approved' : 'Rejected',
                 (typeof letterViewPetition.decision === 'object' && letterViewPetition.decision ? letterViewPetition.decision.decisionNotes : '') || ''

@@ -228,6 +228,12 @@ export const Footer: React.FC<Props> = ({ setCurrentTab, currentLang, translatio
                 </button>
               </li>
               <li>
+                <button onClick={() => navigateTo('petitions')} className="hover:text-emerald-300 transition flex items-center gap-1.5 cursor-pointer uppercase text-xs font-semibold">
+                  <ChevronRight className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                  <span>{t('petitions', currentLang, translations).toUpperCase()}</span>
+                </button>
+              </li>
+              <li>
                 <button onClick={() => navigateTo('empowerment')} className="hover:text-emerald-300 transition flex items-center gap-1.5 cursor-pointer uppercase text-xs font-semibold">
                   <ChevronRight className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
                   <span>{t('empowerment', currentLang, translations).toUpperCase()}</span>

@@ -2116,6 +2116,21 @@ export const AdminDashboard: React.FC<Props> = ({
                     />
                   </div>
 
+                  {/* Project Description Field */}
+                  <div className="space-y-1">
+                    <label className="text-xs font-bold text-[#103C2E] block uppercase tracking-wider">
+                      Project Scope & Detailed Description *
+                    </label>
+                    <textarea
+                      required
+                      rows={3}
+                      placeholder="Write comprehensive description of project scope, objectives, target beneficiary communities in Yabo/Shagari, and current execution progress..."
+                      value={newProj.description}
+                      onChange={(e) => setNewProj({...newProj, description: e.target.value})}
+                      className="w-full px-4 py-2.5 bg-stone-50 border border-stone-200 rounded-xl text-xs sm:text-sm focus:ring-2 focus:ring-[#103C2E] focus:outline-none"
+                    />
+                  </div>
+
                   {/* Project Photo Attachment */}
                   <div className="space-y-3 bg-stone-50 p-4 rounded-2xl border border-stone-200">
                     <label className="text-xs font-bold text-[#103C2E] block uppercase tracking-wider">

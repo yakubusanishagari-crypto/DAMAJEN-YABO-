@@ -319,6 +319,7 @@ export interface CommunityPetition {
   email?: string;
   phone?: string;
   ward: string;
+  wardOrTown?: string;
   targetWard?: string;
   localGovernment?: string;
   address?: string;
@@ -328,13 +329,16 @@ export interface CommunityPetition {
   expectedImpact?: string;
   signatoriesCount?: number;
   signaturesCount?: number;
+  supporters?: Array<{ name: string; ward?: string; timestamp?: string }>;
   supportingDocName?: string;
   status: 'Submitted' | 'Under Review' | 'In Field Investigation' | 'Committee Hearing' | 'Approved' | 'Rejected' | 'Archived' | string;
   decision?: string | { status?: 'Approved' | 'Rejected' | string; decisionDate?: string; decisionBy?: string; decisionNotes?: string; officialLetter?: string; deliveredVia?: string[]; rationale?: string; [key: string]: any };
   submittedDate: string;
+  date?: string;
   reviewNotes?: string;
   updatedAt?: string;
-  decisionMessage?: PetitionerDecisionMessage;
+  decisionLetter?: string;
+  decisionMessage?: string | PetitionerDecisionMessage;
 }
 
 export interface PollOption {
