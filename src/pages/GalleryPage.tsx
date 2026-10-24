@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { GalleryItem } from '../types';
 import { 
   Image as ImageIcon, Video, Calendar, X, ZoomIn, Play, 
-  ExternalLink, Shield, Film, Filter, Share2 
+  ExternalLink, Shield, Film, Filter, Share2, Download
 } from 'lucide-react';
 import { YouTubeVideoTheater } from '../components/YouTubeVideoTheater';
 import { Language, t, Translations } from '../utils/i18n';
@@ -223,7 +223,19 @@ export const GalleryPage: React.FC<Props> = ({
                   </p>
 
                   <div className="pt-2 border-t border-stone-100 flex items-center justify-between text-xs font-bold text-[#103C2E]">
-                    <span>{isVideo ? t('clickToPlayVideo', currentLang, translations) : t('viewHighResPhoto', currentLang, translations)}</span>
+                    <span className="flex items-center gap-1.5">
+                      <span>{isVideo ? t('clickToPlayVideo', currentLang, translations) : t('viewHighResPhoto', currentLang, translations)}</span>
+                      {isVideo && (
+                        <span className={`text-[10px] px-2 py-0.5 rounded-full inline-flex items-center gap-1 font-semibold ${
+                          item.hasDownloadPermission 
+                            ? 'bg-emerald-100 text-emerald-800 border border-emerald-300' 
+                            : 'bg-stone-100 text-stone-600 border border-stone-300'
+                        }`}>
+                          <Download className="w-2.5 h-2.5" />
+                          <span>{item.hasDownloadPermission ? 'Downloadable' : 'YouTube Option'}</span>
+                        </span>
+                      )}
+                    </span>
                     <span className="text-[#C6A15B]">{isRtl ? '←' : '→'}</span>
                   </div>
                 </div>

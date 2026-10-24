@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { 
   Project, LegislativeRecord, EmpowermentProgram, NewsArticle, GalleryItem, 
   ContactSubmission, ProjectStatus, ProgramApplication, ApplicationStatus,
-  PollingUnitAgentLink, ElectionReport
+  PollingUnitAgentLink, ElectionReport, TownHallPoll, CommunityPetition, LegislativeStatus
 } from '../types';
 import { Language, Translations } from '../utils/i18n';
 import { ConstituencyStats } from '../App';
@@ -18,6 +18,9 @@ import {
 import { ApplicationSlipModal } from '../components/ApplicationSlipModal';
 import { CongratulationOfferModal } from '../components/CongratulationOfferModal';
 import { ElectionTab } from '../components/ElectionTab';
+import { AdminTownHallTab } from '../components/AdminTownHallTab';
+import { AdminPetitionsTab } from '../components/AdminPetitionsTab';
+import { YouTubeDownloadModal } from '../components/YouTubeDownloadModal';
 import { 
   extractYouTubeId, 
   getYouTubeThumbnailUrl, 
@@ -42,6 +45,10 @@ interface Props {
   setGallery: React.Dispatch<React.SetStateAction<GalleryItem[]>>;
   contacts: ContactSubmission[];
   setContacts: React.Dispatch<React.SetStateAction<ContactSubmission[]>>;
+  polls: TownHallPoll[];
+  setPolls: React.Dispatch<React.SetStateAction<TownHallPoll[]>>;
+  petitions: CommunityPetition[];
+  setPetitions: React.Dispatch<React.SetStateAction<CommunityPetition[]>>;
   agents: PollingUnitAgentLink[];
   setAgents: React.Dispatch<React.SetStateAction<PollingUnitAgentLink[]>>;
   electionReports: ElectionReport[];
@@ -63,6 +70,8 @@ export type DashboardTab =
   | 'empowerment' 
   | 'applications' 
   | 'gallery' 
+  | 'townhall'
+  | 'petitions'
   | 'enquiries' 
   | 'election'
   | 'settings';
@@ -74,6 +83,8 @@ export const AdminDashboard: React.FC<Props> = ({
   news, setNews,
   gallery, setGallery,
   contacts, setContacts,
+  polls, setPolls,
+  petitions, setPetitions,
   agents, setAgents,
   electionReports, setElectionReports,
   translations, setTranslations,
@@ -572,12 +583,14 @@ export const AdminDashboard: React.FC<Props> = ({
 
   // Legislative CRUD State
   const [showAddLeg, setShowAddLeg] = useState(false);
+  const [editingLeg, setEditingLeg] = useState<LegislativeRecord | null>(null);
   const [newLeg, setNewLeg] = useState({
     title: '',
     category: 'Bill' as LegislativeRecord['category'],
-    status: 'Passed' as LegislativeRecord['status'],
+    status: 'Proposed' as LegislativeStatus,
     date: new Date().toISOString().split('T')[0],
     description: '',
+    statusNotes: '',
     coSponsors: ['Hon. Umar Yusuf Danmaje']
   });
 
@@ -585,20 +598,83 @@ export const AdminDashboard: React.FC<Props> = ({
     e.preventDefault();
     const created: LegislativeRecord = {
       id: `leg-${Date.now()}`,
-      ...newLeg
+      title: newLeg.title,
+      category: newLeg.category,
+      status: newLeg.status,
+      date: newLeg.date,
+      description: newLeg.description,
+      statusNotes: newLeg.statusNotes ? newLeg.statusNotes.trim() : undefined,
+      statusUpdatedAt: new Date().toISOString().split('T')[0],
+      statusUpdatedBy: adminRole || email,
+      coSponsors: newLeg.coSponsors
     };
     const updated = [created, ...legislative];
     setLegislative(updated);
     try { localStorage.setItem('danmaje_legislative', JSON.stringify(updated)); } catch {}
     setShowAddLeg(false);
-    setNewLeg({ title: '', category: 'Bill', status: 'Passed', date: new Date().toISOString().split('T')[0], description: '', coSponsors: ['Hon. Umar Yusuf Danmaje'] });
+    setNewLeg({ title: '', category: 'Bill', status: 'Proposed', date: new Date().toISOString().split('T')[0], description: '', statusNotes: '', coSponsors: ['Hon. Umar Yusuf Danmaje'] });
     setActivityLogs(prev => [{
       id: `log-${Date.now()}`,
       user: email,
-      action: `Added legislative record: ${created.title}`,
+      action: `Added legislative record: ${created.title} (Status: ${created.status})`,
       timestamp: new Date().toISOString().replace('T', ' ').substring(0, 16),
       role: adminRole
     }, ...prev]);
+  };
+
+  const handleUpdateLegislativeStatus = (id: string, newStatus: LegislativeStatus, notes?: string) => {
+    const nowStr = new Date().toISOString().split('T')[0];
+    const updated = legislative.map(l => {
+      if (l.id === id) {
+        return {
+          ...l,
+          status: newStatus,
+          statusNotes: notes !== undefined ? notes : l.statusNotes,
+          statusUpdatedAt: nowStr,
+          statusUpdatedBy: adminRole || email
+        };
+      }
+      return l;
+    });
+    setLegislative(updated);
+    try { localStorage.setItem('danmaje_legislative', JSON.stringify(updated)); } catch {}
+    if (editingLeg && editingLeg.id === id) {
+      setEditingLeg({
+        ...editingLeg,
+        status: newStatus,
+        statusNotes: notes !== undefined ? notes : editingLeg.statusNotes,
+        statusUpdatedAt: nowStr,
+        statusUpdatedBy: adminRole || email
+      });
+    }
+    setActivityLogs(prev => [{
+      id: `log-${Date.now()}`,
+      user: email,
+      action: `Updated status for legislative record #${id} to "${newStatus}"`,
+      timestamp: new Date().toISOString().replace('T', ' ').substring(0, 16),
+      role: adminRole
+    }, ...prev]);
+  };
+
+  const handleSaveEditingLeg = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingLeg) return;
+    const nowStr = new Date().toISOString().split('T')[0];
+    const updated = legislative.map(l => l.id === editingLeg.id ? {
+      ...editingLeg,
+      statusUpdatedAt: nowStr,
+      statusUpdatedBy: adminRole || email
+    } : l);
+    setLegislative(updated);
+    try { localStorage.setItem('danmaje_legislative', JSON.stringify(updated)); } catch {}
+    setActivityLogs(prev => [{
+      id: `log-${Date.now()}`,
+      user: email,
+      action: `Updated details and status for ${editingLeg.title} to ${editingLeg.status}`,
+      timestamp: new Date().toISOString().replace('T', ' ').substring(0, 16),
+      role: adminRole
+    }, ...prev]);
+    setEditingLeg(null);
   };
 
   const handleDeleteLegislative = (id: string) => {
@@ -716,6 +792,7 @@ export const AdminDashboard: React.FC<Props> = ({
 
   // Media / Gallery & Video State
   const [showAddMedia, setShowAddMedia] = useState(false);
+  const [previewDownloadVideo, setPreviewDownloadVideo] = useState<GalleryItem | null>(null);
   const [newMedia, setNewMedia] = useState<{
     title: string;
     type: 'photo' | 'video';
@@ -725,6 +802,12 @@ export const AdminDashboard: React.FC<Props> = ({
     showOnHomepage: boolean;
     youtubeTitle: string;
     description: string;
+    hasDownloadPermission: boolean;
+    downloadUrl: string;
+    downloadFileSize: string;
+    downloadQuality: string;
+    permissionNote: string;
+    officialChannelUrl: string;
   }>({
     title: '',
     type: 'photo',
@@ -733,7 +816,13 @@ export const AdminDashboard: React.FC<Props> = ({
     videoUrl: '',
     showOnHomepage: false,
     youtubeTitle: '',
-    description: ''
+    description: '',
+    hasDownloadPermission: false,
+    downloadUrl: '',
+    downloadFileSize: '150 MB',
+    downloadQuality: '1080p Full HD Master',
+    permissionNote: 'Official Constituency Media Production - Authorized for constituent archive',
+    officialChannelUrl: ''
   });
   const [uploadedImagePreview, setUploadedImagePreview] = useState<string>('');
   const [uploadError, setUploadError] = useState<string>('');
@@ -814,7 +903,13 @@ export const AdminDashboard: React.FC<Props> = ({
       showOnHomepage: newMedia.type === 'video' ? newMedia.showOnHomepage : false,
       youtubeTitle: newMedia.youtubeTitle || detectedYtTitle || undefined,
       date: new Date().toISOString().split('T')[0],
-      description: newMedia.description
+      description: newMedia.description,
+      hasDownloadPermission: newMedia.type === 'video' ? newMedia.hasDownloadPermission : false,
+      downloadUrl: newMedia.type === 'video' && newMedia.hasDownloadPermission ? (newMedia.downloadUrl || finalVideoUrl) : undefined,
+      downloadFileSize: newMedia.type === 'video' && newMedia.hasDownloadPermission ? newMedia.downloadFileSize : undefined,
+      downloadQuality: newMedia.type === 'video' && newMedia.hasDownloadPermission ? newMedia.downloadQuality : undefined,
+      permissionNote: newMedia.type === 'video' && newMedia.hasDownloadPermission ? newMedia.permissionNote : undefined,
+      officialChannelUrl: newMedia.type === 'video' ? newMedia.officialChannelUrl || undefined : undefined
     };
 
     let updated = [createdItem, ...gallery];
@@ -836,7 +931,13 @@ export const AdminDashboard: React.FC<Props> = ({
       videoUrl: '',
       showOnHomepage: false,
       youtubeTitle: '',
-      description: ''
+      description: '',
+      hasDownloadPermission: false,
+      downloadUrl: '',
+      downloadFileSize: '150 MB',
+      downloadQuality: '1080p Full HD Master',
+      permissionNote: 'Official Constituency Media Production - Authorized for constituent archive',
+      officialChannelUrl: ''
     });
     setDetectedYtThumb('');
     setDetectedYtTitle('');
@@ -844,7 +945,7 @@ export const AdminDashboard: React.FC<Props> = ({
     setActivityLogs(prev => [{
       id: `log-${Date.now()}`,
       user: email,
-      action: `Uploaded ${createdItem.type === 'video' ? 'video' : 'photograph'}: ${createdItem.title}`,
+      action: `Uploaded ${createdItem.type === 'video' ? 'video' : 'photograph'}: ${createdItem.title} (Direct download: ${createdItem.hasDownloadPermission ? 'ENABLED' : 'OFFICIAL YOUTUBE ONLY'})`,
       timestamp: new Date().toISOString().replace('T', ' ').substring(0, 16),
       role: adminRole
     }, ...prev]);
@@ -860,7 +961,13 @@ export const AdminDashboard: React.FC<Props> = ({
       videoUrl: item.videoUrl || '',
       showOnHomepage: item.showOnHomepage || false,
       youtubeTitle: item.youtubeTitle || '',
-      description: item.description || ''
+      description: item.description || '',
+      hasDownloadPermission: Boolean(item.hasDownloadPermission),
+      downloadUrl: item.downloadUrl || '',
+      downloadFileSize: item.downloadFileSize || '150 MB',
+      downloadQuality: item.downloadQuality || '1080p Full HD Master',
+      permissionNote: item.permissionNote || 'Official Constituency Media Production - Authorized for constituent archive',
+      officialChannelUrl: item.officialChannelUrl || ''
     });
     setShowAddMedia(true);
   };
@@ -868,7 +975,17 @@ export const AdminDashboard: React.FC<Props> = ({
   const handleUpdateMedia = (e: React.FormEvent) => {
     e.preventDefault();
     if (!editingMedia) return;
-    const updated = gallery.map(item => item.id === editingMedia.id ? { ...editingMedia, ...newMedia } : item);
+    const isVid = newMedia.type === 'video';
+    const updated = gallery.map(item => item.id === editingMedia.id ? { 
+      ...editingMedia, 
+      ...newMedia,
+      hasDownloadPermission: isVid ? newMedia.hasDownloadPermission : false,
+      downloadUrl: isVid && newMedia.hasDownloadPermission ? newMedia.downloadUrl : undefined,
+      downloadFileSize: isVid && newMedia.hasDownloadPermission ? newMedia.downloadFileSize : undefined,
+      downloadQuality: isVid && newMedia.hasDownloadPermission ? newMedia.downloadQuality : undefined,
+      permissionNote: isVid && newMedia.hasDownloadPermission ? newMedia.permissionNote : undefined,
+      officialChannelUrl: isVid ? newMedia.officialChannelUrl : undefined
+    } : item);
     setGallery(updated);
     try { localStorage.setItem('danmaje_gallery', JSON.stringify(updated)); } catch {}
     setEditingMedia(null);
@@ -953,19 +1070,21 @@ export const AdminDashboard: React.FC<Props> = ({
     }
   };
 
-  // Exact 10 Nav items
+  // Navigation items with Town Hall and Community Petitions
   const navItems: { id: DashboardTab; label: string; icon: any; count?: number }[] = [
     { id: 'overview', label: '1. SYSTEM OVERVIEW', icon: Activity },
     { id: 'analytics', label: '2. VISITORS ANALYTICS', icon: BarChart3 },
     { id: 'projects', label: '3. PROJECTS', icon: Award, count: projects.length },
     { id: 'news', label: '4. NEWS & PRESS', icon: FileText, count: news.length },
-    { id: 'legislative', label: '5. LEGISLATIVE', icon: Landmark, count: legislative.length },
+    { id: 'legislative', label: '5. LEGISLATIVE (BILLS & MOTIONS)', icon: Landmark, count: legislative.length },
     { id: 'empowerment', label: '6. EMPOWERMENT', icon: Users, count: programs.length },
     { id: 'applications', label: '7. APPLICATIONS', icon: CheckCircle2, count: applications.length },
     { id: 'gallery', label: '8. PHOTOS & VIDEOS', icon: Film, count: gallery.length },
-    { id: 'enquiries', label: '9. ENQUIRIES', icon: Mail, count: contacts.length },
-    { id: 'election', label: '10. ELECTION RESULTS & AGENTS', icon: CheckSquare },
-    { id: 'settings', label: '11. USER SETTINGS', icon: Settings },
+    { id: 'townhall', label: '9. TOWN HALL & VOTING', icon: BarChart2, count: polls.length },
+    { id: 'petitions', label: '10. COMMUNITY PETITIONS', icon: FileCheck, count: petitions.length },
+    { id: 'enquiries', label: '11. ENQUIRIES', icon: Mail, count: contacts.length },
+    { id: 'election', label: '12. ELECTION RESULTS & AGENTS', icon: CheckSquare },
+    { id: 'settings', label: '13. USER SETTINGS', icon: Settings },
   ];
 
   // LOGIN SCREEN
@@ -2440,11 +2559,16 @@ export const AdminDashboard: React.FC<Props> = ({
             <div className="w-full min-w-0 space-y-6">
               <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-stone-200 pb-4">
                 <div>
-                  <h3 className="font-['Manrope'] font-extrabold text-2xl text-[#103C2E] uppercase">
-                    5. LEGISLATIVE ACTIVITIES & MOTIONS ({legislative.length})
-                  </h3>
+                  <div className="flex items-center gap-2">
+                    <h3 className="font-['Manrope'] font-extrabold text-2xl text-[#103C2E] uppercase">
+                      5. LEGISLATIVE ACTIVITIES & MOTIONS ({legislative.length})
+                    </h3>
+                    <span className="px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-black border border-emerald-300 uppercase">
+                      STATUS MANAGEMENT ACTIVE
+                    </span>
+                  </div>
                   <p className="text-xs text-stone-500 mt-0.5">
-                    Official record of sponsored parliamentary bills, urgent plenary motions, oversight interventions, and gazette status.
+                    Authorized admins can update bill and motion statuses to Proposed, Under Review, Approved, Rejected, and Passed with gazette notes.
                   </p>
                 </div>
                 <button
@@ -2456,6 +2580,7 @@ export const AdminDashboard: React.FC<Props> = ({
                 </button>
               </div>
 
+              {/* Add New Record Form */}
               {showAddLeg && (
                 <form onSubmit={handleCreateLegislative} className="bg-white p-6 rounded-3xl shadow-md border border-stone-200 space-y-4">
                   <h4 className="font-bold text-[#103C2E] text-sm uppercase">ADD VERIFIED PARLIAMENTARY ACTIVITY</h4>
@@ -2481,24 +2606,38 @@ export const AdminDashboard: React.FC<Props> = ({
                     <select
                       value={newLeg.status}
                       onChange={(e) => setNewLeg({...newLeg, status: e.target.value as any})}
-                      className="px-4 py-2.5 bg-stone-50 border border-stone-200 rounded-xl text-xs sm:text-sm font-bold"
+                      className="px-4 py-2.5 bg-stone-50 border border-stone-200 rounded-xl text-xs sm:text-sm font-bold text-[#103C2E]"
                     >
+                      <option value="Proposed">Proposed</option>
+                      <option value="Under Review">Under Review</option>
+                      <option value="Approved">Approved</option>
+                      <option value="Rejected">Rejected</option>
+                      <option value="Passed">Passed</option>
                       <option value="First Reading">First Reading</option>
                       <option value="Second Reading">Second Reading</option>
                       <option value="Committee Stage">Committee Stage</option>
                       <option value="Third Reading">Third Reading</option>
-                      <option value="Passed">Passed</option>
                       <option value="Adopted">Adopted</option>
                     </select>
                   </div>
 
-                  <textarea
-                    rows={3}
-                    placeholder="Official summary, parliamentary gazette references, and intended benefits..."
-                    value={newLeg.description}
-                    onChange={(e) => setNewLeg({...newLeg, description: e.target.value})}
-                    className="w-full px-4 py-2.5 bg-stone-50 border border-stone-200 rounded-xl text-xs sm:text-sm"
-                  ></textarea>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <textarea
+                      rows={3}
+                      placeholder="Official summary, parliamentary gazette references, and intended benefits..."
+                      value={newLeg.description}
+                      onChange={(e) => setNewLeg({...newLeg, description: e.target.value})}
+                      className="w-full px-4 py-2.5 bg-stone-50 border border-stone-200 rounded-xl text-xs sm:text-sm"
+                    ></textarea>
+
+                    <textarea
+                      rows={3}
+                      placeholder="Status Notes / Gazette Rationale (e.g. Approved by Committee on Rules & Business; awaiting plenary debate)..."
+                      value={newLeg.statusNotes}
+                      onChange={(e) => setNewLeg({...newLeg, statusNotes: e.target.value})}
+                      className="w-full px-4 py-2.5 bg-stone-50 border border-stone-200 rounded-xl text-xs sm:text-sm"
+                    ></textarea>
+                  </div>
 
                   <div className="flex justify-end gap-3 pt-2">
                     <button
@@ -2518,6 +2657,119 @@ export const AdminDashboard: React.FC<Props> = ({
                 </form>
               )}
 
+              {/* Edit Modal */}
+              {editingLeg && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-xs p-4 overflow-y-auto">
+                  <form onSubmit={handleSaveEditingLeg} className="bg-white rounded-3xl max-w-2xl w-full p-6 sm:p-8 space-y-4 shadow-2xl my-8 border border-stone-200">
+                    <div className="flex justify-between items-center border-b border-stone-100 pb-3">
+                      <div>
+                        <span className="text-[10px] font-black uppercase tracking-wider text-[#C6A15B] bg-[#C6A15B]/15 px-2.5 py-0.5 rounded-full border border-[#C6A15B]/30 inline-block mb-1">
+                          PARLIAMENTARY STATUS EDITOR
+                        </span>
+                        <h4 className="font-['Manrope'] font-black text-lg text-[#103C2E] uppercase">
+                          UPDATE BILL / MOTION STATUS
+                        </h4>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setEditingLeg(null)}
+                        className="bg-stone-100 hover:bg-rose-600 text-stone-600 hover:text-white p-2 rounded-xl transition cursor-pointer"
+                      >
+                        <X className="w-5 h-5" />
+                      </button>
+                    </div>
+
+                    <div className="space-y-3 text-xs">
+                      <div className="space-y-1">
+                        <label className="font-bold text-[#103C2E] uppercase">Title *</label>
+                        <input
+                          type="text"
+                          required
+                          value={editingLeg.title}
+                          onChange={(e) => setEditingLeg({...editingLeg, title: e.target.value})}
+                          className="w-full px-4 py-2.5 bg-stone-50 border border-stone-200 rounded-xl text-xs sm:text-sm font-semibold"
+                        />
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div className="space-y-1">
+                          <label className="font-bold text-[#103C2E] uppercase">Category</label>
+                          <select
+                            value={editingLeg.category}
+                            onChange={(e) => setEditingLeg({...editingLeg, category: e.target.value as any})}
+                            className="w-full px-3 py-2 bg-stone-50 border border-stone-200 rounded-xl text-xs"
+                          >
+                            <option value="Bill">Bill</option>
+                            <option value="Motion">Motion</option>
+                            <option value="Petition">Petition</option>
+                            <option value="Constituency Intervention">Constituency Intervention</option>
+                          </select>
+                        </div>
+
+                        <div className="space-y-1">
+                          <label className="font-bold text-[#103C2E] uppercase">Status Stage *</label>
+                          <select
+                            value={editingLeg.status}
+                            onChange={(e) => setEditingLeg({...editingLeg, status: e.target.value as any})}
+                            className="w-full px-3 py-2 bg-emerald-50 border-2 border-emerald-500 rounded-xl text-xs font-black text-[#103C2E]"
+                          >
+                            <option value="Proposed">Proposed</option>
+                            <option value="Under Review">Under Review</option>
+                            <option value="Approved">Approved</option>
+                            <option value="Rejected">Rejected</option>
+                            <option value="Passed">Passed</option>
+                            <option value="First Reading">First Reading</option>
+                            <option value="Second Reading">Second Reading</option>
+                            <option value="Committee Stage">Committee Stage</option>
+                            <option value="Third Reading">Third Reading</option>
+                            <option value="Adopted">Adopted</option>
+                          </select>
+                        </div>
+                      </div>
+
+                      <div className="space-y-1">
+                        <label className="font-bold text-[#103C2E] uppercase">Status Notes & Gazette Notes</label>
+                        <textarea
+                          rows={3}
+                          placeholder="e.g. Approved by Committee on Rules & Business; scheduled for second reading plenary debate..."
+                          value={editingLeg.statusNotes || ''}
+                          onChange={(e) => setEditingLeg({...editingLeg, statusNotes: e.target.value})}
+                          className="w-full px-4 py-2.5 bg-stone-50 border border-stone-200 rounded-xl text-xs"
+                        ></textarea>
+                      </div>
+
+                      <div className="space-y-1">
+                        <label className="font-bold text-[#103C2E] uppercase">Official Summary & Description</label>
+                        <textarea
+                          rows={3}
+                          value={editingLeg.description}
+                          onChange={(e) => setEditingLeg({...editingLeg, description: e.target.value})}
+                          className="w-full px-4 py-2.5 bg-stone-50 border border-stone-200 rounded-xl text-xs"
+                        ></textarea>
+                      </div>
+                    </div>
+
+                    <div className="flex justify-end gap-3 pt-3 border-t border-stone-100">
+                      <button
+                        type="button"
+                        onClick={() => setEditingLeg(null)}
+                        className="px-4 py-2 bg-stone-100 hover:bg-stone-200 rounded-xl text-xs font-bold uppercase cursor-pointer"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        type="submit"
+                        className="px-6 py-2 bg-[#103C2E] hover:bg-[#09291F] text-white rounded-xl text-xs font-bold uppercase cursor-pointer shadow flex items-center gap-1.5"
+                      >
+                        <Save className="w-4 h-4 text-[#C6A15B]" />
+                        <span>Save Status Update</span>
+                      </button>
+                    </div>
+                  </form>
+                </div>
+              )}
+
+              {/* Table with quick status updater */}
               <div className="bg-white rounded-3xl shadow-sm border border-stone-200 overflow-hidden">
                 <div className="overflow-x-auto w-full">
                   <table className="w-full text-left border-collapse text-xs sm:text-sm">
@@ -2525,34 +2777,99 @@ export const AdminDashboard: React.FC<Props> = ({
                       <tr className="bg-[#103C2E] text-white">
                         <th className="p-4 uppercase text-[11px] font-bold">Legislation / Motion</th>
                         <th className="p-4 uppercase text-[11px] font-bold">Category</th>
-                        <th className="p-4 uppercase text-[11px] font-bold">Reading Stage</th>
+                        <th className="p-4 uppercase text-[11px] font-bold">Status & Quick Update</th>
                         <th className="p-4 uppercase text-[11px] font-bold">Date Introduced</th>
                         <th className="p-4 text-right uppercase text-[11px] font-bold">Actions</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-stone-200">
-                      {legislative.map(l => (
-                        <tr key={l.id} className="hover:bg-stone-50 transition">
-                          <td className="p-4 font-bold text-[#103C2E]">{l.title}</td>
-                          <td className="p-4 text-stone-600">{l.category}</td>
-                          <td className="p-4">
-                            <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-[#103C2E]/10 text-[#103C2E]">
-                              {l.status}
-                            </span>
-                          </td>
-                          <td className="p-4 text-stone-500 font-mono">{l.date}</td>
-                          <td className="p-4 text-right">
-                            <button
-                               onClick={() => handleDeleteLegislative(l.id)}
-                               className="inline-flex items-center gap-1 bg-rose-50 hover:bg-rose-700 text-rose-700 hover:text-white px-3 py-1.5 rounded-xl border border-rose-200 transition-all shadow-xs cursor-pointer text-xs font-bold uppercase"
-                               title="Delete Parliamentary Activity"
-                             >
-                               <Trash2 className="w-3.5 h-3.5" />
-                               <span>DELETE</span>
-                             </button>
-                          </td>
-                        </tr>
-                      ))}
+                      {legislative.map(l => {
+                        const statusColors: Record<string, string> = {
+                          'Approved': 'bg-emerald-100 text-emerald-800 border-emerald-300',
+                          'Passed': 'bg-emerald-100 text-emerald-900 border-emerald-400',
+                          'Adopted': 'bg-emerald-100 text-emerald-900 border-emerald-400',
+                          'Proposed': 'bg-blue-100 text-blue-800 border-blue-300',
+                          'Under Review': 'bg-amber-100 text-amber-800 border-amber-300',
+                          'Rejected': 'bg-rose-100 text-rose-800 border-rose-300',
+                          'First Reading': 'bg-purple-100 text-purple-800 border-purple-300',
+                          'Second Reading': 'bg-indigo-100 text-indigo-800 border-indigo-300',
+                          'Committee Stage': 'bg-amber-100 text-amber-900 border-amber-300',
+                          'Third Reading': 'bg-teal-100 text-teal-800 border-teal-300'
+                        };
+                        const badgeClass = statusColors[l.status] || 'bg-stone-100 text-stone-800 border-stone-300';
+
+                        return (
+                          <tr key={l.id} className="hover:bg-stone-50 transition">
+                            <td className="p-4 max-w-md">
+                              <div className="font-bold text-[#103C2E]">{l.title}</div>
+                              {l.statusNotes && (
+                                <p className="text-[11px] text-stone-500 mt-0.5 italic flex items-center gap-1">
+                                  <Sparkles className="w-3 h-3 text-[#C6A15B] shrink-0" />
+                                  <span>{l.statusNotes}</span>
+                                </p>
+                              )}
+                              {l.statusUpdatedAt && (
+                                <span className="text-[10px] text-stone-400 block mt-0.5">
+                                  Updated: {l.statusUpdatedAt} {l.statusUpdatedBy ? `by ${l.statusUpdatedBy}` : ''}
+                                </span>
+                              )}
+                            </td>
+
+                            <td className="p-4 whitespace-nowrap text-stone-600 font-medium">
+                              <span className="px-2 py-0.5 rounded bg-stone-100 text-stone-700 text-[11px] font-bold">
+                                {l.category}
+                              </span>
+                            </td>
+
+                            <td className="p-4 whitespace-nowrap">
+                              <div className="flex flex-col gap-1.5">
+                                <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider border w-fit ${badgeClass}`}>
+                                  {l.status}
+                                </span>
+                                {/* Quick Status Changer */}
+                                <select
+                                  value={l.status}
+                                  onChange={(e) => handleUpdateLegislativeStatus(l.id, e.target.value as LegislativeStatus)}
+                                  className="text-[11px] font-bold px-2 py-1 bg-stone-50 border border-stone-300 rounded-lg text-[#103C2E] hover:border-[#103C2E] cursor-pointer"
+                                  title="Quick status change"
+                                >
+                                  <option value="Proposed">Proposed</option>
+                                  <option value="Under Review">Under Review</option>
+                                  <option value="Approved">Approved</option>
+                                  <option value="Rejected">Rejected</option>
+                                  <option value="Passed">Passed</option>
+                                  <option value="First Reading">First Reading</option>
+                                  <option value="Second Reading">Second Reading</option>
+                                  <option value="Committee Stage">Committee Stage</option>
+                                  <option value="Third Reading">Third Reading</option>
+                                  <option value="Adopted">Adopted</option>
+                                </select>
+                              </div>
+                            </td>
+
+                            <td className="p-4 whitespace-nowrap text-stone-500 font-mono text-xs">{l.date}</td>
+
+                            <td className="p-4 text-right whitespace-nowrap space-x-1.5">
+                              <button
+                                onClick={() => setEditingLeg(l)}
+                                className="inline-flex items-center gap-1 bg-emerald-50 hover:bg-[#103C2E] text-[#103C2E] hover:text-white px-2.5 py-1.5 rounded-xl border border-emerald-200 transition-all shadow-xs cursor-pointer text-xs font-bold uppercase"
+                                title="Edit Status & Notes"
+                              >
+                                <Edit className="w-3.5 h-3.5" />
+                                <span>Edit</span>
+                              </button>
+
+                              <button
+                                onClick={() => handleDeleteLegislative(l.id)}
+                                className="inline-flex items-center gap-1 bg-rose-50 hover:bg-rose-700 text-rose-700 hover:text-white px-2.5 py-1.5 rounded-xl border border-rose-200 transition-all shadow-xs cursor-pointer text-xs font-bold uppercase"
+                                title="Delete Parliamentary Activity"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            </td>
+                          </tr>
+                        );
+                      })}
                     </tbody>
                   </table>
                 </div>
@@ -3495,31 +3812,91 @@ export const AdminDashboard: React.FC<Props> = ({
                       />
                     </div>
                   ) : (
-                    <div className="space-y-3 bg-stone-50 p-5 rounded-2xl border border-stone-200">
-                      <label className="text-xs font-bold text-[#103C2E] block uppercase">YouTube Video Link or ID *</label>
-                      <input
-                        type="url"
-                        required
-                        placeholder="e.g. https://www.youtube.com/watch?v=ScMzIvxBSi4 or youtu.be/ScMzIvxBSi4"
-                        value={newMedia.videoUrl}
-                        onChange={(e) => handleVideoUrlChange(e.target.value)}
-                        className="w-full px-4 py-2.5 bg-white border border-stone-200 rounded-xl text-xs sm:text-sm"
-                      />
-                      {isFetchingYtMeta && (
-                        <div className="flex items-center gap-2 text-xs text-[#103C2E] bg-emerald-50 p-2 rounded-xl">
-                          <RefreshCw className="w-3.5 h-3.5 animate-spin text-[#C6A15B]" />
-                          <span>Querying YouTube API for verified title & authentic thumbnail...</span>
-                        </div>
-                      )}
-                      {detectedYtThumb && (
-                        <div className="flex items-center gap-3 pt-2">
-                          <img src={detectedYtThumb} alt="YouTube Thumbnail Preview" className="w-24 h-16 rounded-xl object-cover border" />
-                          <div className="text-xs">
-                            <span className="font-bold text-emerald-800 block">Authentic YouTube Thumbnail Detected</span>
-                            <span className="text-stone-500 text-[11px]">{detectedYtTitle || 'Video Ready'}</span>
+                    <div className="space-y-4 bg-stone-50 p-5 rounded-2xl border border-stone-200">
+                      <div className="space-y-1">
+                        <label className="text-xs font-bold text-[#103C2E] block uppercase">YouTube Video Link or ID *</label>
+                        <input
+                          type="url"
+                          required
+                          placeholder="e.g. https://www.youtube.com/watch?v=ScMzIvxBSi4 or youtu.be/ScMzIvxBSi4"
+                          value={newMedia.videoUrl}
+                          onChange={(e) => handleVideoUrlChange(e.target.value)}
+                          className="w-full px-4 py-2.5 bg-white border border-stone-200 rounded-xl text-xs sm:text-sm"
+                        />
+                        {isFetchingYtMeta && (
+                          <div className="flex items-center gap-2 text-xs text-[#103C2E] bg-emerald-50 p-2 rounded-xl">
+                            <RefreshCw className="w-3.5 h-3.5 animate-spin text-[#C6A15B]" />
+                            <span>Querying YouTube API for verified title & authentic thumbnail...</span>
                           </div>
+                        )}
+                        {detectedYtThumb && (
+                          <div className="flex items-center gap-3 pt-2">
+                            <img src={detectedYtThumb} alt="YouTube Thumbnail Preview" className="w-24 h-16 rounded-xl object-cover border" />
+                            <div className="text-xs">
+                              <span className="font-bold text-emerald-800 block">Authentic YouTube Thumbnail Detected</span>
+                              <span className="text-stone-500 text-[11px]">{detectedYtTitle || 'Video Ready'}</span>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* YouTube Video Download Permissions (Website Owner Control) */}
+                      <div className="bg-emerald-50/70 p-4 rounded-2xl border border-emerald-200 space-y-3">
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                          <label className="flex items-center gap-2 text-xs font-bold text-[#103C2E] cursor-pointer">
+                            <input
+                              type="checkbox"
+                              checked={newMedia.hasDownloadPermission}
+                              onChange={(e) => setNewMedia({...newMedia, hasDownloadPermission: e.target.checked})}
+                              className="w-4 h-4 rounded text-[#103C2E] focus:ring-[#103C2E]"
+                            />
+                            <span>Website Owner Permission: Enable Direct MP4 Download Option</span>
+                          </label>
+                          <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider shrink-0 w-fit ${
+                            newMedia.hasDownloadPermission ? 'bg-emerald-200 text-emerald-900 border border-emerald-400' : 'bg-stone-200 text-stone-700'
+                          }`}>
+                            {newMedia.hasDownloadPermission ? 'Direct Download Authorized' : 'Official YouTube Only'}
+                          </span>
                         </div>
-                      )}
+                        <p className="text-[11px] text-stone-600 leading-relaxed">
+                          Only enable downloads for videos the website owner has permission to download. Otherwise, the website will direct users to YouTube's official watch & offline save options.
+                        </p>
+
+                        {newMedia.hasDownloadPermission && (
+                          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2 border-t border-emerald-200">
+                            <div>
+                              <label className="text-[10px] font-bold uppercase text-[#103C2E] block">Master File Size</label>
+                              <input
+                                type="text"
+                                placeholder="e.g. 185 MB"
+                                value={newMedia.downloadFileSize}
+                                onChange={(e) => setNewMedia({...newMedia, downloadFileSize: e.target.value})}
+                                className="w-full px-3 py-1.5 bg-white border border-emerald-300 rounded-xl text-xs font-mono"
+                              />
+                            </div>
+                            <div>
+                              <label className="text-[10px] font-bold uppercase text-[#103C2E] block">Video Quality</label>
+                              <input
+                                type="text"
+                                placeholder="e.g. 1080p Full HD Master"
+                                value={newMedia.downloadQuality}
+                                onChange={(e) => setNewMedia({...newMedia, downloadQuality: e.target.value})}
+                                className="w-full px-3 py-1.5 bg-white border border-emerald-300 rounded-xl text-xs"
+                              />
+                            </div>
+                            <div>
+                              <label className="text-[10px] font-bold uppercase text-[#103C2E] block">Master Download Link</label>
+                              <input
+                                type="url"
+                                placeholder="Direct MP4 download link"
+                                value={newMedia.downloadUrl}
+                                onChange={(e) => setNewMedia({...newMedia, downloadUrl: e.target.value})}
+                                className="w-full px-3 py-1.5 bg-white border border-emerald-300 rounded-xl text-xs"
+                              />
+                            </div>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   )}
 
@@ -3552,6 +3929,7 @@ export const AdminDashboard: React.FC<Props> = ({
                         <th className="p-4 uppercase text-[11px] font-bold">Caption & Title</th>
                         <th className="p-4 uppercase text-[11px] font-bold">Type</th>
                         <th className="p-4 uppercase text-[11px] font-bold">Category</th>
+                        <th className="p-4 uppercase text-[11px] font-bold">Download Option</th>
                         <th className="p-4 uppercase text-[11px] font-bold">Homepage Video</th>
                         <th className="p-4 text-right uppercase text-[11px] font-bold">Actions</th>
                       </tr>
@@ -3581,10 +3959,10 @@ export const AdminDashboard: React.FC<Props> = ({
                                 )}
                               </div>
                             </td>
-                            <td className="p-4 font-bold text-[#103C2E]">
-                              {item.title}
+                            <td className="p-4 font-bold text-[#103C2E] max-w-xs">
+                              <div className="line-clamp-2">{item.title}</div>
                               {item.youtubeTitle && item.youtubeTitle !== item.title && (
-                                <p className="text-[11px] text-[#C6A15B] font-semibold mt-0.5">
+                                <p className="text-[11px] text-[#C6A15B] font-semibold mt-0.5 line-clamp-1">
                                   YT: {item.youtubeTitle}
                                 </p>
                               )}
@@ -3597,7 +3975,35 @@ export const AdminDashboard: React.FC<Props> = ({
                               </span>
                             </td>
                             <td className="p-4 text-stone-600">{item.category}</td>
-                            <td className="p-4">
+                            
+                            {/* Download Permission Status & Test Trigger */}
+                            <td className="p-4 whitespace-nowrap">
+                              {isVid ? (
+                                <div className="flex flex-col gap-1.5">
+                                  <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider inline-flex items-center gap-1 border w-fit ${
+                                    item.hasDownloadPermission 
+                                      ? 'bg-emerald-100 text-emerald-900 border-emerald-300' 
+                                      : 'bg-stone-100 text-stone-700 border-stone-300'
+                                  }`}>
+                                    <Download className="w-3 h-3 text-[#C6A15B]" />
+                                    <span>{item.hasDownloadPermission ? 'Direct MP4' : 'Official YouTube'}</span>
+                                  </span>
+                                  <button
+                                    type="button"
+                                    onClick={() => setPreviewDownloadVideo(item)}
+                                    className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-800 hover:text-emerald-950 underline cursor-pointer"
+                                    title="Test Download Dialog"
+                                  >
+                                    <Eye className="w-3 h-3" />
+                                    <span>Test Download UI</span>
+                                  </button>
+                                </div>
+                              ) : (
+                                <span className="text-stone-400 text-xs">—</span>
+                              )}
+                            </td>
+
+                            <td className="p-4 whitespace-nowrap">
                               {isVid ? (
                                 item.showOnHomepage ? (
                                   <span className="px-2.5 py-1 bg-[#103C2E] text-[#D4AF37] border border-[#C6A15B]/40 rounded-full text-xs font-bold inline-flex items-center gap-1 shadow-sm">
@@ -3616,7 +4022,7 @@ export const AdminDashboard: React.FC<Props> = ({
                                 <span className="text-stone-400 text-xs">—</span>
                               )}
                             </td>
-                            <td className="p-4 text-right space-x-2">
+                            <td className="p-4 text-right space-x-2 whitespace-nowrap">
                               <button
                                 onClick={() => handleEditMedia(item)}
                                 className="inline-flex items-center gap-1 bg-emerald-50 hover:bg-emerald-600 text-emerald-800 hover:text-white px-2.5 py-1.5 rounded-xl border border-emerald-200 transition-all shadow-xs cursor-pointer text-xs font-bold uppercase"
@@ -3642,6 +4048,44 @@ export const AdminDashboard: React.FC<Props> = ({
                 </div>
               </div>
             </div>
+          )}
+
+          {/* ========================================================
+              TAB 9: TOWN HALL & VOTING (CHIEF ADMIN)
+             ======================================================== */}
+          {activeTab === 'townhall' && (
+            <AdminTownHallTab
+              polls={polls}
+              setPolls={setPolls}
+              adminRole={adminRole}
+              adminEmail={email}
+              onLogActivity={(action) => setActivityLogs(prev => [{
+                id: `log-${Date.now()}`,
+                user: email,
+                action,
+                timestamp: new Date().toISOString().replace('T', ' ').substring(0, 16),
+                role: adminRole
+              }, ...prev])}
+            />
+          )}
+
+          {/* ========================================================
+              TAB 10: COMMUNITY PETITIONS (DECISION DISPATCH)
+             ======================================================== */}
+          {activeTab === 'petitions' && (
+            <AdminPetitionsTab
+              petitions={petitions}
+              setPetitions={setPetitions}
+              adminRole={adminRole}
+              adminEmail={email}
+              onLogActivity={(action) => setActivityLogs(prev => [{
+                id: `log-${Date.now()}`,
+                user: email,
+                action,
+                timestamp: new Date().toISOString().replace('T', ' ').substring(0, 16),
+                role: adminRole
+              }, ...prev])}
+            />
           )}
 
           {/* ========================================================
@@ -4059,6 +4503,14 @@ export const AdminDashboard: React.FC<Props> = ({
 
         </main>
       </div>
+
+      {/* Admin Video Download Modal Preview */}
+      {previewDownloadVideo && (
+        <YouTubeDownloadModal
+          video={previewDownloadVideo}
+          onClose={() => setPreviewDownloadVideo(null)}
+        />
+      )}
     </div>
   );
 };

@@ -30,16 +30,20 @@ export const AgentElectionPortal: React.FC<Props> = ({
   // Available agents list retrieved and auto-healed with credentials
   const [availableAgents, setAvailableAgents] = useState<PollingUnitAgentLink[]>([]);
 
-  // Form states
+  // Form states with manual party name customization
   const [formData, setFormData] = useState({
     totalRegisteredVoters: '',
     totalAccreditedVoters: '',
     totalValidVotes: '',
     rejectedVotes: '',
+    danmajeParty: 'APC',
     danmajeVotes: '',
+    opponentParty: 'PDP',
     opponentVotes: '',
+    otherPartyName: 'Other Parties (LP, NNPP, APGA)',
     otherPartyVotes: '',
-    notes: ''
+    notes: '',
+    inquiryDetails: ''
   });
 
   const [submittedSuccess, setSubmittedSuccess] = useState(false);
@@ -92,19 +96,7 @@ export const AgentElectionPortal: React.FC<Props> = ({
     const healed = getHealedAgents();
     setAvailableAgents(healed);
 
-    // Check session storage first
-    try {
-      const activeSession = sessionStorage.getItem('danmaje_active_agent');
-      if (activeSession) {
-        const parsed = JSON.parse(activeSession);
-        if (parsed && (parsed.token || parsed.uniqueToken)) {
-          setVerifiedAgentLink(parsed);
-          return;
-        }
-      }
-    } catch {}
-
-    // Auto-detect parameters from URL
+    // Auto-detect parameters from URL to pre-fill inputs only (NO DIRECT AUTO-LOGIN)
     const urlParams = new URLSearchParams(window.location.search);
     let urlToken = urlParams.get('agent_token') || urlParams.get('token') || urlParams.get('user') || initialToken;
     let urlPwd = urlParams.get('pwd') || urlParams.get('password') || urlParams.get('pass') || '';
@@ -126,50 +118,7 @@ export const AgentElectionPortal: React.FC<Props> = ({
     if (urlPwd) {
       setPasswordInput(urlPwd);
     }
-
-    // Attempt automatic instant authentication if token is provided
-    if (urlToken) {
-      const cleanToken = urlToken.trim().toLowerCase().replace(/[^a-z0-9]/g, '');
-      const cleanPwd = urlPwd.trim().toLowerCase();
-      
-      const match = healed.find(l => {
-        const t1 = (l.uniqueToken || '').toLowerCase().replace(/[^a-z0-9]/g, '');
-        const t2 = (l.token || '').toLowerCase().replace(/[^a-z0-9]/g, '');
-        const pDigits = (l.phone || '').replace(/\D/g, '').replace(/^234/, '').replace(/^0/, '');
-        const puCode = (l.pollingUnitCode || '').toLowerCase().replace(/[^a-z0-9]/g, '');
-        const name = (l.agentName || '').toLowerCase().replace(/[^a-z0-9]/g, '');
-
-        const isUserMatch = 
-          t1 === cleanToken || 
-          t2 === cleanToken || 
-          (pDigits.length >= 7 && cleanToken.includes(pDigits)) || 
-          (cleanToken.length >= 7 && pDigits.includes(cleanToken)) ||
-          puCode === cleanToken ||
-          name.includes(cleanToken);
-
-        if (!isUserMatch) return false;
-        
-        // If password is also provided in URL or master key
-        if (cleanPwd) {
-          const lPass = (l.password || '').trim().toLowerCase();
-          return (
-            lPass === cleanPwd || 
-            cleanPwd === 'danmaje2026' || 
-            cleanPwd === 'danmajeforever' || 
-            cleanPwd === 'danmaje' || 
-            cleanPwd === '123456'
-          );
-        }
-        return false;
-      });
-
-      if (match) {
-        setVerifiedAgentLink(match);
-        try {
-          sessionStorage.setItem('danmaje_active_agent', JSON.stringify(match));
-        } catch {}
-      }
-    }
+    // Note: Direct auto-login is intentionally disabled. Agent must submit credentials.
   }, [initialToken]);
 
   const handleVerifyToken = (e: React.FormEvent) => {
@@ -257,11 +206,8 @@ export const AgentElectionPortal: React.FC<Props> = ({
   const handleQuickSelectAgent = (agent: PollingUnitAgentLink) => {
     setTokenInput(agent.token || agent.uniqueToken);
     setPasswordInput(agent.password);
-    setVerifiedAgentLink(agent);
+    setVerifiedAgentLink(null);
     setError('');
-    try {
-      sessionStorage.setItem('danmaje_active_agent', JSON.stringify(agent));
-    } catch {}
   };
 
   const handleSubmitReport = (e: React.FormEvent) => {
@@ -308,9 +254,13 @@ export const AgentElectionPortal: React.FC<Props> = ({
       totalValidVotes: valid,
       rejectedVotes: parseInt(formData.rejectedVotes || '0', 10),
       danmajeVotes: danmaje,
+      danmajePartyName: formData.danmajeParty || 'APC',
       opponentVotes: opponent,
+      opponentPartyName: formData.opponentParty || 'PDP',
       otherPartyVotes: parseInt(formData.otherPartyVotes || '0', 10),
+      otherPartyName: formData.otherPartyName || 'Other Parties',
       notes: formData.notes,
+      inquiryDetails: formData.inquiryDetails,
       submittedAt: new Date().toLocaleString()
     };
 
@@ -349,11 +299,13 @@ export const AgentElectionPortal: React.FC<Props> = ({
   };
 
   const handleReturnHome = () => {
+    try {
+      sessionStorage.removeItem('danmaje_active_agent');
+    } catch {}
     if (onBackToHome) {
       onBackToHome();
-    } else {
-      window.location.href = '/';
     }
+    window.location.href = '/';
   };
 
   return (
@@ -663,73 +615,143 @@ export const AgentElectionPortal: React.FC<Props> = ({
               </div>
 
               <div className="bg-[#FAF9F5] p-5 rounded-2xl border-2 border-[#C6A15B]/40 space-y-4">
-                <h4 className="font-['Manrope'] font-bold text-sm text-[#103C2E] uppercase tracking-wider flex items-center gap-2">
-                  <Award className="w-4 h-4 text-[#C6A15B]" />
-                  <span>Certified Candidate Vote Scores</span>
-                </h4>
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                  <h4 className="font-['Manrope'] font-bold text-sm text-[#103C2E] uppercase tracking-wider flex items-center gap-2">
+                    <Award className="w-4 h-4 text-[#C6A15B]" />
+                    <span>Certified Candidate Vote Scores</span>
+                  </h4>
+                  <span className="text-[10px] text-stone-500 font-semibold uppercase bg-stone-100 px-2 py-0.5 rounded">
+                    Manual Party Customization Active
+                  </span>
+                </div>
 
-                <div className="space-y-1">
-                  <label className="text-xs font-bold text-[#103C2E]">
-                    Hon. Umar Yusuf (Danmaje Yabo) Votes [APC] *
-                  </label>
+                {/* Hon. Umar Yusuf (Danmaje) Party & Score */}
+                <div className="bg-emerald-50/70 p-3.5 rounded-xl border border-emerald-300 space-y-2">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                    <label className="text-xs font-bold text-[#103C2E]">
+                      Hon. Umar Yusuf (Danmaje Yabo) Score *
+                    </label>
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-[10px] text-stone-500 font-bold uppercase">Candidate Party:</span>
+                      <input
+                        type="text"
+                        required
+                        value={formData.danmajeParty}
+                        onChange={(e) => setFormData({ ...formData, danmajeParty: e.target.value.toUpperCase() })}
+                        placeholder="APC"
+                        className="w-20 px-2.5 py-1 bg-white border border-emerald-400 rounded-lg text-xs font-black text-center text-emerald-800 uppercase focus:outline-none"
+                        title="Agent can write party name manually"
+                      />
+                    </div>
+                  </div>
                   <input
                     type="number"
                     required
                     min="0"
-                    placeholder="e.g. 280"
+                    placeholder="Enter votes (e.g. 280)"
                     value={formData.danmajeVotes}
                     onChange={(e) => setFormData({ ...formData, danmajeVotes: e.target.value })}
-                    className="w-full px-4 py-3 bg-white border-2 border-emerald-500 rounded-xl text-sm font-bold text-[#103C2E] focus:outline-none"
+                    className="w-full px-4 py-3 bg-white border-2 border-emerald-500 rounded-xl text-base font-black text-[#103C2E] focus:outline-none"
                   />
                 </div>
 
-                <div className="space-y-1">
-                  <label className="text-xs font-bold text-[#103C2E]">
-                    Main Opponent Candidate Votes [PDP] *
-                  </label>
+                {/* Main Opponent Party & Score */}
+                <div className="bg-rose-50/70 p-3.5 rounded-xl border border-rose-300 space-y-2">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                    <label className="text-xs font-bold text-rose-900">
+                      Main Opponent Candidate Score *
+                    </label>
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-[10px] text-stone-500 font-bold uppercase">Opponent Party:</span>
+                      <input
+                        type="text"
+                        required
+                        value={formData.opponentParty}
+                        onChange={(e) => setFormData({ ...formData, opponentParty: e.target.value.toUpperCase() })}
+                        placeholder="PDP"
+                        className="w-20 px-2.5 py-1 bg-white border border-rose-300 rounded-lg text-xs font-black text-center text-rose-800 uppercase focus:outline-none"
+                        title="Agent can write opponent party name manually"
+                      />
+                    </div>
+                  </div>
                   <input
                     type="number"
                     required
                     min="0"
-                    placeholder="e.g. 110"
+                    placeholder="Enter opponent votes (e.g. 110)"
                     value={formData.opponentVotes}
                     onChange={(e) => setFormData({ ...formData, opponentVotes: e.target.value })}
-                    className="w-full px-4 py-3 bg-white border border-stone-300 rounded-xl text-sm font-bold text-rose-700 focus:outline-none"
+                    className="w-full px-4 py-3 bg-white border-2 border-rose-400 rounded-xl text-base font-black text-rose-800 focus:outline-none"
                   />
                 </div>
 
-                <div className="space-y-1">
-                  <label className="text-xs font-bold text-[#103C2E]">Other Parties Combined Votes</label>
+                {/* Other Parties */}
+                <div className="bg-stone-50 p-3.5 rounded-xl border border-stone-200 space-y-2">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                    <label className="text-xs font-bold text-stone-700">
+                      Other Registered Parties Combined Score
+                    </label>
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-[10px] text-stone-500 font-bold uppercase">Parties:</span>
+                      <input
+                        type="text"
+                        value={formData.otherPartyName}
+                        onChange={(e) => setFormData({ ...formData, otherPartyName: e.target.value })}
+                        placeholder="Other Parties (LP, NNPP, APGA)"
+                        className="w-48 px-2.5 py-1 bg-white border border-stone-300 rounded-lg text-xs font-medium text-stone-700 focus:outline-none"
+                      />
+                    </div>
+                  </div>
                   <input
                     type="number"
                     min="0"
                     placeholder="e.g. 15"
                     value={formData.otherPartyVotes}
                     onChange={(e) => setFormData({ ...formData, otherPartyVotes: e.target.value })}
-                    className="w-full px-4 py-2.5 bg-white border border-stone-200 rounded-xl text-xs focus:outline-none"
+                    className="w-full px-4 py-2.5 bg-white border border-stone-300 rounded-xl text-xs font-bold text-stone-800 focus:outline-none"
                   />
                 </div>
 
                 {/* Real-time calculated difference preview */}
                 <div className="bg-[#103C2E] text-white p-3.5 rounded-xl text-xs flex justify-between items-center font-bold">
                   <span>Calculated Net Margin (Lead):</span>
-                  <span className="text-[#D4AF37] text-sm">
+                  <span className="text-[#D4AF37] text-sm font-black">
                     {(!isNaN(parseInt(formData.danmajeVotes)) && !isNaN(parseInt(formData.opponentVotes)))
-                      ? `${(parseInt(formData.danmajeVotes) - parseInt(formData.opponentVotes)) >= 0 ? '+' : ''}${parseInt(formData.danmajeVotes) - parseInt(formData.opponentVotes)} Votes`
+                      ? `${(parseInt(formData.danmajeVotes) - parseInt(formData.opponentVotes)) >= 0 ? '+' : ''}${parseInt(formData.danmajeVotes) - parseInt(formData.opponentVotes)} Votes (${formData.danmajeParty || 'APC'} vs ${formData.opponentParty || 'PDP'})`
                       : 'Enter candidate votes above'}
                   </span>
                 </div>
               </div>
 
-              <div className="space-y-1">
-                <label className="text-xs font-bold text-[#103C2E]">Incident / Collation Notes (Optional)</label>
-                <textarea
-                  rows={2}
-                  placeholder="Record turnout, security conditions, ballot paper reconciliation, or signing by INEC officials..."
-                  value={formData.notes}
-                  onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                  className="w-full px-4 py-2.5 bg-stone-50 border border-stone-200 rounded-xl text-xs focus:outline-none focus:border-[#103C2E] resize-none"
-                ></textarea>
+              {/* Collation Inquiries & Incident Notes */}
+              <div className="space-y-3">
+                <div className="space-y-1">
+                  <label className="text-xs font-bold text-[#103C2E] flex items-center justify-between">
+                    <span>Incident & Irregularity Log (Optional)</span>
+                    <span className="text-[10px] text-stone-400">Security / Ballot reconciliation</span>
+                  </label>
+                  <textarea
+                    rows={2}
+                    placeholder="Record voter turnout issues, security conditions, ballot paper reconciliation, or INEC signing status..."
+                    value={formData.notes}
+                    onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                    className="w-full px-4 py-2.5 bg-stone-50 border border-stone-200 rounded-xl text-xs focus:outline-none focus:border-[#103C2E] resize-none"
+                  ></textarea>
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-xs font-bold text-[#103C2E] flex items-center justify-between">
+                    <span>Agent Inquiry / Question for Central Collation Desk (Optional)</span>
+                    <span className="text-[10px] text-stone-400">Direct message to Situation Room</span>
+                  </label>
+                  <textarea
+                    rows={2}
+                    placeholder="Submit any procedural inquiry, question on collation guidelines, or urgent request to the central collation headquarters..."
+                    value={formData.inquiryDetails}
+                    onChange={(e) => setFormData({ ...formData, inquiryDetails: e.target.value })}
+                    className="w-full px-4 py-2.5 bg-stone-50 border border-stone-200 rounded-xl text-xs focus:outline-none focus:border-[#103C2E] resize-none"
+                  ></textarea>
+                </div>
               </div>
 
               <button

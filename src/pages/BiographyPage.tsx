@@ -95,15 +95,14 @@ export const BiographyPage: React.FC<Props> = ({ setCurrentTab, currentLang, tra
     <div className={`max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-14 space-y-12 overflow-x-hidden ${isRTL ? 'rtl font-serif' : ''}`} dir={isRTL ? 'rtl' : 'ltr'}>
       
       {/* 1. EXECUTIVE BIOGRAPHY HERO BANNER */}
-      <section className="relative bg-gradient-to-br from-[#072118] via-[#0E3529] to-[#0A261E] text-white rounded-3xl p-6 sm:p-10 lg:p-14 shadow-2xl overflow-hidden border border-[#C6A15B]/40">
-        <div className="absolute right-0 top-0 w-96 h-96 bg-[#C6A15B]/15 rounded-full blur-3xl pointer-events-none"></div>
+      <section className="relative bg-gradient-to-br from-[#072118] via-[#0E3529] to-[#0A261E] text-white rounded-3xl p-6 sm:p-10 lg:p-14 shadow-2xl overflow-hidden border border-emerald-500/30">
         <div className="absolute bottom-0 left-10 w-80 h-80 bg-emerald-600/10 rounded-full blur-3xl pointer-events-none"></div>
 
         <div className="relative z-10 grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center">
           
           {/* Text & Representative Overview */}
           <div className="lg:col-span-7 space-y-5">
-            <div className="inline-flex items-center gap-2.5 px-4 py-2 rounded-full bg-[#C6A15B]/20 border border-[#C6A15B]/40 text-xs font-semibold text-[#D4AF37] tracking-wider uppercase">
+            <div className="inline-flex items-center gap-2.5 px-4 py-2 rounded-full bg-emerald-900/60 border border-emerald-500/40 text-xs font-semibold text-emerald-200 tracking-wider uppercase">
               <OfficialCrest size="sm" className="w-5 h-5 shrink-0" />
               <span>{t('biography', currentLang, translations).toUpperCase()}</span>
               <span className="text-white/40">·</span>
@@ -178,7 +177,7 @@ export const BiographyPage: React.FC<Props> = ({ setCurrentTab, currentLang, tra
               <div className="relative rounded-3xl overflow-hidden shadow-2xl border-2 border-[#C6A15B]/70 ring-4 ring-[#09291F]/90 bg-[#09291F] aspect-[3/4] group">
                 <div className="absolute top-3.5 left-3.5 z-20 flex items-center gap-2 bg-[#061B14]/90 backdrop-blur-md px-3 py-1.5 rounded-full border border-[#D4AF37]/60 shadow-xl">
                   <img src="/official_logo.png" alt="Official Seal" className="w-5 h-5 rounded-full object-contain" />
-                  <span className="text-[10px] font-extrabold uppercase tracking-wider text-[#D4AF37]">National Assembly</span>
+                  <span className="text-[10px] font-extrabold uppercase tracking-wider text-emerald-200">National Assembly</span>
                 </div>
 
                 <img
@@ -190,8 +189,8 @@ export const BiographyPage: React.FC<Props> = ({ setCurrentTab, currentLang, tra
                   }}
                 />
 
-                <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-[#061B14] via-[#09291F]/90 to-transparent p-5 text-white text-center border-t border-[#C6A15B]/30">
-                  <span className="text-[11px] uppercase tracking-widest text-[#D4AF37] font-black">HON. UMAR YUSUF (DANMAJE YABO)</span>
+                <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-[#061B14] via-[#09291F]/90 to-transparent p-5 text-white text-center border-t border-emerald-500/30">
+                  <span className="text-[11px] uppercase tracking-widest text-emerald-300 font-black">HON. UMAR YUSUF (DANMAJE YABO)</span>
                   <p className="font-['Manrope'] font-bold text-sm text-white mt-0.5">
                     {currentLang === 'ha' ? 'Dan Majalisar Wakilai ta Kasa' : isRTL ? 'عضو مجلس النواب بالبرلمان الفيدرالي' : 'Federal Lawmaker • Yabo/Shagari'}
                   </p>
@@ -271,8 +270,8 @@ export const BiographyPage: React.FC<Props> = ({ setCurrentTab, currentLang, tra
           </div>
 
           {/* Core Mandate Pillar Badge */}
-          <div className="bg-gradient-to-br from-[#0A3D2E] to-[#103C2E] text-white rounded-3xl p-6 border border-[#C6A15B]/30 space-y-3 shadow-md">
-            <span className="text-[10px] font-black uppercase tracking-widest text-[#D4AF37]">
+          <div className="bg-gradient-to-br from-[#0A3D2E] to-[#103C2E] text-white rounded-3xl p-6 border border-emerald-500/30 space-y-3 shadow-md">
+            <span className="text-[10px] font-black uppercase tracking-widest text-emerald-300">
               {currentLang === 'ha' ? 'MANUFAR AIKI' : isRTL ? 'العهد النيابي' : 'REPRESENTATION CREED'}
             </span>
             <p className="text-xs sm:text-sm text-stone-200 leading-relaxed font-light italic">
@@ -282,7 +281,7 @@ export const BiographyPage: React.FC<Props> = ({ setCurrentTab, currentLang, tra
                 ? 'التمثيل البرلماني أمانة ومسؤولية أمام الله والمواطنين. غايتنا الأساسية هي إيصال مشاريع التنمية المستدامة والمياه النقية والتعليم لكل قرية في يابو وشاغاري.'
                 : 'Representation is a sacred public trust. Our legislative mission is clear: delivering clean water, quality education, rural roads, and direct agrarian empowerment to every ward without exception.'}"
             </p>
-            <span className="text-[11px] font-bold text-[#D4AF37] block text-right">— Hon. Umar Yusuf (Danmaje Yabo)</span>
+            <span className="text-[11px] font-bold text-emerald-200 block text-right">— Hon. Umar Yusuf (Danmaje Yabo)</span>
           </div>
         </div>
 
@@ -582,9 +581,9 @@ export const BiographyPage: React.FC<Props> = ({ setCurrentTab, currentLang, tra
       </section>
 
       {/* 3. CONSTITUENCY CITIZEN CHARTER & PROMINENT CONTACT OFFICE SECTION */}
-      <section className="bg-gradient-to-r from-[#072118] via-[#0E3529] to-[#0A261E] rounded-3xl p-8 sm:p-12 text-white shadow-2xl border border-[#C6A15B]/40 grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
+      <section className="bg-gradient-to-r from-[#072118] via-[#0E3529] to-[#0A261E] rounded-3xl p-8 sm:p-12 text-white shadow-2xl border border-emerald-500/40 grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
         <div className="lg:col-span-8 space-y-4">
-          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#C6A15B]/20 border border-[#C6A15B]/40 text-xs font-semibold text-[#D4AF37] uppercase tracking-wider">
+          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-emerald-900/60 border border-emerald-500/40 text-xs font-semibold text-emerald-200 uppercase tracking-wider">
             <OfficialCrest size="sm" className="w-4 h-4 shrink-0" />
             <span>OPEN CONSTITUENCY LIAISON</span>
           </div>
@@ -600,7 +599,7 @@ export const BiographyPage: React.FC<Props> = ({ setCurrentTab, currentLang, tra
           <div className="pt-2 flex flex-wrap gap-4">
             <button
               onClick={() => navigateTo('contact')}
-              className="bg-gradient-to-r from-[#D4AF37] via-[#C6A15B] to-[#B38F44] hover:brightness-110 active:scale-[0.98] text-[#09291F] font-black px-8 py-4 rounded-xl text-xs sm:text-sm transition-all shadow-xl flex items-center gap-2.5 cursor-pointer border border-[#E5C16C] uppercase tracking-wider"
+              className="bg-white hover:bg-emerald-50 active:scale-[0.98] text-[#09291F] font-black px-8 py-4 rounded-xl text-xs sm:text-sm transition-all shadow-xl flex items-center gap-2.5 cursor-pointer border border-emerald-400 uppercase tracking-wider"
             >
               <Phone className="w-4 h-4 text-[#09291F]" />
               <span>{t('contactOffice', currentLang, translations).toUpperCase()}</span>

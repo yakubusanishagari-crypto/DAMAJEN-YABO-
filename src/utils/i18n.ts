@@ -59,6 +59,16 @@ export const DEFAULT_TRANSLATIONS: Translations = {
     ha: 'Tuntubar Mazabu',
     ar: 'اتصال الدائرة'
   },
+  townhall: {
+    en: 'Town Hall',
+    ha: 'Dandalin Jama\'a',
+    ar: 'المنبر الشعبي'
+  },
+  petitions: {
+    en: 'Petitions',
+    ha: 'Korafe-korafe',
+    ar: 'العرائض والشكاوى'
+  },
   exploreProjects: {
     en: 'EXPLORE PROJECTS',
     ha: 'Bincika Ayruka',

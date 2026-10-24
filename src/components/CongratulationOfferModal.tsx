@@ -2,7 +2,7 @@ import React, { useRef } from 'react';
 import { ProgramApplication } from '../types';
 import { 
   Printer, Download, X, Award, CheckCircle2, ShieldCheck, 
-  MapPin, Calendar, FileText, Sparkles, Building2, User 
+  MapPin, Calendar, FileText, Building2, User 
 } from 'lucide-react';
 
 interface Props {
@@ -17,8 +17,16 @@ export const CongratulationOfferModal: React.FC<Props> = ({ application, onClose
     window.print();
   };
 
+  const isPetition = Boolean(
+    application.referenceNumber?.startsWith('DAN-PET') ||
+    application.programCategory?.toLowerCase().includes('petition') ||
+    application.programId?.includes('ticket') ||
+    application.programId?.includes('petition')
+  );
+
   const grantPackageDescription = application.awardGrantPackage || 
-    (application.programCategory === 'Agriculture' ? '1x Complete Solar Irrigation Pumping Unit + Industrial Hose + ₦50,000 Agricultural Input Support Grant' :
+    (isPetition ? 'Constituency Executive Relief & Infrastructure Intervention Assigned' :
+     application.programCategory === 'Agriculture' ? '1x Complete Solar Irrigation Pumping Unit + Industrial Hose + ₦50,000 Agricultural Input Support Grant' :
      application.programCategory === 'Skills Acquisition' ? '1x Heavy-Duty Tailoring/Trade Machine + Complete Tooling Kit + ₦40,000 Apprenticeship Seed Fund' :
      application.programCategory === 'Small Business Grant' ? '₦150,000 Direct Non-Refundable Business Working Capital Grant + MSME Financial Record Book' :
      'Constituency Vocational Starter Kit & Direct Financial Empowerment Grant');
@@ -29,7 +37,7 @@ export const CongratulationOfferModal: React.FC<Props> = ({ application, onClose
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Official_Offer_Letter_${application.referenceNumber}</title>
+  <title>${isPetition ? 'Official_Petition_Resolution_' : 'Official_Offer_Letter_'}${application.referenceNumber}</title>
   <style>
     @page { size: A4 portrait; margin: 15mm; }
     body { font-family: 'Times New Roman', Times, serif; color: #103C2E; background: #fff; margin: 0; padding: 25px; line-height: 1.5; }
@@ -38,11 +46,11 @@ export const CongratulationOfferModal: React.FC<Props> = ({ application, onClose
     .title-republic { font-size: 13px; font-weight: bold; letter-spacing: 2px; text-transform: uppercase; margin: 0; color: #103C2E; }
     .title-nass { font-size: 17px; font-weight: 900; color: #103C2E; margin: 3px 0; text-transform: uppercase; }
     .title-office { font-size: 13px; font-weight: bold; color: #9A7B38; text-transform: uppercase; margin: 2px 0; }
-    .title-award { font-size: 19px; font-weight: 900; color: #09291F; background: #eaf3ee; display: inline-block; padding: 7px 25px; border-radius: 6px; margin-top: 15px; border: 2px solid #103C2E; letter-spacing: 1.5px; text-transform: uppercase; }
+    .title-award { font-size: 17px; font-weight: 900; color: #09291F; background: #eaf3ee; display: inline-block; padding: 7px 25px; border-radius: 6px; margin-top: 15px; border: 2px solid #103C2E; letter-spacing: 1.5px; text-transform: uppercase; }
     .top-meta { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px; font-family: sans-serif; font-size: 12px; }
     .photo-frame { width: 110px; height: 135px; border: 2px solid #9A7B38; padding: 3px; background: #faf9f5; text-align: center; }
     .photo-frame img { width: 100%; height: 100%; object-fit: cover; }
-    .congrats-banner { background: #0e3d2f; color: #D4AF37; padding: 12px 18px; border-radius: 6px; font-family: sans-serif; font-size: 14px; font-weight: bold; text-align: center; margin: 20px 0; letter-spacing: 0.5px; }
+    .congrats-banner { background: #0e3d2f; color: #D4AF37; padding: 12px 18px; border-radius: 6px; font-family: sans-serif; font-size: 13px; font-weight: bold; text-align: center; margin: 20px 0; letter-spacing: 0.5px; text-transform: uppercase; }
     .content-p { font-size: 14px; text-align: justify; margin: 12px 0; line-height: 1.6; }
     .package-box { background: #faf8f2; border: 1.5px solid #D4AF37; padding: 15px; border-radius: 6px; margin: 20px 0; font-family: sans-serif; }
     .package-title { font-size: 12px; font-weight: 900; color: #103C2E; text-transform: uppercase; margin-bottom: 6px; }
@@ -60,23 +68,26 @@ export const CongratulationOfferModal: React.FC<Props> = ({ application, onClose
     <p class="title-nass">HOUSE OF REPRESENTATIVES • NATIONAL ASSEMBLY</p>
     <p class="title-office">Office of Hon. (Dr.) Umar Yusuf Yabo (Dan Majen Yabo)</p>
     <p style="font-size: 11px; margin: 0; color: #3a5043;">Member Representing Yabo/Shagari Federal Constituency, Sokoto State</p>
-    <div class="title-award">OFFICIAL NOTIFICATION OF EMPOWERMENT SELECTION & AWARD</div>
+    <div class="title-award">${isPetition ? 'OFFICIAL PETITION RESOLUTION & CIVIC COMMENDATION ORDER' : 'OFFICIAL NOTIFICATION OF EMPOWERMENT SELECTION & AWARD'}</div>
   </div>
 
   <div class="top-meta">
     <div>
       <div><strong>OFFICIAL REF NO:</strong> <span style="font-family: monospace; font-size: 14px; color: #103C2E;">${application.referenceNumber}</span></div>
       <div><strong>DATE OF ISSUANCE:</strong> ${application.date}</div>
-      <div><strong>SCHEME:</strong> ${application.programTitle}</div>
+      <div><strong>${isPetition ? 'PETITION SUBJECT:' : 'SCHEME:'}</strong> ${application.programTitle}</div>
       <div><strong>LGA / WARD:</strong> ${application.lga || 'Yabo/Shagari'} • ${application.wardOrTown}</div>
     </div>
+    ${!isPetition ? `
     <div class="photo-frame">
       ${application.passportPhoto ? `<img src="${application.passportPhoto}" alt="Applicant Photo" />` : '<div style="display:flex;height:100%;align-items:center;justify-content:center;font-size:10px;color:#888;">OFFICIAL BIOMETRIC PHOTO</div>'}
-    </div>
+    </div>` : ''}
   </div>
 
   <div class="congrats-banner">
-    ★ CONGRATULATIONS! YOU HAVE BEEN OFFICIALLY SELECTED & APPROVED ★
+    ${isPetition 
+      ? '★ PETITION FORMALLY UPHELD & RELIEF ACTION DIRECTED ★'
+      : '★ CONGRATULATIONS! YOU HAVE BEEN OFFICIALLY SELECTED & APPROVED ★'}
   </div>
 
   <p class="content-p">
@@ -84,30 +95,38 @@ export const CongratulationOfferModal: React.FC<Props> = ({ application, onClose
   </p>
 
   <p class="content-p">
-    On behalf of <strong>Hon. (Dr.) Umar Yusuf Yabo (Dan Majen Yabo)</strong>, Member representing Yabo/Shagari Federal Constituency in the House of Representatives, 10th National Assembly, we take immense pleasure in informing you that your application for the <strong>"${application.programTitle}"</strong> has successfully completed the rigorous screening and verification exercise and has been <strong>OFFICIALLY APPROVED</strong>.
+    ${isPetition 
+      ? `On behalf of <strong>Hon. (Dr.) Umar Yusuf Yabo (Dan Majen Yabo)</strong>, Member representing Yabo/Shagari Federal Constituency in the House of Representatives, 10th National Assembly, we highly commend your dedicated civic engagement and proactive proposal toward community development in <strong>${application.wardOrTown}</strong>. Following thorough committee investigation and field inspection, your petition has been formally <strong>UPHELD AND APPROVED FOR DIRECT EXECUTIVE INTERVENTION</strong>.`
+      : `On behalf of <strong>Hon. (Dr.) Umar Yusuf Yabo (Dan Majen Yabo)</strong>, Member representing Yabo/Shagari Federal Constituency in the House of Representatives, 10th National Assembly, we take immense pleasure in informing you that your application for the <strong>"${application.programTitle}"</strong> has successfully completed the rigorous screening and verification exercise and has been <strong>OFFICIALLY APPROVED</strong>.`}
   </p>
 
   <div class="package-box">
-    <div class="package-title">APPROVED EMPOWERMENT ALLOCATION & AWARD SPECIFICATION:</div>
+    <div class="package-title">${isPetition ? 'DIRECTED EXECUTIVE ACTION & COMMITTED RELIEF INTERVENTION:' : 'APPROVED EMPOWERMENT ALLOCATION & AWARD SPECIFICATION:'}</div>
     <div class="package-item">${grantPackageDescription}</div>
   </div>
 
   <div class="instructions-box">
-    <strong>MANDATORY INSTRUCTIONS FOR COLLECTION & INDUCTION:</strong><br/>
+    <strong>${isPetition ? 'OFFICIAL IMPLEMENTATION DIRECTIVE & CITIZEN ADVISORY:' : 'MANDATORY INSTRUCTIONS FOR COLLECTION & INDUCTION:'}</strong><br/>
+    ${isPetition ? `
+    1. <strong>Field Execution:</strong> The constituency engineering & liaison team has received legislative orders to initiate the requested community relief action.<br/>
+    2. <strong>Civic Commendation:</strong> The Office of the Representative expresses deep gratitude for your proactive community service and vigilance.<br/>
+    3. <strong>Tracking & Accountability:</strong> Citizens may continuously inspect progress updates using your official reference: <strong>${application.referenceNumber}</strong>.
+    ` : `
     1. <strong>Physical Orientation & Induction:</strong> You are scheduled to attend the orientation and physical hand-over session at the Yabo Constituency Central Secretariat / Liaison Headquarters.<br/>
     2. <strong>Mandatory Credentials to Bring:</strong> You must present this printed Official Congratulatory Offer Letter, your original National Identity Card (NIN slip), and Local Government Indigene Certificate.<br/>
     3. <strong>Identity Verification:</strong> Your physical appearance must match the official biometric passport photograph affixed to this offer document.
+    `}
   </div>
 
   <p class="content-p" style="font-size: 13px; font-style: italic;">
-    "This empowerment award is conferred upon you in trust to foster self-reliance, local enterprise, and economic advancement across Yabo and Shagari." — Hon. Umar Yusuf Yabo.
+    ${isPetition 
+      ? `"Grassroots development succeeds through active citizen participation and responsive legislative action." — Hon. Umar Yusuf Yabo.`
+      : `"This empowerment award is conferred upon you in trust to foster self-reliance, local enterprise, and economic advancement across Yabo and Shagari." — Hon. Umar Yusuf Yabo.`}
   </p>
 
   <div class="footer-seal">
     <div class="seal-stamp">
-      OFFICIALLY APPROVED & CERTIFIED<br/>
-      CONSTITUENCY EMPOWERMENT BOARD<br/>
-      NATIONAL ASSEMBLY • ABUJA
+      ${isPetition ? 'OFFICIALLY UPHELD & RECORDED<br/>CONSTITUENCY PETITIONS DESK<br/>NATIONAL ASSEMBLY • ABUJA' : 'OFFICIALLY APPROVED & CERTIFIED<br/>CONSTITUENCY EMPOWERMENT BOARD<br/>NATIONAL ASSEMBLY • ABUJA'}
     </div>
     <div class="signature-box">
       <div class="sig-line"></div><br/>
@@ -222,15 +241,17 @@ export const CongratulationOfferModal: React.FC<Props> = ({ application, onClose
             </div>
 
             <div className="inline-block mt-2 bg-gradient-to-r from-[#103C2E] via-[#09291F] to-[#103C2E] text-[#D4AF37] px-6 py-1.5 rounded-full text-xs font-black tracking-widest uppercase border border-[#D4AF37] shadow-sm">
-              OFFICIAL EMPOWERMENT SELECTION OFFER & AWARD NOTIFICATION
+              {isPetition ? 'OFFICIAL CONSTITUENCY PETITION RESOLUTION & ACTION ORDER' : 'OFFICIAL EMPOWERMENT SELECTION OFFER & AWARD NOTIFICATION'}
             </div>
           </div>
 
-          {/* Top Meta Bar + Passport Photo */}
+          {/* Top Meta Bar + Biometric / Civic Frame */}
           <div className="bg-[#FAF9F5] border border-[#C6A15B]/50 rounded-2xl p-5 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
             <div className="space-y-1.5 text-xs">
               <div>
-                <span className="text-[10px] text-stone-500 uppercase font-bold block">OFFICIAL BENEFICIARY REF:</span>
+                <span className="text-[10px] text-stone-500 uppercase font-bold block">
+                  {isPetition ? 'PETITION DOCKET REFERENCE:' : 'OFFICIAL BENEFICIARY REF:'}
+                </span>
                 <span className="font-mono text-base font-black text-[#103C2E] tracking-wider select-all">
                   {application.referenceNumber}
                 </span>
@@ -241,43 +262,49 @@ export const CongratulationOfferModal: React.FC<Props> = ({ application, onClose
                   <span className="font-bold text-[#103C2E]">{application.date}</span>
                 </div>
                 <div>
-                  <span className="text-[10px] text-stone-500 uppercase font-bold block">CONSTITUENCY:</span>
-                  <span className="font-bold text-[#103C2E]">{application.lga || 'Yabo/Shagari'} ({application.wardOrTown})</span>
+                  <span className="text-[10px] text-stone-500 uppercase font-bold block">CONSTITUENCY WARD:</span>
+                  <span className="font-bold text-[#103C2E]">{application.wardOrTown} ({application.lga || 'Yabo/Shagari'})</span>
                 </div>
               </div>
             </div>
 
-            {/* Prominent Biometric Passport Photo */}
-            <div className="w-24 h-28 sm:w-28 sm:h-32 rounded-xl overflow-hidden border-2 border-[#D4AF37] bg-stone-100 shadow-md shrink-0 flex flex-col items-center justify-center relative p-0.5">
-              {application.passportPhoto ? (
-                <img
-                  src={application.passportPhoto}
-                  alt={application.applicantName}
-                  className="w-full h-full object-cover rounded-lg"
-                />
-              ) : (
-                <div className="flex flex-col items-center justify-center p-2 text-center text-stone-400">
-                  <User className="w-8 h-8 text-stone-400" />
-                  <span className="text-[9px] font-bold uppercase mt-1">Verified Photo</span>
+            {/* Passport Photo (Only for Empowerment Applicants) */}
+            {!isPetition && (
+              <div className="w-24 h-28 sm:w-28 sm:h-32 rounded-xl overflow-hidden border-2 border-[#D4AF37] bg-stone-100 shadow-md shrink-0 flex flex-col items-center justify-center relative p-0.5">
+                {application.passportPhoto ? (
+                  <img
+                    src={application.passportPhoto}
+                    alt={application.applicantName}
+                    className="w-full h-full object-cover rounded-lg"
+                  />
+                ) : (
+                  <div className="flex flex-col items-center justify-center p-2 text-center text-stone-400">
+                    <User className="w-8 h-8 text-stone-400" />
+                    <span className="text-[9px] font-bold uppercase mt-1">Verified Photo</span>
+                  </div>
+                )}
+                <div className="absolute bottom-0 inset-x-0 bg-[#103C2E]/90 text-[#D4AF37] text-[8px] font-bold py-0.5 text-center uppercase tracking-wider">
+                  Official Photo
                 </div>
-              )}
-              <div className="absolute bottom-0 inset-x-0 bg-[#103C2E]/90 text-[#D4AF37] text-[8px] font-bold py-0.5 text-center uppercase tracking-wider">
-                Official Photo
               </div>
-            </div>
+            )}
           </div>
 
           {/* Congratulations Highlight Banner */}
           <div className="bg-gradient-to-r from-[#103C2E] to-[#0A261E] text-white p-4 rounded-2xl border border-[#D4AF37]/60 flex items-center gap-3 shadow-md">
             <div className="w-10 h-10 rounded-full bg-[#D4AF37]/20 flex items-center justify-center text-[#D4AF37] shrink-0 border border-[#D4AF37]">
-              <Sparkles className="w-5 h-5" />
+              {isPetition ? <ShieldCheck className="w-5 h-5" /> : <Award className="w-5 h-5" />}
             </div>
             <div>
               <h4 className="font-['Manrope'] font-bold text-sm sm:text-base text-[#D4AF37] uppercase tracking-wide">
-                CONGRATULATIONS, {application.applicantName.toUpperCase()}!
+                {isPetition 
+                  ? `CIVIC COMMENDATION: ${application.applicantName.toUpperCase()}`
+                  : `CONGRATULATIONS, ${application.applicantName.toUpperCase()}!`}
               </h4>
               <p className="text-xs text-emerald-100">
-                You have been selected as an official beneficiary for the <strong>{application.programTitle}</strong>.
+                {isPetition 
+                  ? `Your community proposal and petition regarding "${application.programTitle}" has been formally upheld and referred for executive action.`
+                  : `You have been selected as an official beneficiary for the ${application.programTitle}.`}
               </p>
             </div>
           </div>
@@ -285,13 +312,17 @@ export const CongratulationOfferModal: React.FC<Props> = ({ application, onClose
           {/* Formal Body of Letter */}
           <div className="space-y-3 text-xs sm:text-sm text-stone-800 leading-relaxed">
             <p>
-              We are pleased to formally notify you that following the thorough, merit-based screening conducted by the Constituency Screening Committee, your application has been <strong>OFFICIALLY APPROVED</strong>.
+              {isPetition ? (
+                <>We highly commend your dedicated civic engagement and proactive proposal toward community development in <strong>{application.wardOrTown}</strong>. Following thorough committee review and field verification, your petition has been formally <strong>UPHELD AND APPROVED FOR DIRECT EXECUTIVE INTERVENTION</strong>.</>
+              ) : (
+                <>We are pleased to formally notify you that following the thorough, merit-based screening conducted by the Constituency Screening Committee, your application has been <strong>OFFICIALLY APPROVED</strong>.</>
+              )}
             </p>
 
             {/* Award Package Specifications */}
             <div className="bg-[#FAF8F2] border-2 border-[#C6A15B]/60 p-4 rounded-2xl space-y-1.5">
               <span className="text-[10px] font-black uppercase tracking-wider text-[#103C2E] block">
-                ★ CERTIFIED EMPOWERMENT GRANT / ALLOCATION PACKAGE:
+                {isPetition ? '★ DIRECTED EXECUTIVE ACTION & COMMITTED RELIEF INTERVENTION:' : '★ CERTIFIED EMPOWERMENT GRANT / ALLOCATION PACKAGE:'}
               </span>
               <p className="font-extrabold text-sm sm:text-base text-[#09291F]">
                 {grantPackageDescription}
@@ -301,13 +332,21 @@ export const CongratulationOfferModal: React.FC<Props> = ({ application, onClose
             {/* Instructions */}
             <div className="bg-stone-50 border-l-4 border-[#103C2E] p-4 rounded-r-xl space-y-1.5 text-xs">
               <strong className="text-[#103C2E] uppercase font-bold block">
-                NEXT STEPS & INDUCTION PROTOCOL:
+                {isPetition ? 'OFFICIAL DIRECTIVE & CITIZEN LIAISON PROTOCOL:' : 'NEXT STEPS & INDUCTION PROTOCOL:'}
               </strong>
-              <ul className="list-disc list-inside space-y-1 text-stone-700">
-                <li>Present this printed Offer Letter at the Constituency Liaison Office during designated distribution dates.</li>
-                <li>Bring your original National Identity Number (NIN) Slip/Card and Local Government Indigene Certificate for physical matching.</li>
-                <li>Disbursement and equipment handover will be executed strictly to the verified beneficiary matching the biometric photograph above.</li>
-              </ul>
+              {isPetition ? (
+                <ul className="list-disc list-inside space-y-1 text-stone-700">
+                  <li>The designated engineering and constituency works team has received formal legislative directive to execute this relief intervention.</li>
+                  <li>We convey the deepest appreciation of Hon. Umar Yusuf Yabo for your vigilance and active contribution toward grassroots community advancement.</li>
+                  <li>Progress milestones can be tracked live via the constituency transparency portal using docket reference: <strong>{application.referenceNumber}</strong>.</li>
+                </ul>
+              ) : (
+                <ul className="list-disc list-inside space-y-1 text-stone-700">
+                  <li>Present this printed Offer Letter at the Constituency Liaison Office during designated distribution dates.</li>
+                  <li>Bring your original National Identity Number (NIN) Slip/Card and Local Government Indigene Certificate for physical matching.</li>
+                  <li>Disbursement and equipment handover will be executed strictly to the verified beneficiary matching the biometric photograph above.</li>
+                </ul>
+              )}
             </div>
           </div>
 
@@ -318,7 +357,7 @@ export const CongratulationOfferModal: React.FC<Props> = ({ application, onClose
                 OFFICIAL SEAL OF APPROVAL
               </span>
               <span className="text-[11px] font-black text-emerald-800 block">
-                CONSTITUENCY EMPOWERMENT BOARD
+                {isPetition ? 'CONSTITUENCY PETITIONS DESK' : 'CONSTITUENCY EMPOWERMENT BOARD'}
               </span>
               <span className="text-[9px] text-stone-500 font-mono">10TH NATIONAL ASSEMBLY • NIGERIA</span>
             </div>

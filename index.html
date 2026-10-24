@@ -13,6 +13,23 @@
     <meta name="twitter:image" content="https://i.ibb.co/Y7XFxWCb/file-000000003a14824680bb87445e4fcb3b.png" />
     <link rel="icon" type="image/png" href="/official_logo.png" />
     <link rel="apple-touch-icon" href="/official_logo.png" />
+    
+    <!-- Critical Asset Preloads for Instant Page Open -->
+    <link rel="preload" as="image" href="/portrait_danmaje_yabo_1792063283391.jpg" fetchpriority="high" />
+    <link rel="preload" as="image" href="/official_logo.png" fetchpriority="high" />
+    
+    <script>
+      // Instant Pre-Cache Warmer and Bitmap Pre-Decoder executed before React mounts
+      (function() {
+        var p = new Image();
+        p.src = '/portrait_danmaje_yabo_1792063283391.jpg';
+        if (p.decode) p.decode().catch(function(){});
+        var l = new Image();
+        l.src = '/official_logo.png';
+        if (l.decode) l.decode().catch(function(){});
+      })();
+    </script>
+
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">

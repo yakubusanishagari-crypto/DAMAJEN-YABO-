@@ -16,10 +16,31 @@ import { NewsPage } from './pages/NewsPage';
 import { GalleryPage } from './pages/GalleryPage';
 import { ContactPage } from './pages/ContactPage';
 import { LegalPage } from './pages/LegalPage';
+import { TownHallPage } from './pages/TownHallPage';
 import { AdminDashboard } from './pages/AdminDashboard';
-import { INITIAL_PROJECTS, INITIAL_LEGISLATIVE, INITIAL_PROGRAMS, INITIAL_NEWS, INITIAL_GALLERY, INITIAL_CONTACTS } from './data/initialData';
+import { 
+  INITIAL_PROJECTS, 
+  INITIAL_LEGISLATIVE, 
+  INITIAL_PROGRAMS, 
+  INITIAL_NEWS, 
+  INITIAL_GALLERY, 
+  INITIAL_CONTACTS,
+  INITIAL_POLLS,
+  INITIAL_PETITIONS
+} from './data/initialData';
 import { INITIAL_AGENTS } from './data/initialAgents';
-import { Project, LegislativeRecord, EmpowermentProgram, NewsArticle, GalleryItem, ContactSubmission, PollingUnitAgentLink, ElectionReport } from './types';
+import { 
+  Project, 
+  LegislativeRecord, 
+  EmpowermentProgram, 
+  NewsArticle, 
+  GalleryItem, 
+  ContactSubmission, 
+  PollingUnitAgentLink, 
+  ElectionReport,
+  TownHallPoll,
+  CommunityPetition
+} from './types';
 import { Language, Translations, DEFAULT_TRANSLATIONS } from './utils/i18n';
 import { sanitizeGalleryList } from './utils/youtube';
 import { recordPageView } from './utils/analytics';
@@ -165,6 +186,37 @@ export default function App() {
     ];
   });
 
+  const [polls, setPolls] = useState<TownHallPoll[]>(() => {
+    const saved = localStorage.getItem('danmaje_polls');
+    return saved ? JSON.parse(saved) : INITIAL_POLLS;
+  });
+
+  const [petitions, setPetitions] = useState<CommunityPetition[]>(() => {
+    const saved = localStorage.getItem('danmaje_petitions');
+    return saved ? JSON.parse(saved) : INITIAL_PETITIONS;
+  });
+
+  // Background fetch for polls and petitions from server API
+  useEffect(() => {
+    fetch('/api/polls')
+      .then(res => res.json())
+      .then(data => {
+        if (Array.isArray(data) && data.length > 0) {
+          setPolls(data);
+        }
+      })
+      .catch(() => {});
+
+    fetch('/api/petitions')
+      .then(res => res.json())
+      .then(data => {
+        if (Array.isArray(data) && data.length > 0) {
+          setPetitions(data);
+        }
+      })
+      .catch(() => {});
+  }, []);
+
   useEffect(() => {
     localStorage.setItem('danmaje_projects', JSON.stringify(projects));
   }, [projects]);
@@ -197,6 +249,14 @@ export default function App() {
   useEffect(() => {
     localStorage.setItem('danmaje_election_reports', JSON.stringify(electionReports));
   }, [electionReports]);
+
+  useEffect(() => {
+    localStorage.setItem('danmaje_polls', JSON.stringify(polls));
+  }, [polls]);
+
+  useEffect(() => {
+    localStorage.setItem('danmaje_petitions', JSON.stringify(petitions));
+  }, [petitions]);
 
   const isAgentPortalRoute = 
     Boolean(agentToken) || 
@@ -267,6 +327,14 @@ export default function App() {
             translations={translations}
           />
         )}
+        {currentTab === 'townhall' && (
+          <TownHallPage 
+            polls={polls}
+            setPolls={setPolls}
+            currentLang={currentLang}
+            translations={translations}
+          />
+        )}
         {currentTab === 'empowerment' && (
           <EmpowermentPage 
             programs={programs} 
@@ -330,6 +398,10 @@ export default function App() {
           setGallery={setGallery}
           contacts={contacts}
           setContacts={setContacts}
+          polls={polls}
+          setPolls={setPolls}
+          petitions={petitions}
+          setPetitions={setPetitions}
           agents={agents}
           setAgents={setAgents}
           electionReports={electionReports}

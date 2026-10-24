@@ -24,10 +24,13 @@ export const ProjectsPage: React.FC<Props> = ({
   const categories = ['All', 'Water & Sanitation', 'Education', 'Roads & Infrastructure', 'Healthcare', 'Youth Development'];
   const statuses = ['All', 'Completed', 'Ongoing', 'Proposed'];
 
-  const filteredProjects = projects.filter(p => {
-    const matchesSearch = p.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          p.location.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          p.description.toLowerCase().includes(searchTerm.toLowerCase());
+  const filteredProjects = (projects || []).filter(p => {
+    const title = p.title || '';
+    const loc = p.location || '';
+    const desc = p.description || '';
+    const matchesSearch = title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                          loc.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                          desc.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesCategory = selectedCategory === 'All' || p.category === selectedCategory;
     const matchesStatus = selectedStatus === 'All' || p.status === selectedStatus;
     return matchesSearch && matchesCategory && matchesStatus;
@@ -64,10 +67,9 @@ export const ProjectsPage: React.FC<Props> = ({
   return (
     <div className={`max-w-7xl mx-auto px-4 sm:px-8 py-12 space-y-12 ${isRtl ? 'rtl text-right' : ''}`}>
       {/* Header Banner */}
-      <div className="bg-gradient-to-br from-[#09291F] via-[#103C2E] to-[#0A261E] text-white rounded-3xl p-8 sm:p-14 shadow-xl space-y-4 relative overflow-hidden border border-[#C6A15B]/30">
-        <div className="absolute right-0 top-0 w-96 h-96 bg-[#C6A15B]/10 rounded-full blur-3xl pointer-events-none"></div>
+      <div className="bg-gradient-to-br from-[#09291F] via-[#103C2E] to-[#0A261E] text-white rounded-3xl p-8 sm:p-14 shadow-xl space-y-4 relative overflow-hidden border border-emerald-500/30">
         <div className="relative z-10 max-w-3xl space-y-3">
-          <div className="inline-flex items-center gap-2.5 px-3 py-1.5 rounded-full bg-[#C6A15B]/20 border border-[#C6A15B]/40 text-xs font-bold uppercase tracking-wider text-[#D4AF37]">
+          <div className="inline-flex items-center gap-2.5 px-3 py-1.5 rounded-full bg-emerald-900/60 border border-emerald-500/40 text-xs font-bold uppercase tracking-wider text-emerald-200">
             <img src="/official_logo.png" alt="Official Seal" className="w-5 h-5 rounded-full object-contain shrink-0" />
             <span>{t('projectsPageBadge', currentLang, translations)}</span>
           </div>
@@ -137,8 +139,8 @@ export const ProjectsPage: React.FC<Props> = ({
               <div>
                 <div className="relative aspect-[16/10] overflow-hidden bg-stone-200">
                   <img
-                    src={project.images[0] || '/solar_water_project_1792063316637.jpg'}
-                    alt={project.title}
+                    src={(project.images && project.images[0]) || '/solar_water_project_1792063316637.jpg'}
+                    alt={project.title || 'Constituency Project'}
                     className="w-full h-full object-cover group-hover:scale-105 transition duration-500"
                     onError={(e) => {
                       (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1541888946425-d0fbb18f764c?auto=format&fit=crop&q=80&w=1000';
@@ -210,7 +212,7 @@ export const ProjectsPage: React.FC<Props> = ({
             <div className="p-6 sm:p-8 overflow-y-auto space-y-6 text-stone-800">
               {/* Photo Showcase */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {activeProject.images.map((img, i) => (
+                {(activeProject.images && activeProject.images.length > 0 ? activeProject.images : ['https://images.unsplash.com/photo-1541888946425-d0fbb18f764c?auto=format&fit=crop&q=80&w=1000']).map((img, i) => (
                   <div key={i} className="aspect-[16/10] rounded-xl overflow-hidden shadow-sm bg-stone-200">
                     <img 
                       src={img} 
@@ -232,7 +234,7 @@ export const ProjectsPage: React.FC<Props> = ({
                 </div>
                 <div>
                   <span className="text-stone-500 block">LOCATION</span>
-                  <span className="font-bold text-[#103C2E] text-sm">{activeProject.location}</span>
+                  <span className="font-bold text-[#103C2E] text-sm">{activeProject.location || 'Yabo/Shagari'}</span>
                 </div>
                 <div>
                   <span className="text-stone-500 block">PROJECT YEAR</span>
@@ -246,7 +248,7 @@ export const ProjectsPage: React.FC<Props> = ({
               <div className="grid grid-cols-2 gap-4 bg-white p-4 rounded-xl border border-stone-200 text-xs">
                 <div>
                   <span className="text-stone-500 block">START DATE</span>
-                  <span className="font-bold text-[#103C2E] text-sm">{activeProject.startDate}</span>
+                  <span className="font-bold text-[#103C2E] text-sm">{activeProject.startDate || '2026'}</span>
                 </div>
                 <div>
                   <span className="text-stone-500 block">COMPLETION DATE</span>
@@ -260,12 +262,12 @@ export const ProjectsPage: React.FC<Props> = ({
                   {currentLang === 'ha' ? 'Bayani da Tasirin Aiki' : currentLang === 'ar' ? 'نطاق المشروع والأثر المجتمعي' : 'Project Scope & Community Impact'}
                 </h4>
                 <p className="text-xs sm:text-sm leading-relaxed text-stone-700 bg-white p-4 rounded-xl border border-stone-200 font-light">
-                  {activeProject.description}
+                  {activeProject.description || 'Verified constituency development project serving residents across Yabo and Shagari Local Government Areas.'}
                 </p>
               </div>
 
               {/* Milestone Updates */}
-              {activeProject.updates.length > 0 && (
+              {activeProject.updates && activeProject.updates.length > 0 && (
                 <div className="space-y-3">
                   <h4 className="font-bold font-['Manrope'] text-[#103C2E] text-base">
                     {currentLang === 'ha' ? 'Tsayayyun Matakan Aiki' : currentLang === 'ar' ? 'مراحل الإنجاز وسجل التقدم' : 'Execution Milestones & Progress Log'}

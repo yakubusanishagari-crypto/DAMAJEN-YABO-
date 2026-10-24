@@ -2,9 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { GalleryItem } from '../types';
 import { 
   X, ThumbsUp, MessageSquare, Share2, Eye, 
-  Calendar, Send, Play, Check, AlertCircle, RefreshCw
+  Calendar, Send, Play, Check, AlertCircle, RefreshCw,
+  Download, ShieldCheck, HardDrive
 } from 'lucide-react';
 import { extractYouTubeId, getYouTubeEmbedUrl, resolveMediaThumbnail, fetchYouTubeMetadata } from '../utils/youtube';
+import { YouTubeDownloadModal } from './YouTubeDownloadModal';
 
 interface CommentItem {
   id: string;
@@ -41,6 +43,7 @@ export const YouTubeVideoTheater: React.FC<Props> = ({
   const [likesCount, setLikesCount] = useState<number>(0);
   const [comments, setComments] = useState<CommentItem[]>([]);
   const [copied, setCopied] = useState(false);
+  const [showDownloadModal, setShowDownloadModal] = useState(false);
 
   // New comment inputs
   const [authorName, setAuthorName] = useState('');
@@ -205,6 +208,19 @@ export const YouTubeVideoTheater: React.FC<Props> = ({
 
           <div className="flex items-center gap-2">
             <button
+              onClick={() => setShowDownloadModal(true)}
+              className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-sm cursor-pointer border ${
+                video.hasDownloadPermission
+                  ? 'bg-emerald-950/80 hover:bg-emerald-900 text-emerald-300 border-emerald-500/60'
+                  : 'bg-[#0A261E] hover:bg-[#103C2E] text-stone-200 border-[#C6A15B]/50'
+              }`}
+              title="Download or save video offline"
+            >
+              <Download className={`w-3.5 h-3.5 ${video.hasDownloadPermission ? 'text-emerald-400' : 'text-[#D4AF37]'}`} />
+              <span>{video.hasDownloadPermission ? 'DOWNLOAD VIDEO' : 'DOWNLOAD / OFFLINE'}</span>
+            </button>
+
+            <button
               onClick={handleShare}
               className="bg-[#0A261E] hover:bg-[#103C2E] text-[#D4AF37] border border-[#C6A15B]/60 px-3.5 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-sm cursor-pointer"
               title="Share video"
@@ -309,6 +325,19 @@ export const YouTubeVideoTheater: React.FC<Props> = ({
                 >
                   <Share2 className="w-4 h-4 text-[#D4AF37]" />
                   <span>SHARE</span>
+                </button>
+
+                <button
+                  onClick={() => setShowDownloadModal(true)}
+                  className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold shadow-sm transition cursor-pointer border ${
+                    video.hasDownloadPermission
+                      ? 'bg-emerald-900/70 hover:bg-emerald-800 text-emerald-200 border-emerald-500/50 hover:shadow-md'
+                      : 'bg-[#0E3529] hover:bg-[#154636] text-stone-200 border-[#C6A15B]/50'
+                  }`}
+                  title="Download or save video offline"
+                >
+                  <Download className={`w-4 h-4 ${video.hasDownloadPermission ? 'text-emerald-400' : 'text-[#D4AF37]'}`} />
+                  <span>{video.hasDownloadPermission ? 'DOWNLOAD VIDEO' : 'OFFLINE OPTIONS'}</span>
                 </button>
               </div>
             </div>
@@ -458,6 +487,13 @@ export const YouTubeVideoTheater: React.FC<Props> = ({
           </div>
         </div>
       </div>
+
+      {showDownloadModal && (
+        <YouTubeDownloadModal
+          video={video}
+          onClose={() => setShowDownloadModal(false)}
+        />
+      )}
     </div>
   );
 };
