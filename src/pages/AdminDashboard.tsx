@@ -99,7 +99,7 @@ export const AdminDashboard: React.FC<Props> = ({
   currentLang,
   onClose
 }) => {
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [isLoggedIn, setIsLoggedIn] = useState(true);
   const [email, setEmail] = useState('admin@danmayeyabo.gov.ng');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -115,7 +115,14 @@ export const AdminDashboard: React.FC<Props> = ({
       return null;
     }
   });
-  const [currentAdminUser, setCurrentAdminUser] = useState<AdminUser | null>(null);
+  const [currentAdminUser, setCurrentAdminUser] = useState<AdminUser | null>({
+    id: 'usr-super',
+    name: 'Hon. Chief Administrator',
+    email: 'admin@danmayeyabo.gov.ng',
+    role: 'Super Administrator',
+    isActive: true,
+    createdAt: '2026-01-01'
+  });
   const [currentOffice, setCurrentOffice] = useState<ConstituencyOffice | null>(null);
   const [previewingOffice, setPreviewingOffice] = useState<ConstituencyOffice | null>(null);
 
