@@ -45,6 +45,7 @@ import {
 import { Language, Translations, DEFAULT_TRANSLATIONS } from './utils/i18n';
 import { sanitizeGalleryList } from './utils/youtube';
 import { recordPageView } from './utils/analytics';
+import { safeSetItem } from './utils/safeStorage';
 import { AgentElectionPortal } from './components/AgentElectionPortal';
 
 export interface ConstituencyStats {
@@ -197,25 +198,98 @@ export default function App() {
     return saved ? JSON.parse(saved) : INITIAL_PETITIONS;
   });
 
-  // Background fetch for polls and petitions from server API
+  // Comprehensive live database sync on mount across Vercel deployments & Git pushes
   useEffect(() => {
+    // 1. Projects
+    fetch('/api/projects')
+      .then(res => res.json())
+      .then(data => {
+        if (Array.isArray(data) && data.length > 0) {
+          setProjects(data);
+          safeSetItem('danmaje_projects', JSON.stringify(data));
+        }
+      }).catch(() => {});
+
+    // 2. Legislative
+    fetch('/api/legislative')
+      .then(res => res.json())
+      .then(data => {
+        if (Array.isArray(data) && data.length > 0) {
+          setLegislative(data);
+          safeSetItem('danmaje_legislative', JSON.stringify(data));
+        }
+      }).catch(() => {});
+
+    // 3. Empowerment Programs
+    fetch('/api/programs')
+      .then(res => res.json())
+      .then(data => {
+        if (Array.isArray(data) && data.length > 0) {
+          setPrograms(data);
+          safeSetItem('danmaje_programs', JSON.stringify(data));
+        }
+      }).catch(() => {});
+
+    // 4. News Articles
+    fetch('/api/news')
+      .then(res => res.json())
+      .then(data => {
+        if (Array.isArray(data) && data.length > 0) {
+          setNews(data);
+          safeSetItem('danmaje_news', JSON.stringify(data));
+        }
+      }).catch(() => {});
+
+    // 5. Gallery & Photos
+    fetch('/api/gallery')
+      .then(res => res.json())
+      .then(data => {
+        if (Array.isArray(data) && data.length > 0) {
+          const sanitized = sanitizeGalleryList(data);
+          setGallery(sanitized);
+          safeSetItem('danmaje_gallery', JSON.stringify(sanitized));
+        }
+      }).catch(() => {});
+
+    // 6. Citizen Contacts & Enquiries
+    fetch('/api/contacts')
+      .then(res => res.json())
+      .then(data => {
+        if (Array.isArray(data) && data.length > 0) {
+          setContacts(data);
+          safeSetItem('danmaje_contacts', JSON.stringify(data));
+        }
+      }).catch(() => {});
+
+    // 7. Stats
+    fetch('/api/stats')
+      .then(res => res.json())
+      .then(data => {
+        if (data && typeof data === 'object' && data.projectsCount) {
+          setStats(data);
+          safeSetItem('danmaje_stats', JSON.stringify(data));
+        }
+      }).catch(() => {});
+
+    // 8. Town Hall Polls
     fetch('/api/polls')
       .then(res => res.json())
       .then(data => {
         if (Array.isArray(data) && data.length > 0) {
           setPolls(data);
+          safeSetItem('danmaje_polls', JSON.stringify(data));
         }
-      })
-      .catch(() => {});
+      }).catch(() => {});
 
+    // 9. Community Petitions
     fetch('/api/petitions')
       .then(res => res.json())
       .then(data => {
         if (Array.isArray(data) && data.length > 0) {
           setPetitions(data);
+          safeSetItem('danmaje_petitions', JSON.stringify(data));
         }
-      })
-      .catch(() => {});
+      }).catch(() => {});
   }, []);
 
   useEffect(() => {

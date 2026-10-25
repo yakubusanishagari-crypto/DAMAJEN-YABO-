@@ -10,7 +10,7 @@ export interface ProjectUpdate {
 export interface Project {
   id: string;
   title: string;
-  category: 'Roads & Infrastructure' | 'Education' | 'Healthcare' | 'Water & Sanitation' | 'Youth Development' | 'Women Empowerment' | 'Agriculture' | 'Community Facilities';
+  category: 'Roads & Infrastructure' | 'Education' | 'Healthcare' | 'Water & Sanitation' | 'Youth Development' | 'Women Empowerment' | 'Agriculture' | 'Community Facilities' | string;
   location: string;
   status: ProjectStatus;
   description: string;
@@ -381,5 +381,35 @@ export interface TownHallPoll {
   options: PollOption[];
   voters?: PollVoterRecord[];
   votes?: PollVoterRecord[];
+}
+
+export interface ConstituencyOffice {
+  id: string;
+  code: string;
+  name: string;
+  location: string;
+  description: string;
+  headOfOffice: string;
+  contactEmail: string;
+  contactPhone: string;
+  status: 'Active' | 'Inactive';
+  authorizedTabs: string[];
+  assignedAdminEmails: string[];
+  createdAt: string;
+  updatedAt?: string;
+}
+
+export interface AdminUser {
+  id: string;
+  email: string;
+  name: string;
+  role: 'Super Administrator' | 'Office Administrator';
+  officeId?: string;
+  officeName?: string;
+  passwordHash?: string;
+  salt?: string;
+  isActive: boolean;
+  createdAt: string;
+  lastLogin?: string;
 }
 

@@ -6,7 +6,9 @@ import {
   GalleryItem, 
   ContactSubmission,
   TownHallPoll,
-  CommunityPetition
+  CommunityPetition,
+  ConstituencyOffice,
+  AdminUser
 } from '../types';
 
 export const INITIAL_PROJECTS: Project[] = [
@@ -585,5 +587,165 @@ export const INITIAL_PETITIONS: CommunityPetition[] = [
       sentBy: 'Chief Administrator',
       deliveryChannels: ['Email', 'SMS', 'Constituency Portal']
     }
+  }
+];
+
+export const INITIAL_OFFICES: ConstituencyOffice[] = [
+  {
+    id: 'off-liaison',
+    code: 'OFF-LIAISON',
+    name: 'Constituency Liaison & Grievance Redress Bureau',
+    location: 'Danmaje Civic Liaison Secretariat, Main Sokoto-Jega Highway, Yabo Metropolis',
+    description: 'Frontline citizen engagement bureau handling public petitions, constituent enquiries, Town Hall hearings, and grassroots grievance resolution.',
+    headOfOffice: 'Alhaji Bello Dan-Yabo',
+    contactEmail: 'liaison.admin@danmayeyabo.gov.ng',
+    contactPhone: '+234 803 111 2233',
+    status: 'Active',
+    authorizedTabs: ['overview', 'petitions', 'enquiries', 'townhall'],
+    assignedAdminEmails: ['liaison.admin@danmayeyabo.gov.ng'],
+    createdAt: '2025-01-15'
+  },
+  {
+    id: 'off-projects',
+    code: 'OFF-PROJECTS',
+    name: 'Constituency Projects, Works & Infrastructure Bureau',
+    location: 'Projects Monitoring Division, Works Compound, Yabo',
+    description: 'Technical oversight, GIS site verification, contractor auditing, and progress photo reporting for all federal and constituency infrastructure works.',
+    headOfOffice: 'Engr. Faruq Shagari',
+    contactEmail: 'projects.admin@danmayeyabo.gov.ng',
+    contactPhone: '+234 803 222 3344',
+    status: 'Active',
+    authorizedTabs: ['overview', 'projects', 'analytics'],
+    assignedAdminEmails: ['projects.admin@danmayeyabo.gov.ng'],
+    createdAt: '2025-01-15'
+  },
+  {
+    id: 'off-media',
+    code: 'OFF-MEDIA',
+    name: 'Directorate of Media, Public Relations & Press Affairs',
+    location: 'Danmaje Media & Communications Suite, Yabo',
+    description: 'Official press releases, parliamentary news, documentary production, social media engagement, and high-definition photo/video gallery archives.',
+    headOfOffice: 'Hon. Aminu Kuchi',
+    contactEmail: 'media.admin@danmayeyabo.gov.ng',
+    contactPhone: '+234 803 333 4455',
+    status: 'Active',
+    authorizedTabs: ['overview', 'news', 'gallery', 'analytics'],
+    assignedAdminEmails: ['media.admin@danmayeyabo.gov.ng'],
+    createdAt: '2025-01-15'
+  },
+  {
+    id: 'off-legislative',
+    code: 'OFF-LEGIS',
+    name: 'Parliamentary Legislative & Policy Advisory Bureau',
+    location: 'Suite 3.24, House of Representatives Wing, National Assembly Complex, Abuja',
+    description: 'Drafting constituency bills, sponsoring motions, conducting federal committee oversight, and analyzing federal budget appropriations for Yabo/Shagari.',
+    headOfOffice: 'Barrister Mustapha Dan-Yabo',
+    contactEmail: 'legislative.admin@danmayeyabo.gov.ng',
+    contactPhone: '+234 803 444 5566',
+    status: 'Active',
+    authorizedTabs: ['overview', 'legislative', 'petitions', 'townhall'],
+    assignedAdminEmails: ['legislative.admin@danmayeyabo.gov.ng'],
+    createdAt: '2025-01-15'
+  },
+  {
+    id: 'off-empowerment',
+    code: 'OFF-EMPOWER',
+    name: 'Empowerment, Skills Acquisition & Social Welfare Directorate',
+    location: 'Danmaje Vocational & Youth Training Center, Shagari LGA',
+    description: 'Management of youth and women empowerment schemes, vocational training, business grant applications, and educational bursary disbursements.',
+    headOfOffice: 'Hajia Fatima Shagari',
+    contactEmail: 'empowerment.admin@danmayeyabo.gov.ng',
+    contactPhone: '+234 803 555 6677',
+    status: 'Active',
+    authorizedTabs: ['overview', 'empowerment', 'applications'],
+    assignedAdminEmails: ['empowerment.admin@danmayeyabo.gov.ng'],
+    createdAt: '2025-01-15'
+  },
+  {
+    id: 'off-electoral',
+    code: 'OFF-ELECTORAL',
+    name: 'Constituency Electoral Operations & Field Polling Desk',
+    location: 'Civic Collation & Polling Coordination Unit, Yabo',
+    description: 'Grassroots polling unit agent deployment, ward-by-ward field reporting, and election day results verification across all 22 wards.',
+    headOfOffice: 'Comrade Usman Torankawa',
+    contactEmail: 'electoral.admin@danmayeyabo.gov.ng',
+    contactPhone: '+234 803 666 7788',
+    status: 'Active',
+    authorizedTabs: ['overview', 'election'],
+    assignedAdminEmails: ['electoral.admin@danmayeyabo.gov.ng'],
+    createdAt: '2025-01-15'
+  }
+];
+
+export const INITIAL_ADMIN_USERS: AdminUser[] = [
+  {
+    id: 'usr-super',
+    email: 'admin@danmayeyabo.gov.ng',
+    name: 'Hon. Chief Administrator',
+    role: 'Super Administrator',
+    officeId: undefined,
+    officeName: 'Executive Master Control (All Offices)',
+    isActive: true,
+    createdAt: '2025-01-01'
+  },
+  {
+    id: 'usr-liaison',
+    email: 'liaison.admin@danmayeyabo.gov.ng',
+    name: 'Alhaji Bello Dan-Yabo',
+    role: 'Office Administrator',
+    officeId: 'off-liaison',
+    officeName: 'Constituency Liaison & Grievance Redress Bureau',
+    isActive: true,
+    createdAt: '2025-01-15'
+  },
+  {
+    id: 'usr-projects',
+    email: 'projects.admin@danmayeyabo.gov.ng',
+    name: 'Engr. Faruq Shagari',
+    role: 'Office Administrator',
+    officeId: 'off-projects',
+    officeName: 'Constituency Projects, Works & Infrastructure Bureau',
+    isActive: true,
+    createdAt: '2025-01-15'
+  },
+  {
+    id: 'usr-media',
+    email: 'media.admin@danmayeyabo.gov.ng',
+    name: 'Hon. Aminu Kuchi',
+    role: 'Office Administrator',
+    officeId: 'off-media',
+    officeName: 'Directorate of Media, Public Relations & Press Affairs',
+    isActive: true,
+    createdAt: '2025-01-15'
+  },
+  {
+    id: 'usr-legis',
+    email: 'legislative.admin@danmayeyabo.gov.ng',
+    name: 'Barrister Mustapha Dan-Yabo',
+    role: 'Office Administrator',
+    officeId: 'off-legislative',
+    officeName: 'Parliamentary Legislative & Policy Advisory Bureau',
+    isActive: true,
+    createdAt: '2025-01-15'
+  },
+  {
+    id: 'usr-empower',
+    email: 'empowerment.admin@danmayeyabo.gov.ng',
+    name: 'Hajia Fatima Shagari',
+    role: 'Office Administrator',
+    officeId: 'off-empowerment',
+    officeName: 'Empowerment, Skills Acquisition & Social Welfare Directorate',
+    isActive: true,
+    createdAt: '2025-01-15'
+  },
+  {
+    id: 'usr-electoral',
+    email: 'electoral.admin@danmayeyabo.gov.ng',
+    name: 'Comrade Usman Torankawa',
+    role: 'Office Administrator',
+    officeId: 'off-electoral',
+    officeName: 'Constituency Electoral Operations & Field Polling Desk',
+    isActive: true,
+    createdAt: '2025-01-15'
   }
 ];

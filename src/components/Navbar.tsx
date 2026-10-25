@@ -41,11 +41,11 @@ export const Navbar: React.FC<Props> = ({
     { id: 'biography', labelKey: 'biography' },
     { id: 'projects', labelKey: 'projects' },
     { id: 'legislative', labelKey: 'legislative' },
-    { id: 'petitions', labelKey: 'petitions' },
-    { id: 'townhall', labelKey: 'townhall' },
     { id: 'empowerment', labelKey: 'empowerment' },
     { id: 'gallery', labelKey: 'media' },
     { id: 'news', labelKey: 'news' },
+    { id: 'petitions', labelKey: 'petitions' },
+    { id: 'townhall', labelKey: 'townhall' },
     { id: 'contact', labelKey: 'contact' },
   ];
 

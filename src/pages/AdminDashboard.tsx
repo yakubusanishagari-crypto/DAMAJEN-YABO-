@@ -2,24 +2,27 @@ import React, { useState, useEffect } from 'react';
 import { 
   Project, LegislativeRecord, EmpowermentProgram, NewsArticle, GalleryItem, 
   ContactSubmission, ProjectStatus, ProgramApplication, ApplicationStatus,
-  PollingUnitAgentLink, ElectionReport, TownHallPoll, CommunityPetition, LegislativeStatus
+  PollingUnitAgentLink, ElectionReport, TownHallPoll, CommunityPetition, LegislativeStatus,
+  ConstituencyOffice, AdminUser
 } from '../types';
 import { Language, Translations } from '../utils/i18n';
 import { ConstituencyStats } from '../App';
 import { 
   Shield, Lock, Mail, Plus, Trash2, Edit, CheckCircle, X, LogOut, 
   FileText, Award, Image as ImageIcon, Users, BarChart3, Globe, Settings, 
-  Activity, ArrowUpRight, TrendingUp, Download, Eye, AlertCircle, Save,
+  Activity, ArrowUpRight, TrendingUp, Download, Eye, EyeOff, AlertCircle, Save,
   Upload, Video, Film, Play, Check, Search, Filter, ChevronRight, CheckCircle2,
   Clock, Printer, ExternalLink, FileCheck, Star, Sparkles, RefreshCw, Menu,
   Send, Calendar, MapPin, Sliders, ChevronDown, Landmark, Smartphone, Monitor, Laptop,
-  Tablet, Compass, CheckSquare, BarChart2, Share2, Copy, User, Camera, ExternalLink as ExtLink
+  Tablet, Compass, CheckSquare, BarChart2, Share2, Copy, User, Camera, ExternalLink as ExtLink,
+  Building2, Key, Power, ShieldCheck
 } from 'lucide-react';
 import { ApplicationSlipModal } from '../components/ApplicationSlipModal';
 import { CongratulationOfferModal } from '../components/CongratulationOfferModal';
 import { ElectionTab } from '../components/ElectionTab';
 import { AdminTownHallTab } from '../components/AdminTownHallTab';
 import { AdminPetitionsTab } from '../components/AdminPetitionsTab';
+import { AdminOfficesTab } from '../components/AdminOfficesTab';
 import { YouTubeDownloadModal } from '../components/YouTubeDownloadModal';
 import { 
   extractYouTubeId, 
@@ -33,6 +36,7 @@ import {
 import { getAnalyticsStore, resetAnalyticsBaseline, AnalyticsStore } from '../utils/analytics';
 import { compressImageFile } from '../utils/imageCompressor';
 import { apiCreateProject, apiUpdateProject } from '../utils/apiSync';
+import { INITIAL_OFFICES, INITIAL_ADMIN_USERS } from '../data/initialData';
 
 interface Props {
   projects: Project[];
@@ -76,6 +80,7 @@ export type DashboardTab =
   | 'petitions'
   | 'enquiries' 
   | 'election'
+  | 'offices'
   | 'settings';
 
 export const AdminDashboard: React.FC<Props> = ({
@@ -96,11 +101,87 @@ export const AdminDashboard: React.FC<Props> = ({
 }) => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [email, setEmail] = useState('admin@danmayeyabo.gov.ng');
-  const [password, setPassword] = useState('DANMAJEFOREVER');
+  const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [isSubmittingLogin, setIsSubmittingLogin] = useState(false);
   const [loginError, setLoginError] = useState('');
-  const [adminRole, setAdminRole] = useState<'Chief Administrator' | 'Content Manager' | 'News Editor' | 'Projects Manager' | 'Translation Manager' | 'Analytics Viewer'>('Chief Administrator');
+  const [adminRole, setAdminRole] = useState<string>('Chief Administrator');
 
-  // Exact 10 Navigation Tabs order
+  // Token & Active Session State
+  const [authToken, setAuthToken] = useState<string | null>(() => {
+    try {
+      return sessionStorage.getItem('danmaje_admin_token') || localStorage.getItem('danmaje_admin_token');
+    } catch {
+      return null;
+    }
+  });
+  const [currentAdminUser, setCurrentAdminUser] = useState<AdminUser | null>(null);
+  const [currentOffice, setCurrentOffice] = useState<ConstituencyOffice | null>(null);
+  const [previewingOffice, setPreviewingOffice] = useState<ConstituencyOffice | null>(null);
+
+  // Offices & Staff State
+  const [offices, setOffices] = useState<ConstituencyOffice[]>(() => INITIAL_OFFICES);
+  const [adminUsersList, setAdminUsersList] = useState<AdminUser[]>(() => INITIAL_ADMIN_USERS);
+
+  // Custom Category State for Admin forms
+  const [customNewProjCategory, setCustomNewProjCategory] = useState('');
+  const [customEditProjCategory, setCustomEditProjCategory] = useState('');
+  const [customNewNewsCategory, setCustomNewNewsCategory] = useState('');
+  const [customEditNewsCategory, setCustomEditNewsCategory] = useState('');
+  const [customNewLegCategory, setCustomNewLegCategory] = useState('');
+  const [customEditLegCategory, setCustomEditLegCategory] = useState('');
+  const [customNewMediaCategory, setCustomNewMediaCategory] = useState('');
+  const [customEditMediaCategory, setCustomEditMediaCategory] = useState('');
+
+  // Validate session token on mount
+  useEffect(() => {
+    if (authToken) {
+      fetch('/api/admin/verify-session', {
+        headers: { 'Authorization': `Bearer ${authToken}` }
+      })
+        .then(res => res.json())
+        .then(data => {
+          if (data.valid && data.user) {
+            setCurrentAdminUser(data.user);
+            setCurrentOffice(data.office || null);
+            setAdminRole(data.user.role === 'Super Administrator' ? 'Chief Administrator' : (data.office?.name || 'Office Administrator'));
+            setEmail(data.user.email);
+            setIsLoggedIn(true);
+          } else {
+            try {
+              sessionStorage.removeItem('danmaje_admin_token');
+              localStorage.removeItem('danmaje_admin_token');
+            } catch {}
+            setAuthToken(null);
+            setIsLoggedIn(false);
+          }
+        })
+        .catch(() => {});
+    }
+  }, []);
+
+  // Fetch live offices and admin directory
+  useEffect(() => {
+    fetch('/api/offices')
+      .then(res => res.json())
+      .then(data => {
+        if (Array.isArray(data) && data.length > 0) {
+          setOffices(data);
+        }
+      })
+      .catch(() => {});
+
+    fetch('/api/admin/users')
+      .then(res => res.json())
+      .then(data => {
+        if (Array.isArray(data) && data.length > 0) {
+          setAdminUsersList(data);
+        }
+      })
+      .catch(() => {});
+  }, [isLoggedIn]);
+
+  // Exact Navigation Tabs order
   const [activeTab, setActiveTab] = useState<DashboardTab>('overview');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
@@ -464,9 +545,13 @@ export const AdminDashboard: React.FC<Props> = ({
 
   const handleCreateProject = (e: React.FormEvent) => {
     e.preventDefault();
+    const finalCategory = (newProj.category === 'OTHER' || newProj.category === 'Other')
+      ? (customNewProjCategory.trim() || 'Custom Project')
+      : newProj.category;
     const created: Project = {
       id: `proj-${Date.now()}`,
       ...newProj,
+      category: finalCategory as any,
       startDate: new Date().toISOString().split('T')[0],
       date: new Date().toISOString().split('T')[0]
     };
@@ -475,6 +560,7 @@ export const AdminDashboard: React.FC<Props> = ({
     try { localStorage.setItem('danmaje_projects', JSON.stringify(updated)); } catch {}
     apiCreateProject(created).catch(err => console.warn('API project create warning:', err));
     setShowAddProj(false);
+    setCustomNewProjCategory('');
     setProjectSuccessNotice(`Project "${created.title}" published with verified site photo.`);
     setTimeout(() => setProjectSuccessNotice(''), 4000);
     setNewProj({
@@ -494,7 +580,7 @@ export const AdminDashboard: React.FC<Props> = ({
     setActivityLogs(prev => [{
       id: `log-${Date.now()}`,
       user: email,
-      action: `Created new project: ${created.title}`,
+      action: `Created new project: ${created.title} (Category: ${created.category})`,
       timestamp: new Date().toISOString().replace('T', ' ').substring(0, 16),
       role: adminRole
     }, ...prev]);
@@ -503,15 +589,20 @@ export const AdminDashboard: React.FC<Props> = ({
   const handleUpdateProject = (e: React.FormEvent) => {
     e.preventDefault();
     if (!editingProject) return;
-    const updated = projects.map(p => p.id === editingProject.id ? editingProject : p);
+    const finalCategory = (editingProject.category === 'OTHER' || editingProject.category === 'Other')
+      ? (customEditProjCategory.trim() || 'Custom Project')
+      : editingProject.category;
+    const projectToSave = { ...editingProject, category: finalCategory as any };
+    const updated = projects.map(p => p.id === editingProject.id ? projectToSave : p);
     setProjects(updated);
     try { localStorage.setItem('danmaje_projects', JSON.stringify(updated)); } catch {}
-    apiUpdateProject(editingProject.id, editingProject).catch(err => console.warn('API project update warning:', err));
+    apiUpdateProject(editingProject.id, projectToSave).catch(err => console.warn('API project update warning:', err));
     setEditingProject(null);
+    setCustomEditProjCategory('');
     setActivityLogs(prev => [{
       id: `log-${Date.now()}`,
       user: email,
-      action: `Updated project: ${editingProject.title}`,
+      action: `Updated project: ${projectToSave.title}`,
       timestamp: new Date().toISOString().replace('T', ' ').substring(0, 16),
       role: adminRole
     }, ...prev]);
@@ -572,10 +663,13 @@ export const AdminDashboard: React.FC<Props> = ({
         finalImageUrl = `https://img.youtube.com/vi/${match[1]}/hqdefault.jpg`;
       }
     }
+    const finalCategory = (newNews.category === 'OTHER' || newNews.category === 'Other')
+      ? (customNewNewsCategory.trim() || 'Custom Press')
+      : newNews.category;
     const created: NewsArticle = {
       id: `news-${Date.now()}`,
       title: newNews.title,
-      category: newNews.category,
+      category: finalCategory as any,
       date: new Date().toISOString().split('T')[0],
       author: newNews.author,
       excerpt: newNews.excerpt,
@@ -590,6 +684,7 @@ export const AdminDashboard: React.FC<Props> = ({
     setNews(updated);
     try { localStorage.setItem('danmaje_news', JSON.stringify(updated)); } catch {}
     setShowAddNews(false);
+    setCustomNewNewsCategory('');
     setNewsImagePreview('');
     setNewNews({
       title: '',
@@ -605,7 +700,7 @@ export const AdminDashboard: React.FC<Props> = ({
     setActivityLogs(prev => [{
       id: `log-${Date.now()}`,
       user: email,
-      action: `Published news article: ${created.title}`,
+      action: `Published news article: ${created.title} (Category: ${created.category})`,
       timestamp: new Date().toISOString().replace('T', ' ').substring(0, 16),
       role: adminRole
     }, ...prev]);
@@ -614,14 +709,19 @@ export const AdminDashboard: React.FC<Props> = ({
   const handleUpdateNews = (e: React.FormEvent) => {
     e.preventDefault();
     if (!editingNews) return;
-    const updated = news.map(n => n.id === editingNews.id ? editingNews : n);
+    const finalCategory = (editingNews.category === 'OTHER' || editingNews.category === 'Other')
+      ? (customEditNewsCategory.trim() || 'Custom Press')
+      : editingNews.category;
+    const newsToSave = { ...editingNews, category: finalCategory as any };
+    const updated = news.map(n => n.id === editingNews.id ? newsToSave : n);
     setNews(updated);
     try { localStorage.setItem('danmaje_news', JSON.stringify(updated)); } catch {}
     setEditingNews(null);
+    setCustomEditNewsCategory('');
     setActivityLogs(prev => [{
       id: `log-${Date.now()}`,
       user: email,
-      action: `Updated news article: ${editingNews.title}`,
+      action: `Updated news article: ${newsToSave.title}`,
       timestamp: new Date().toISOString().replace('T', ' ').substring(0, 16),
       role: adminRole
     }, ...prev]);
@@ -655,10 +755,13 @@ export const AdminDashboard: React.FC<Props> = ({
 
   const handleCreateLegislative = (e: React.FormEvent) => {
     e.preventDefault();
+    const finalCategory = (newLeg.category === 'OTHER' || newLeg.category === 'Other')
+      ? (customNewLegCategory.trim() || 'Custom Legislative Record')
+      : newLeg.category;
     const created: LegislativeRecord = {
       id: `leg-${Date.now()}`,
       title: newLeg.title,
-      category: newLeg.category,
+      category: finalCategory as any,
       status: newLeg.status,
       date: newLeg.date,
       description: newLeg.description,
@@ -671,11 +774,12 @@ export const AdminDashboard: React.FC<Props> = ({
     setLegislative(updated);
     try { localStorage.setItem('danmaje_legislative', JSON.stringify(updated)); } catch {}
     setShowAddLeg(false);
+    setCustomNewLegCategory('');
     setNewLeg({ title: '', category: 'Bill', status: 'Proposed', date: new Date().toISOString().split('T')[0], description: '', statusNotes: '', coSponsors: ['Hon. Umar Yusuf Danmaje'] });
     setActivityLogs(prev => [{
       id: `log-${Date.now()}`,
       user: email,
-      action: `Added legislative record: ${created.title} (Status: ${created.status})`,
+      action: `Added legislative record: ${created.title} (Status: ${created.status}, Category: ${created.category})`,
       timestamp: new Date().toISOString().replace('T', ' ').substring(0, 16),
       role: adminRole
     }, ...prev]);
@@ -718,9 +822,13 @@ export const AdminDashboard: React.FC<Props> = ({
   const handleSaveEditingLeg = (e: React.FormEvent) => {
     e.preventDefault();
     if (!editingLeg) return;
+    const finalCategory = (editingLeg.category === 'OTHER' || editingLeg.category === 'Other')
+      ? (customEditLegCategory.trim() || 'Custom Legislative Record')
+      : editingLeg.category;
     const nowStr = new Date().toISOString().split('T')[0];
     const updated = legislative.map(l => l.id === editingLeg.id ? {
       ...editingLeg,
+      category: finalCategory as any,
       statusUpdatedAt: nowStr,
       statusUpdatedBy: adminRole || email
     } : l);
@@ -734,6 +842,7 @@ export const AdminDashboard: React.FC<Props> = ({
       role: adminRole
     }, ...prev]);
     setEditingLeg(null);
+    setCustomEditLegCategory('');
   };
 
   const handleDeleteLegislative = (id: string) => {
@@ -952,11 +1061,15 @@ export const AdminDashboard: React.FC<Props> = ({
       finalVideoUrl = `https://www.youtube.com/watch?v=${ytId}`;
     }
 
+    const finalCategory = (((newMedia.category as any) === 'OTHER' || (newMedia.category as any) === 'Other'))
+      ? (customNewMediaCategory.trim() || 'Custom Media')
+      : newMedia.category;
+
     const createdItem: GalleryItem = {
       id: `gal-${Date.now()}`,
       title: newMedia.title.trim() || detectedYtTitle || 'Constituency Video Record',
       type: newMedia.type,
-      category: newMedia.category,
+      category: finalCategory as any,
       imageUrl: finalImageUrl || YOUTUBE_PLACEHOLDER_THUMBNAIL,
       videoUrl: newMedia.type === 'video' ? finalVideoUrl : undefined,
       showOnHomepage: newMedia.type === 'video' ? newMedia.showOnHomepage : false,
@@ -982,6 +1095,7 @@ export const AdminDashboard: React.FC<Props> = ({
     } catch {}
 
     setShowAddMedia(false);
+    setCustomNewMediaCategory('');
     setNewMedia({
       title: '',
       type: 'photo',
@@ -1012,10 +1126,17 @@ export const AdminDashboard: React.FC<Props> = ({
 
   const handleEditMedia = (item: GalleryItem) => {
     setEditingMedia(item);
+    const standardCategories = ['National Assembly', 'Projects', 'Constituency Visits', 'Empowerment', 'Town Halls', 'Interviews & Debates'];
+    const isCustom = !standardCategories.includes(item.category);
+    if (isCustom) {
+      setCustomEditMediaCategory(item.category);
+    } else {
+      setCustomEditMediaCategory('');
+    }
     setNewMedia({
       title: item.title,
       type: (item.type === 'video' || !!item.videoUrl) ? 'video' : 'photo',
-      category: item.category as any,
+      category: isCustom ? ('Other' as any) : (item.category as any),
       imageUrl: item.imageUrl || '',
       videoUrl: item.videoUrl || '',
       showOnHomepage: item.showOnHomepage || false,
@@ -1035,9 +1156,13 @@ export const AdminDashboard: React.FC<Props> = ({
     e.preventDefault();
     if (!editingMedia) return;
     const isVid = newMedia.type === 'video';
+    const finalCategory = ((newMedia.category as any) === 'OTHER' || (newMedia.category as any) === 'Other')
+      ? (customEditMediaCategory.trim() || 'Custom Media')
+      : newMedia.category;
     const updated = gallery.map(item => item.id === editingMedia.id ? { 
       ...editingMedia, 
       ...newMedia,
+      category: finalCategory as any,
       hasDownloadPermission: isVid ? newMedia.hasDownloadPermission : false,
       downloadUrl: isVid && newMedia.hasDownloadPermission ? newMedia.downloadUrl : undefined,
       downloadFileSize: isVid && newMedia.hasDownloadPermission ? newMedia.downloadFileSize : undefined,
@@ -1048,6 +1173,7 @@ export const AdminDashboard: React.FC<Props> = ({
     setGallery(updated);
     try { localStorage.setItem('danmaje_gallery', JSON.stringify(updated)); } catch {}
     setEditingMedia(null);
+    setCustomEditMediaCategory('');
     setShowAddMedia(false);
   };
 
@@ -1111,26 +1237,78 @@ export const AdminDashboard: React.FC<Props> = ({
     } catch {}
   };
 
-  // Auth Handling
-  const handleLogin = (e: React.FormEvent) => {
+  // Auth Handling - Server-side authentication with rate limiting & session protection
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (password === 'DANMAJEFOREVER' || password.length >= 6) {
-      setIsLoggedIn(true);
-      setLoginError('');
-      if (email.includes('media')) {
-        setAdminRole('News Editor');
-      } else if (email.includes('projects')) {
-        setAdminRole('Projects Manager');
-      } else {
-        setAdminRole('Chief Administrator');
+    setLoginError('');
+    setIsSubmittingLogin(true);
+
+    try {
+      const res = await fetch('/api/admin/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: email.trim(), password })
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        setLoginError(data.error || 'Authentication failed. Please verify your credentials.');
+        setIsSubmittingLogin(false);
+        return;
       }
-    } else {
-      setLoginError('Invalid access key or credentials. Please check authorization.');
+
+      setAuthToken(data.token);
+      setCurrentAdminUser(data.user);
+      setCurrentOffice(data.office || null);
+      setAdminRole(data.user.role === 'Super Administrator' ? 'Chief Administrator' : (data.office?.name || 'Office Administrator'));
+      setIsLoggedIn(true);
+      try {
+        sessionStorage.setItem('danmaje_admin_token', data.token);
+        localStorage.setItem('danmaje_admin_token', data.token);
+      } catch {}
+      setPassword('');
+      setActivityLogs(prev => [{
+        id: `log-${Date.now()}`,
+        user: data.user.email,
+        action: `Secure session authenticated successfully via cryptographic scrypt verification.`,
+        timestamp: new Date().toISOString().replace('T', ' ').substring(0, 16),
+        role: data.user.role
+      }, ...prev]);
+    } catch (err: any) {
+      setLoginError('Security verification connection error. Please ensure server is running.');
+    } finally {
+      setIsSubmittingLogin(false);
     }
   };
 
-  // Navigation items with Town Hall and Community Petitions
-  const navItems: { id: DashboardTab; label: string; icon: any; count?: number }[] = [
+  const handleLogout = async () => {
+    try {
+      if (authToken) {
+        await fetch('/api/admin/logout', {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${authToken}` }
+        });
+      }
+    } catch {}
+    try {
+      sessionStorage.removeItem('danmaje_admin_token');
+      localStorage.removeItem('danmaje_admin_token');
+    } catch {}
+    setAuthToken(null);
+    setIsLoggedIn(false);
+    setCurrentAdminUser(null);
+    setCurrentOffice(null);
+    setPreviewingOffice(null);
+    setPassword('');
+    setShowPassword(false);
+  };
+
+  // Determine active effective office (either assigned office, or preview office chosen by Super Admin)
+  const effectiveOffice = previewingOffice || currentOffice;
+  const isSuperAdmin = !currentAdminUser || currentAdminUser.role === 'Super Administrator';
+
+  // Navigation items master list
+  const allNavItems: { id: DashboardTab; label: string; icon: any; count?: number }[] = [
     { id: 'overview', label: '1. SYSTEM OVERVIEW', icon: Activity },
     { id: 'analytics', label: '2. VISITORS ANALYTICS', icon: BarChart3 },
     { id: 'projects', label: '3. PROJECTS', icon: Award, count: projects.length },
@@ -1143,14 +1321,35 @@ export const AdminDashboard: React.FC<Props> = ({
     { id: 'petitions', label: '10. COMMUNITY PETITIONS', icon: FileCheck, count: petitions.length },
     { id: 'enquiries', label: '11. ENQUIRIES', icon: Mail, count: contacts.length },
     { id: 'election', label: '12. ELECTION RESULTS & AGENTS', icon: CheckSquare },
-    { id: 'settings', label: '13. USER SETTINGS', icon: Settings },
+    { id: 'offices', label: '13. OFFICES & ACCESS CONTROL', icon: Building2, count: offices.length },
+    { id: 'settings', label: '14. USER SETTINGS', icon: Settings },
   ];
+
+  // RBAC Filter: If office administrator, show only authorized modules for their bureau
+  const authorizedTabIds = (isSuperAdmin && !previewingOffice)
+    ? allNavItems.map(item => item.id)
+    : (effectiveOffice?.authorizedTabs || ['overview']);
+
+  const navItems = allNavItems.filter(item => {
+    if (isSuperAdmin && !previewingOffice) return true;
+    if (item.id === 'overview') return true;
+    return authorizedTabIds.includes(item.id);
+  });
+
+  // Guard: If current activeTab is not allowed for the user, reset to overview
+  useEffect(() => {
+    if (!isSuperAdmin || previewingOffice) {
+      if (activeTab !== 'overview' && !authorizedTabIds.includes(activeTab)) {
+        setActiveTab('overview');
+      }
+    }
+  }, [activeTab, isSuperAdmin, previewingOffice, authorizedTabIds]);
 
   // LOGIN SCREEN
   if (!isLoggedIn) {
     return (
       <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#072118] p-4 sm:p-6 overflow-y-auto">
-        <div className="max-w-md w-full bg-white rounded-3xl shadow-2xl overflow-hidden border border-[#C6A15B]/50 my-8">
+        <div className="max-w-md w-full bg-white rounded-3xl shadow-2xl overflow-hidden border border-[#C6A15B]/50 my-8 animate-fadeIn">
           <div className="bg-[#103C2E] p-8 text-center text-white relative">
             <button
               onClick={onClose}
@@ -1164,7 +1363,7 @@ export const AdminDashboard: React.FC<Props> = ({
             </div>
             <span className="text-[10px] font-black uppercase tracking-widest text-[#D4AF37]">10th National Assembly</span>
             <h2 className="text-xl font-bold font-['Manrope'] text-white mt-1 uppercase tracking-wide">
-              ADMIN & ENTERPRISE CMS PORTAL
+              ADMIN & MULTI-BUREAU CMS PORTAL
             </h2>
             <p className="text-xs text-white/80 mt-1 font-light">
               Office of Hon. Umar Yusuf (Danmaje Yabo)
@@ -1173,9 +1372,9 @@ export const AdminDashboard: React.FC<Props> = ({
 
           <form onSubmit={handleLogin} className="p-8 space-y-4">
             {loginError && (
-              <div className="p-3 bg-rose-50 border border-rose-200 text-rose-700 rounded-xl text-xs flex items-center gap-2">
-                <AlertCircle className="w-4 h-4 shrink-0" />
-                <span>{loginError}</span>
+              <div className="p-3.5 bg-rose-50 border-2 border-rose-300 text-rose-800 rounded-2xl text-xs flex items-start gap-2.5 animate-fadeIn">
+                <AlertCircle className="w-4 h-4 shrink-0 text-rose-600 mt-0.5" />
+                <span className="leading-relaxed font-semibold">{loginError}</span>
               </div>
             )}
 
@@ -1184,34 +1383,66 @@ export const AdminDashboard: React.FC<Props> = ({
               <input
                 type="email"
                 required
+                placeholder="admin@danmayeyabo.gov.ng"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="w-full px-4 py-3 bg-[#FAF9F5] border border-stone-200 rounded-xl text-xs sm:text-sm text-[#103C2E] focus:outline-none focus:border-[#103C2E]"
+                className="w-full px-4 py-3 bg-[#FAF9F5] border border-stone-200 rounded-xl text-xs sm:text-sm text-[#103C2E] focus:outline-none focus:border-[#103C2E] font-medium"
               />
             </div>
 
             <div className="space-y-1">
-              <label className="text-xs font-bold text-[#103C2E] uppercase">Access Password / Key</label>
-              <input
-                type="password"
-                required
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="w-full px-4 py-3 bg-[#FAF9F5] border border-stone-200 rounded-xl text-xs sm:text-sm text-[#103C2E] focus:outline-none focus:border-[#103C2E]"
-              />
+              <div className="flex justify-between items-center">
+                <label className="text-xs font-bold text-[#103C2E] uppercase">Access Password / Security Key</label>
+                <span className="text-[10px] text-stone-400 font-semibold">Hidden by default</span>
+              </div>
+              <div className="relative">
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  required
+                  placeholder="Enter authorized password..."
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="w-full pl-4 pr-12 py-3 bg-[#FAF9F5] border border-stone-200 rounded-xl text-xs sm:text-sm text-[#103C2E] focus:outline-none focus:border-[#103C2E] font-mono"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-stone-400 hover:text-[#103C2E] p-1.5 transition cursor-pointer"
+                  title={showPassword ? 'Hide password' : 'Show password'}
+                >
+                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
             </div>
 
             <div className="pt-2">
               <button
                 type="submit"
-                className="w-full bg-[#103C2E] hover:bg-[#09291F] text-[#D4AF37] font-black py-3.5 rounded-xl text-xs sm:text-sm shadow-xl transition-all cursor-pointer border border-[#C6A15B]/50 uppercase tracking-wider"
+                disabled={isSubmittingLogin}
+                className="w-full bg-[#103C2E] hover:bg-[#09291F] text-[#D4AF37] font-black py-3.5 rounded-xl text-xs sm:text-sm shadow-xl transition-all cursor-pointer border border-[#C6A15B]/50 uppercase tracking-wider flex items-center justify-center gap-2"
               >
-                AUTHENTICATE & ACCESS DASHBOARD
+                {isSubmittingLogin ? (
+                  <>
+                    <RefreshCw className="w-4 h-4 animate-spin text-[#D4AF37]" />
+                    <span>AUTHENTICATING SECURELY...</span>
+                  </>
+                ) : (
+                  <>
+                    <Lock className="w-4 h-4 text-[#D4AF37]" />
+                    <span>AUTHENTICATE & ACCESS DASHBOARD</span>
+                  </>
+                )}
               </button>
             </div>
 
-            <div className="text-[11px] text-stone-500 text-center pt-2">
-              Authorized parliamentary personnel only. All access attempts are logged.
+            <div className="bg-stone-50 p-3 rounded-2xl border border-stone-200 text-[11px] text-stone-600 space-y-1">
+              <div className="flex items-center gap-1 font-bold text-[#103C2E] uppercase text-[10px]">
+                <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
+                <span>Protected By Cryptographic RBAC & Rate Limiting</span>
+              </div>
+              <p className="text-[10px] text-stone-500 leading-normal">
+                Passwords are never stored in plain text. Failed login attempts are rate-limited to 5 tries to prevent brute force attacks.
+              </p>
             </div>
           </form>
         </div>
@@ -1238,13 +1469,32 @@ export const AdminDashboard: React.FC<Props> = ({
             <img src="/official_logo.png" alt="Official Seal" className="w-full h-full object-contain rounded-full" />
           </div>
           <div>
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               <h2 className="font-['Manrope'] font-bold text-sm sm:text-base tracking-wide text-white">
                 ENTERPRISE MANAGEMENT DASHBOARD
               </h2>
-              <span className="hidden sm:inline-block px-2 py-0.5 rounded-full bg-[#C6A15B]/20 text-[#D4AF37] text-[10px] font-bold border border-[#C6A15B]/30 uppercase">
-                {adminRole}
-              </span>
+              {effectiveOffice ? (
+                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-[#C6A15B]/25 text-[#D4AF37] text-[10px] font-black border border-[#C6A15B]/40 uppercase">
+                  <Building2 className="w-3 h-3 text-[#D4AF37]" />
+                  <span>{effectiveOffice.name}</span>
+                </span>
+              ) : (
+                <span className="hidden sm:inline-block px-2 py-0.5 rounded-full bg-[#C6A15B]/20 text-[#D4AF37] text-[10px] font-bold border border-[#C6A15B]/30 uppercase">
+                  {adminRole}
+                </span>
+              )}
+
+              {previewingOffice && (
+                <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-amber-400 text-black text-[10px] font-black uppercase">
+                  <span>PREVIEWING OFFICE VIEW</span>
+                  <button
+                    onClick={() => setPreviewingOffice(null)}
+                    className="hover:underline font-extrabold cursor-pointer text-[9px] bg-black/20 px-1 rounded"
+                  >
+                    Exit
+                  </button>
+                </div>
+              )}
             </div>
             <p className="text-[11px] text-emerald-100/80 font-light truncate max-w-xs sm:max-w-md">
               Hon. Umar Yusuf Yabo Portal • {email}
@@ -1254,7 +1504,7 @@ export const AdminDashboard: React.FC<Props> = ({
 
         <div className="flex items-center space-x-2 sm:space-x-3">
           <button
-            onClick={() => setIsLoggedIn(false)}
+            onClick={handleLogout}
             className="flex items-center gap-1.5 bg-rose-600/20 hover:bg-rose-600/30 text-rose-300 px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-xl text-xs font-bold border border-rose-500/30 transition cursor-pointer uppercase"
           >
             <LogOut className="w-3.5 h-3.5" />
@@ -2091,7 +2341,7 @@ export const AdminDashboard: React.FC<Props> = ({
                     <select
                       value={newProj.category}
                       onChange={(e) => setNewProj({...newProj, category: e.target.value as any})}
-                      className="px-4 py-2.5 bg-stone-50 border border-stone-200 rounded-xl text-xs sm:text-sm"
+                      className="px-4 py-2.5 bg-stone-50 border border-stone-200 rounded-xl text-xs sm:text-sm font-medium"
                     >
                       <option value="Water & Sanitation">Water & Sanitation</option>
                       <option value="Education">Education</option>
@@ -2099,6 +2349,7 @@ export const AdminDashboard: React.FC<Props> = ({
                       <option value="Healthcare">Healthcare</option>
                       <option value="Youth Development">Youth Development</option>
                       <option value="Agriculture">Agriculture</option>
+                      <option value="Other">OTHER (Specify Custom Category)</option>
                     </select>
                     <input
                       type="text"
@@ -2115,6 +2366,23 @@ export const AdminDashboard: React.FC<Props> = ({
                       className="px-4 py-2.5 bg-stone-50 border border-stone-200 rounded-xl text-xs sm:text-sm"
                     />
                   </div>
+
+                  {newProj.category === 'Other' && (
+                    <div className="bg-amber-50/70 p-4 rounded-2xl border-2 border-amber-300 space-y-1.5 animate-fadeIn">
+                      <label className="text-xs font-bold text-[#103C2E] uppercase flex items-center gap-1.5">
+                        <Sparkles className="w-3.5 h-3.5 text-[#C6A15B]" />
+                        <span>Specify Custom Project Category *</span>
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        placeholder="e.g. Rural Electrification & Solar Mini-Grids..."
+                        value={customNewProjCategory}
+                        onChange={(e) => setCustomNewProjCategory(e.target.value)}
+                        className="w-full px-4 py-2.5 bg-white border border-amber-300 rounded-xl text-xs sm:text-sm font-semibold text-[#103C2E] focus:outline-none focus:ring-2 focus:ring-[#103C2E]"
+                      />
+                    </div>
+                  )}
 
                   {/* Project Description Field */}
                   <div className="space-y-1">
@@ -2215,7 +2483,17 @@ export const AdminDashboard: React.FC<Props> = ({
                           <td className="p-4 text-stone-600">{p.year}</td>
                           <td className="p-4 text-right space-x-2">
                             <button
-                               onClick={() => setEditingProject(p)}
+                               onClick={() => {
+                                 const standardCats = ['Water & Sanitation', 'Education', 'Roads & Infrastructure', 'Healthcare', 'Youth Development', 'Agriculture'];
+                                 const isCustom = !standardCats.includes(p.category);
+                                 if (isCustom) {
+                                   setCustomEditProjCategory(p.category);
+                                   setEditingProject({ ...p, category: 'Other' as any });
+                                 } else {
+                                   setCustomEditProjCategory('');
+                                   setEditingProject(p);
+                                 }
+                               }}
                                className="inline-flex items-center gap-1 bg-emerald-50 hover:bg-[#103C2E] text-[#103C2E] hover:text-white px-3 py-1.5 rounded-xl border border-emerald-200 transition-all shadow-xs cursor-pointer text-xs font-bold uppercase"
                                title="Edit Project"
                              >
@@ -2290,7 +2568,7 @@ export const AdminDashboard: React.FC<Props> = ({
                           <select
                             value={editingProject.category}
                             onChange={(e) => setEditingProject({...editingProject, category: e.target.value as any})}
-                            className="w-full px-3 py-2 bg-stone-50 border border-stone-200 rounded-xl text-xs"
+                            className="w-full px-3 py-2 bg-stone-50 border border-stone-200 rounded-xl text-xs font-medium"
                           >
                             <option value="Water & Sanitation">Water & Sanitation</option>
                             <option value="Education">Education</option>
@@ -2298,6 +2576,7 @@ export const AdminDashboard: React.FC<Props> = ({
                             <option value="Healthcare">Healthcare</option>
                             <option value="Youth Development">Youth Development</option>
                             <option value="Agriculture">Agriculture</option>
+                            <option value="Other">OTHER (Specify Custom Category)</option>
                           </select>
                         </div>
                         <div className="space-y-1">
@@ -2322,6 +2601,23 @@ export const AdminDashboard: React.FC<Props> = ({
                           />
                         </div>
                       </div>
+
+                      {editingProject.category === 'Other' && (
+                        <div className="bg-amber-50/70 p-3.5 rounded-2xl border-2 border-amber-300 space-y-1.5 animate-fadeIn">
+                          <label className="text-xs font-bold text-[#103C2E] uppercase flex items-center gap-1.5">
+                            <Sparkles className="w-3.5 h-3.5 text-[#C6A15B]" />
+                            <span>Specify Custom Project Category *</span>
+                          </label>
+                          <input
+                            type="text"
+                            required
+                            placeholder="e.g. Rural Electrification & Solar Mini-Grids..."
+                            value={customEditProjCategory}
+                            onChange={(e) => setCustomEditProjCategory(e.target.value)}
+                            className="w-full px-4 py-2 bg-white border border-amber-300 rounded-xl text-xs sm:text-sm font-semibold text-[#103C2E] focus:outline-none focus:ring-2 focus:ring-[#103C2E]"
+                          />
+                        </div>
+                      )}
 
                       <div className="space-y-1">
                         <label className="font-bold text-[#103C2E] uppercase">Description / Milestones</label>
@@ -2517,9 +2813,27 @@ export const AdminDashboard: React.FC<Props> = ({
                         <option value="Legislative Update">Legislative Update</option>
                         <option value="Speech">Speech</option>
                         <option value="Event">Event</option>
+                        <option value="Other">OTHER (Specify Custom Category)</option>
                       </select>
                     </div>
                   </div>
+
+                  {newNews.category === 'Other' && (
+                    <div className="bg-amber-50/70 p-4 rounded-2xl border-2 border-amber-300 space-y-1.5 animate-fadeIn">
+                      <label className="text-xs font-bold text-[#103C2E] uppercase flex items-center gap-1.5">
+                        <Sparkles className="w-3.5 h-3.5 text-[#C6A15B]" />
+                        <span>Specify Custom News Category *</span>
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        placeholder="e.g. Town Hall Resolution / Emergency Briefing..."
+                        value={customNewNewsCategory}
+                        onChange={(e) => setCustomNewNewsCategory(e.target.value)}
+                        className="w-full px-4 py-2.5 bg-white border border-amber-300 rounded-xl text-xs sm:text-sm font-semibold text-[#103C2E] focus:outline-none focus:ring-2 focus:ring-[#103C2E]"
+                      />
+                    </div>
+                  )}
 
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                     <div className="space-y-1">
@@ -2657,16 +2971,34 @@ export const AdminDashboard: React.FC<Props> = ({
                       <select
                         value={editingNews.category}
                         onChange={(e) => setEditingNews({...editingNews, category: e.target.value as any})}
-                        className="w-full px-4 py-2.5 bg-white border border-stone-300 rounded-xl text-xs sm:text-sm"
+                        className="w-full px-4 py-2.5 bg-white border border-stone-300 rounded-xl text-xs sm:text-sm font-medium"
                       >
                         <option value="Constituency News">Constituency News</option>
                         <option value="Press Release">Press Release</option>
                         <option value="Legislative Update">Legislative Update</option>
                         <option value="Speech">Speech</option>
                         <option value="Event">Event</option>
+                        <option value="Other">OTHER (Specify Custom Category)</option>
                       </select>
                     </div>
                   </div>
+
+                  {editingNews.category === 'Other' && (
+                    <div className="bg-amber-50/70 p-3.5 rounded-2xl border-2 border-amber-300 space-y-1.5 animate-fadeIn">
+                      <label className="text-xs font-bold text-[#103C2E] uppercase flex items-center gap-1.5">
+                        <Sparkles className="w-3.5 h-3.5 text-[#C6A15B]" />
+                        <span>Specify Custom News Category *</span>
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        placeholder="e.g. Town Hall Resolution / Emergency Briefing..."
+                        value={customEditNewsCategory}
+                        onChange={(e) => setCustomEditNewsCategory(e.target.value)}
+                        className="w-full px-4 py-2 bg-white border border-amber-300 rounded-xl text-xs sm:text-sm font-semibold text-[#103C2E] focus:outline-none focus:ring-2 focus:ring-[#103C2E]"
+                      />
+                    </div>
+                  )}
 
                   <div className="space-y-1">
                     <label className="text-xs font-bold text-[#103C2E] uppercase">Excerpt</label>
@@ -2779,7 +3111,17 @@ export const AdminDashboard: React.FC<Props> = ({
                             </td>
                             <td className="p-4 text-right space-x-2 shrink-0">
                               <button 
-                                onClick={() => setEditingNews(n)} 
+                                onClick={() => {
+                                  const standardNewsCats = ['Constituency News', 'Press Release', 'Legislative Update', 'Speech', 'Event'];
+                                  const isCustom = !standardNewsCats.includes(n.category);
+                                  if (isCustom) {
+                                    setCustomEditNewsCategory(n.category);
+                                    setEditingNews({ ...n, category: 'Other' as any });
+                                  } else {
+                                    setCustomEditNewsCategory('');
+                                    setEditingNews(n);
+                                  }
+                                }} 
                                 className="inline-flex items-center gap-1 bg-emerald-50 hover:bg-[#103C2E] text-[#103C2E] hover:text-white px-3 py-1.5 rounded-xl border border-emerald-200 transition-all shadow-xs cursor-pointer text-xs font-bold uppercase" 
                                 title="Edit Article"
                               >
@@ -2848,12 +3190,13 @@ export const AdminDashboard: React.FC<Props> = ({
                     <select
                       value={newLeg.category}
                       onChange={(e) => setNewLeg({...newLeg, category: e.target.value as any})}
-                      className="px-4 py-2.5 bg-stone-50 border border-stone-200 rounded-xl text-xs sm:text-sm"
+                      className="px-4 py-2.5 bg-stone-50 border border-stone-200 rounded-xl text-xs sm:text-sm font-medium"
                     >
                       <option value="Bill">Bill</option>
                       <option value="Motion">Motion</option>
                       <option value="Petition">Petition</option>
                       <option value="Constituency Intervention">Constituency Intervention</option>
+                      <option value="Other">OTHER (Specify Custom Category)</option>
                     </select>
                     <select
                       value={newLeg.status}
@@ -2872,6 +3215,23 @@ export const AdminDashboard: React.FC<Props> = ({
                       <option value="Adopted">Adopted</option>
                     </select>
                   </div>
+
+                  {newLeg.category === 'Other' && (
+                    <div className="bg-amber-50/70 p-4 rounded-2xl border-2 border-amber-300 space-y-1.5 animate-fadeIn">
+                      <label className="text-xs font-bold text-[#103C2E] uppercase flex items-center gap-1.5">
+                        <Sparkles className="w-3.5 h-3.5 text-[#C6A15B]" />
+                        <span>Specify Custom Legislative Category *</span>
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        placeholder="e.g. Public Hearing / Field Inspection..."
+                        value={customNewLegCategory}
+                        onChange={(e) => setCustomNewLegCategory(e.target.value)}
+                        className="w-full px-4 py-2.5 bg-white border border-amber-300 rounded-xl text-xs sm:text-sm font-semibold text-[#103C2E] focus:outline-none focus:ring-2 focus:ring-[#103C2E]"
+                      />
+                    </div>
+                  )}
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <textarea
@@ -2949,15 +3309,15 @@ export const AdminDashboard: React.FC<Props> = ({
                           <select
                             value={editingLeg.category}
                             onChange={(e) => setEditingLeg({...editingLeg, category: e.target.value as any})}
-                            className="w-full px-3 py-2 bg-stone-50 border border-stone-200 rounded-xl text-xs"
+                            className="w-full px-3 py-2 bg-stone-50 border border-stone-200 rounded-xl text-xs font-medium"
                           >
                             <option value="Bill">Bill</option>
                             <option value="Motion">Motion</option>
                             <option value="Petition">Petition</option>
                             <option value="Constituency Intervention">Constituency Intervention</option>
+                            <option value="Other">OTHER (Specify Custom Category)</option>
                           </select>
                         </div>
-
                         <div className="space-y-1">
                           <label className="font-bold text-[#103C2E] uppercase">Status Stage *</label>
                           <select
@@ -2978,6 +3338,23 @@ export const AdminDashboard: React.FC<Props> = ({
                           </select>
                         </div>
                       </div>
+
+                      {editingLeg.category === 'Other' && (
+                        <div className="bg-amber-50/70 p-3.5 rounded-2xl border-2 border-amber-300 space-y-1.5 animate-fadeIn">
+                          <label className="text-xs font-bold text-[#103C2E] uppercase flex items-center gap-1.5">
+                            <Sparkles className="w-3.5 h-3.5 text-[#C6A15B]" />
+                            <span>Specify Custom Legislative Category *</span>
+                          </label>
+                          <input
+                            type="text"
+                            required
+                            placeholder="e.g. Public Hearing / Field Inspection..."
+                            value={customEditLegCategory}
+                            onChange={(e) => setCustomEditLegCategory(e.target.value)}
+                            className="w-full px-4 py-2 bg-white border border-amber-300 rounded-xl text-xs sm:text-sm font-semibold text-[#103C2E] focus:outline-none focus:ring-2 focus:ring-[#103C2E]"
+                          />
+                        </div>
+                      )}
 
                       <div className="space-y-1">
                         <label className="font-bold text-[#103C2E] uppercase">Status Notes & Gazette Notes</label>
@@ -3103,7 +3480,17 @@ export const AdminDashboard: React.FC<Props> = ({
 
                             <td className="p-4 text-right whitespace-nowrap space-x-1.5">
                               <button
-                                onClick={() => setEditingLeg(l)}
+                                onClick={() => {
+                                  const standardLegCats = ['Bill', 'Motion', 'Petition', 'Constituency Intervention'];
+                                  const isCustom = !standardLegCats.includes(l.category);
+                                  if (isCustom) {
+                                    setCustomEditLegCategory(l.category);
+                                    setEditingLeg({ ...l, category: 'Other' as any });
+                                  } else {
+                                    setCustomEditLegCategory('');
+                                    setEditingLeg(l);
+                                  }
+                                }}
                                 className="inline-flex items-center gap-1 bg-emerald-50 hover:bg-[#103C2E] text-[#103C2E] hover:text-white px-2.5 py-1.5 rounded-xl border border-emerald-200 transition-all shadow-xs cursor-pointer text-xs font-bold uppercase"
                                 title="Edit Status & Notes"
                               >
@@ -4444,7 +4831,33 @@ export const AdminDashboard: React.FC<Props> = ({
           )}
 
           {/* ========================================================
-              TAB 11: USER SETTINGS (MANAGEMENT & CONFIGURATION)
+               TAB 13: OFFICES & ACCESS CONTROL (MULTI-BUREAU RBAC)
+              ======================================================== */}
+          {activeTab === 'offices' && (
+            <AdminOfficesTab
+              offices={offices}
+              setOffices={setOffices}
+              adminUsers={adminUsersList}
+              setAdminUsers={setAdminUsersList}
+              currentAdminEmail={email}
+              onPreviewOffice={(office) => {
+                setPreviewingOffice(office);
+                setActiveTab('overview');
+              }}
+              onLogActivity={(action) => {
+                setActivityLogs(prev => [{
+                  id: `log-${Date.now()}`,
+                  user: email,
+                  action,
+                  timestamp: new Date().toISOString().replace('T', ' ').substring(0, 16),
+                  role: adminRole
+                }, ...prev]);
+              }}
+            />
+          )}
+
+          {/* ========================================================
+              TAB 14: USER SETTINGS (MANAGEMENT & CONFIGURATION)
              ======================================================== */}
           {activeTab === 'settings' && (
             <div className="w-full min-w-0 space-y-6">

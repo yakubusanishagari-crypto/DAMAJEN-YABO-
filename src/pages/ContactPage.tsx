@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { 
   MapPin, Mail, Phone, Clock, Send, CheckCircle, Shield, 
   Building2, FileText, Search, Download, AlertCircle, Check, 
-  Users, ChevronRight, HelpCircle, Landmark, ExternalLink
+  Users, ChevronRight, HelpCircle, Landmark, ExternalLink, Sparkles
 } from 'lucide-react';
 import { Language, t, Translations } from '../utils/i18n';
 import { CommunityPetition, PetitionCategory, PetitionStatus } from '../types';
@@ -55,6 +55,8 @@ export const ContactPage: React.FC<Props> = ({ currentLang = 'en', translations 
   });
 
   const [submittedPetitionRef, setSubmittedPetitionRef] = useState<string | null>(null);
+  const [customEnquiryCategory, setCustomEnquiryCategory] = useState('');
+  const [customPetitionCategory, setCustomPetitionCategory] = useState('');
 
   // Tracking Petition
   const [searchRef, setSearchRef] = useState('');
@@ -103,9 +105,18 @@ export const ContactPage: React.FC<Props> = ({ currentLang = 'en', translations 
     e.preventDefault();
     setSubmitting(true);
 
+    const effectiveCategory = formData.category === 'Other'
+      ? (customEnquiryCategory.trim() || 'General Enquiry')
+      : formData.category;
+
+    const payload = {
+      ...formData,
+      category: effectiveCategory
+    };
+
     const newContactItem = {
       id: `con-${Date.now()}`,
-      ...formData,
+      ...payload,
       date: new Date().toISOString().split('T')[0],
       status: 'Unread'
     };
@@ -114,7 +125,7 @@ export const ContactPage: React.FC<Props> = ({ currentLang = 'en', translations 
       await fetch('/api/contacts', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData)
+        body: JSON.stringify(payload)
       });
     } catch {}
 
@@ -126,6 +137,7 @@ export const ContactPage: React.FC<Props> = ({ currentLang = 'en', translations 
 
     setSuccess(true);
     setFormData({ name: '', email: '', phone: '', category: 'General Inquiry', message: '' });
+    setCustomEnquiryCategory('');
     setSubmitting(false);
   };
 
@@ -137,10 +149,15 @@ export const ContactPage: React.FC<Props> = ({ currentLang = 'en', translations 
     const randomSuffix = Math.floor(1000 + Math.random() * 9000);
     const newRef = `PET-YS-${new Date().getFullYear()}-${randomSuffix}`;
 
+    const effectivePetitionCategory = (petitionData.category as any) === 'Other'
+      ? (customPetitionCategory.trim() || 'Community Petition')
+      : petitionData.category;
+
     const newPet: CommunityPetition = {
       id: `pet-${Date.now()}`,
       referenceNumber: newRef,
       ...petitionData,
+      category: effectivePetitionCategory,
       status: 'Submitted',
       submittedDate: new Date().toISOString().split('T')[0],
       reviewNotes: 'Formally received via online constituent portal; queued for liaison committee evaluation.'
@@ -160,6 +177,7 @@ export const ContactPage: React.FC<Props> = ({ currentLang = 'en', translations 
 
     setSubmittedPetitionRef(newRef);
     setTrackedPetition(newPet);
+    setCustomPetitionCategory('');
     setSubmitting(false);
   };
 
@@ -423,9 +441,28 @@ export const ContactPage: React.FC<Props> = ({ currentLang = 'en', translations 
                         <option value="Community Issue">Community Issue / Grievance</option>
                         <option value="Empowerment Inquiry">Empowerment Programme Inquiry</option>
                         <option value="Media Request">Media & Press Request</option>
+                        <option value="Other">OTHER (Specify Custom Category)</option>
                       </select>
                     </div>
                   </div>
+
+                  {/* Dynamically Revealed Custom Category Input when OTHER is selected */}
+                  {formData.category === 'Other' && (
+                    <div className="space-y-1.5 p-3.5 bg-amber-50/70 border border-amber-300 rounded-2xl animate-fadeIn">
+                      <label className="text-xs font-bold text-[#103C2E] uppercase flex items-center gap-1.5">
+                        <Sparkles className="w-3.5 h-3.5 text-[#C6A15B]" />
+                        <span>Specify Your Custom Category *</span>
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        value={customEnquiryCategory}
+                        onChange={(e) => setCustomEnquiryCategory(e.target.value)}
+                        placeholder="e.g. Healthcare Clinic Outreach, Flood Hazard Relief, Sports Sponsorship..."
+                        className="w-full px-4 py-2.5 bg-white border-2 border-[#103C2E] rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#D4AF37]"
+                      />
+                    </div>
+                  )}
 
                   <div className="space-y-1">
                     <label className="text-xs font-bold text-[#103C2E]">Your Message *</label>
@@ -522,8 +559,27 @@ export const ContactPage: React.FC<Props> = ({ currentLang = 'en', translations 
                         <option value="Electricity & Energy">Electricity & Energy</option>
                         <option value="Agricultural Support">Agricultural Support</option>
                         <option value="Public Security & Welfare">Public Security & Welfare</option>
+                        <option value="Other">OTHER (Specify Custom Category)</option>
                       </select>
                     </div>
+
+                    {/* Dynamically Revealed Custom Category Input when OTHER is selected */}
+                    {(petitionData.category as any) === 'Other' && (
+                      <div className="sm:col-span-2 space-y-1.5 p-3.5 bg-amber-50/70 border border-amber-300 rounded-2xl animate-fadeIn">
+                        <label className="text-xs font-bold text-[#103C2E] uppercase flex items-center gap-1.5">
+                          <Sparkles className="w-3.5 h-3.5 text-[#C6A15B]" />
+                          <span>Specify Your Custom Category *</span>
+                        </label>
+                        <input
+                          type="text"
+                          required
+                          value={customPetitionCategory}
+                          onChange={(e) => setCustomPetitionCategory(e.target.value)}
+                          placeholder="e.g. Solar Street Electrification, Market Bridge Culvert, Flood Defense Drainage..."
+                          className="w-full px-4 py-2.5 bg-white border-2 border-[#103C2E] rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-[#D4AF37]"
+                        />
+                      </div>
+                    )}
 
                     <div className="space-y-1">
                       <label className="text-xs font-bold text-[#103C2E]">Local Government *</label>

@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 import { CommunityPetition, PetitionStatus } from '../types';
+import { generatePetitionerDecisionMessage } from '../utils/petitionMessaging';
+import { safeSetItem } from '../utils/safeStorage';
 import { 
   FileText, CheckCircle2, XCircle, Clock, Search, Filter, 
   Send, Eye, Printer, Trash2, AlertCircle, Check, Shield, 
@@ -183,24 +185,66 @@ Federal Republic of Nigeria`;
       deliveredVia: ['Constituency Portal Notification', 'SMS & Email Gateway']
     };
 
-    // Update state
+    const wisdomDecisionMsg = generatePetitionerDecisionMessage(
+      {
+        id: reviewPetition.id,
+        referenceNumber: reviewPetition.referenceNumber,
+        applicantName: reviewPetition.petitionerName,
+        phone: reviewPetition.petitionerPhone || (reviewPetition as any).phone,
+        email: reviewPetition.petitionerEmail || (reviewPetition as any).email,
+        wardOrTown: reviewPetition.ward || reviewPetition.targetWard || reviewPetition.wardOrTown || 'Yabo/Shagari Constituency',
+        programTitle: reviewPetition.title,
+        programCategory: reviewPetition.category,
+        awardGrantPackage: selectedDecision === 'Approved' ? (decisionRationale.trim() || 'Direct constituency intervention & project appropriation') : undefined
+      },
+      selectedDecision === 'Approved' ? 'APPROVED' : 'REJECTED',
+      decisionRationale.trim()
+    );
+
+    // Update state permanently
     const updated = petitions.map(p => {
       if (p.id === reviewPetition.id) {
         return {
           ...p,
           status: selectedDecision,
-          decision: decisionRecord
+          decision: decisionRecord,
+          decisionLetter: generatedLetter,
+          decisionMessage: wisdomDecisionMsg,
+          publicFeedback: decisionRationale.trim() || wisdomDecisionMsg.detailedReason,
+          awardGrantPackage: selectedDecision === 'Approved' ? (decisionRationale.trim() || 'Direct constituency intervention & project appropriation') : undefined,
+          reviewNotes: decisionRationale.trim() || (selectedDecision === 'Approved' ? 'Petition approved and verified for constituency appropriation.' : 'Respectful advisory recorded.')
         };
       }
       return p;
     });
 
     setPetitions(updated);
+    safeSetItem('danmaje_petitions', JSON.stringify(updated));
+
+    // Two-way sync with applications cache
     try {
-      localStorage.setItem('danmaje_petitions', JSON.stringify(updated));
+      const savedApps = localStorage.getItem('danmaje_applications');
+      if (savedApps) {
+        const apps = JSON.parse(savedApps);
+        const mappedApps = apps.map((a: any) => {
+          if (a.referenceNumber?.toLowerCase() === reviewPetition.referenceNumber.toLowerCase() || a.id === reviewPetition.id) {
+            return {
+              ...a,
+              status: selectedDecision === 'Approved' ? 'APPROVED' : 'REJECTED',
+              decision: decisionRecord,
+              decisionLetter: generatedLetter,
+              decisionMessage: wisdomDecisionMsg,
+              publicFeedback: decisionRationale.trim() || wisdomDecisionMsg.detailedReason,
+              awardGrantPackage: selectedDecision === 'Approved' ? (decisionRationale.trim() || 'Direct constituency intervention & project appropriation') : undefined
+            };
+          }
+          return a;
+        });
+        safeSetItem('danmaje_applications', JSON.stringify(mappedApps));
+      }
     } catch {}
 
-    // Call backend API
+    // Call backend API & Remote Database
     try {
       await fetch(`/api/petitions/${reviewPetition.id}/decision`, {
         method: 'POST',

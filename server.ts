@@ -2,6 +2,7 @@ import express from 'express';
 import { fileURLToPath } from 'url';
 import path from 'path';
 import fs from 'fs';
+import crypto from 'crypto';
 import { createClient } from '@supabase/supabase-js';
 import { 
   INITIAL_PROJECTS, 
@@ -11,7 +12,9 @@ import {
   INITIAL_GALLERY, 
   INITIAL_CONTACTS,
   INITIAL_POLLS,
-  INITIAL_PETITIONS
+  INITIAL_PETITIONS,
+  INITIAL_OFFICES,
+  INITIAL_ADMIN_USERS
 } from './src/data/initialData';
 import { 
   Project, 
@@ -23,7 +26,9 @@ import {
   ProgramApplication,
   TownHallPoll,
   CommunityPetition,
-  PetitionDecisionMessage
+  PetitionDecisionMessage,
+  ConstituencyOffice,
+  AdminUser
 } from './src/types';
 import { sanitizeGalleryList } from './src/utils/youtube';
 
@@ -45,6 +50,36 @@ async function startServer() {
 
   const DATA_FILE = path.join(__dirname, 'data', 'store.json');
 
+  // Password hashing helpers using cryptographic scrypt & timing-safe equality
+  function hashPassword(password: string, salt: string): string {
+    return crypto.scryptSync(password, salt, 64).toString('hex');
+  }
+
+  function verifyPassword(password: string, salt: string, expectedHash: string): boolean {
+    try {
+      const hash = crypto.scryptSync(password, salt, 64).toString('hex');
+      return crypto.timingSafeEqual(Buffer.from(hash, 'hex'), Buffer.from(expectedHash, 'hex'));
+    } catch {
+      return false;
+    }
+  }
+
+  // Ensure default admin users have salted hashes initialized
+  function ensureAdminCredentials(users: AdminUser[]): AdminUser[] {
+    return users.map(u => {
+      if (!u.passwordHash || !u.salt) {
+        const salt = crypto.randomBytes(16).toString('hex');
+        const defaultPwd = u.role === 'Super Administrator' ? 'DANMAJEFOREVER' : 'OfficePass2026!';
+        return {
+          ...u,
+          salt,
+          passwordHash: hashPassword(defaultPwd, salt)
+        };
+      }
+      return u;
+    });
+  }
+
   // In-memory store initialized with default data
   let store = {
     projects: [...INITIAL_PROJECTS],
@@ -56,6 +91,8 @@ async function startServer() {
     polls: [...INITIAL_POLLS] as TownHallPoll[],
     petitions: [...INITIAL_PETITIONS] as CommunityPetition[],
     applications: [] as ProgramApplication[],
+    offices: [...INITIAL_OFFICES] as ConstituencyOffice[],
+    adminUsers: ensureAdminCredentials([...INITIAL_ADMIN_USERS]) as AdminUser[],
     stats: {
       projectsCount: '24+',
       billsCount: '12+',
@@ -69,7 +106,12 @@ async function startServer() {
     if (fs.existsSync(DATA_FILE)) {
       const raw = fs.readFileSync(DATA_FILE, 'utf-8');
       const parsed = JSON.parse(raw);
-      store = { ...store, ...parsed };
+      store = { 
+        ...store, 
+        ...parsed,
+        offices: parsed.offices && parsed.offices.length > 0 ? parsed.offices : [...INITIAL_OFFICES],
+        adminUsers: ensureAdminCredentials(parsed.adminUsers && parsed.adminUsers.length > 0 ? parsed.adminUsers : [...INITIAL_ADMIN_USERS])
+      };
     } else {
       fs.mkdirSync(path.dirname(DATA_FILE), { recursive: true });
       fs.writeFileSync(DATA_FILE, JSON.stringify(store, null, 2));
@@ -82,14 +124,16 @@ async function startServer() {
   if (supabase) {
     try {
       console.log('Attempting Supabase sync on server start...');
-      const [pRes, lRes, prRes, nRes, gRes, cRes, aRes] = await Promise.allSettled([
+      const [pRes, lRes, prRes, nRes, gRes, cRes, aRes, polRes, petRes] = await Promise.allSettled([
         supabase.from('projects').select('*'),
         supabase.from('legislative').select('*'),
         supabase.from('programs').select('*'),
         supabase.from('news').select('*'),
         supabase.from('gallery').select('*'),
         supabase.from('contacts').select('*'),
-        supabase.from('applications').select('*')
+        supabase.from('applications').select('*'),
+        supabase.from('polls').select('*'),
+        supabase.from('petitions').select('*')
       ]);
 
       if (pRes.status === 'fulfilled' && pRes.value.data && pRes.value.data.length > 0) {
@@ -113,6 +157,12 @@ async function startServer() {
       if (aRes.status === 'fulfilled' && aRes.value.data && aRes.value.data.length > 0) {
         store.applications = aRes.value.data;
       }
+      if (polRes.status === 'fulfilled' && polRes.value.data && polRes.value.data.length > 0) {
+        store.polls = polRes.value.data;
+      }
+      if (petRes.status === 'fulfilled' && petRes.value.data && petRes.value.data.length > 0) {
+        store.petitions = petRes.value.data;
+      }
       console.log('Supabase initial state sync complete.');
     } catch (err) {
       console.warn('Supabase initial fetch warning (continuing with persistent local store):', err);
@@ -133,7 +183,10 @@ async function startServer() {
           supabase.from('news').upsert(store.news),
           supabase.from('gallery').upsert(store.gallery),
           supabase.from('contacts').upsert(store.contacts),
-          supabase.from('applications').upsert(store.applications)
+          supabase.from('applications').upsert(store.applications),
+          supabase.from('polls').upsert(store.polls),
+          supabase.from('petitions').upsert(store.petitions),
+          supabase.from('offices').upsert(store.offices)
         ]).catch(err => console.warn('Background Supabase upsert notice:', err));
       }
     } catch (e) {
@@ -728,14 +781,371 @@ async function startServer() {
     });
   });
 
-  // Admin Login mock
+  // ==========================================
+  // SECURE AUTHENTICATION, RATE LIMITING & SESSIONS
+  // ==========================================
+  interface RateLimitRecord {
+    attempts: number;
+    lockedUntil: number | null;
+    lastAttempt: number;
+  }
+  const loginRateLimitMap = new Map<string, RateLimitRecord>();
+
+  interface AdminSession {
+    token: string;
+    userId: string;
+    email: string;
+    role: 'Super Administrator' | 'Office Administrator';
+    officeId?: string;
+    officeName?: string;
+    expiresAt: number;
+  }
+  const activeSessions = new Map<string, AdminSession>();
+
+  function getClientIp(req: express.Request): string {
+    const forwarded = req.headers['x-forwarded-for'];
+    if (typeof forwarded === 'string') {
+      return forwarded.split(',')[0].trim();
+    }
+    return req.ip || req.socket.remoteAddress || 'unknown-ip';
+  }
+
+  function getAuthenticatedSession(req: express.Request): AdminSession | null {
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith('Bearer ')) return null;
+    const token = authHeader.substring(7).trim();
+    const session = activeSessions.get(token);
+    if (!session) return null;
+    if (Date.now() > session.expiresAt) {
+      activeSessions.delete(token);
+      return null;
+    }
+    return session;
+  }
+
+  // Admin Login with rate limiting, salted password verification & office status check
   app.post('/api/admin/login', (req, res) => {
     const { email, password } = req.body;
-    if (email === 'admin@danmayeyabo.gov.ng' && (password === 'DANMAJEFOREVER' || password === 'password123')) {
-      res.json({ token: 'mock-jwt-token-danmaje-yabo', user: { name: 'Hon. Admin Staff', email, role: 'Super Administrator' } });
-    } else {
-      res.status(401).json({ error: 'Invalid email or password. (Official credentials: admin@danmayeyabo.gov.ng / DANMAJEFOREVER)' });
+    const clientIp = getClientIp(req);
+    const now = Date.now();
+
+    // 1. Enforce Rate Limiting & Brute-force Lockout
+    const rateRecord = loginRateLimitMap.get(clientIp);
+    if (rateRecord && rateRecord.lockedUntil) {
+      if (now < rateRecord.lockedUntil) {
+        const remainingMinutes = Math.ceil((rateRecord.lockedUntil - now) / 60000);
+        return res.status(429).json({
+          error: `Too many failed login attempts. Security lockout active. Please wait ${remainingMinutes} minute(s) before trying again.`
+        });
+      } else {
+        loginRateLimitMap.delete(clientIp);
+      }
     }
+
+    if (!email || !password) {
+      return res.status(400).json({ error: 'Email and password are required.' });
+    }
+
+    const cleanEmail = email.trim().toLowerCase();
+    const user = store.adminUsers.find(u => u.email.toLowerCase() === cleanEmail);
+
+    // Verify Password using cryptographic scrypt hash and timing-safe comparison
+    let isPasswordValid = false;
+    if (user && user.salt && user.passwordHash) {
+      isPasswordValid = verifyPassword(password, user.salt, user.passwordHash);
+    } else if (cleanEmail === 'admin@danmayeyabo.gov.ng' && (password === 'DANMAJEFOREVER' || password === 'password123')) {
+      // Fallback transition for initial setup: re-hash and save
+      isPasswordValid = true;
+      if (user) {
+        user.salt = crypto.randomBytes(16).toString('hex');
+        user.passwordHash = hashPassword(password, user.salt);
+        persistStore();
+      }
+    }
+
+    if (!user || !isPasswordValid) {
+      // Track failed attempt
+      const record = loginRateLimitMap.get(clientIp) || { attempts: 0, lockedUntil: null, lastAttempt: now };
+      record.attempts += 1;
+      record.lastAttempt = now;
+
+      if (record.attempts >= 5) {
+        record.lockedUntil = now + 15 * 60 * 1000; // 15-minute lockout
+        loginRateLimitMap.set(clientIp, record);
+        return res.status(429).json({
+          error: 'Maximum failed login attempts reached (5/5). Access locked for 15 minutes to safeguard constituency parliamentary records.'
+        });
+      }
+
+      loginRateLimitMap.set(clientIp, record);
+      const remaining = 5 - record.attempts;
+      return res.status(401).json({
+        error: `Invalid email or password. Authentication failed. (${remaining} attempt${remaining === 1 ? '' : 's'} remaining before security lock)`
+      });
+    }
+
+    // Check if account is active
+    if (!user.isActive) {
+      return res.status(403).json({
+        error: 'This administrator account has been deactivated. Please contact the Chief Super Administrator.'
+      });
+    }
+
+    // Check office status if assigned to an office
+    let userOffice: ConstituencyOffice | undefined;
+    if (user.officeId) {
+      userOffice = store.offices.find(o => o.id === user.officeId);
+      if (userOffice && userOffice.status === 'Inactive') {
+        return res.status(403).json({
+          error: `Your assigned office (${userOffice.name}) is currently inactive. Contact the Super Administrator for reactivation.`
+        });
+      }
+    }
+
+    // Authentication Success: Reset rate limits for client IP
+    loginRateLimitMap.delete(clientIp);
+
+    // Generate secure 32-byte session token
+    const token = crypto.randomBytes(32).toString('hex');
+    const expiresAt = now + 24 * 60 * 60 * 1000; // 24-hour validity
+
+    activeSessions.set(token, {
+      token,
+      userId: user.id,
+      email: user.email,
+      role: user.role,
+      officeId: user.officeId,
+      officeName: user.officeName || userOffice?.name,
+      expiresAt
+    });
+
+    user.lastLogin = new Date().toISOString();
+    persistStore();
+
+    res.json({
+      success: true,
+      token,
+      user: {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        officeId: user.officeId,
+        officeName: user.officeName || userOffice?.name,
+        lastLogin: user.lastLogin
+      },
+      office: userOffice || null
+    });
+  });
+
+  // Verify active session token
+  app.get('/api/admin/verify-session', (req, res) => {
+    const session = getAuthenticatedSession(req);
+    if (!session) {
+      return res.status(401).json({ valid: false, error: 'Session expired or invalid.' });
+    }
+
+    const user = store.adminUsers.find(u => u.id === session.userId);
+    if (!user || !user.isActive) {
+      return res.status(401).json({ valid: false, error: 'User no longer active.' });
+    }
+
+    let office: ConstituencyOffice | undefined;
+    if (user.officeId) {
+      office = store.offices.find(o => o.id === user.officeId);
+    }
+
+    res.json({
+      valid: true,
+      user: {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        officeId: user.officeId,
+        officeName: user.officeName || office?.name,
+        lastLogin: user.lastLogin
+      },
+      office: office || null
+    });
+  });
+
+  // Logout session invalidation
+  app.post('/api/admin/logout', (req, res) => {
+    const authHeader = req.headers.authorization;
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      const token = authHeader.substring(7).trim();
+      activeSessions.delete(token);
+    }
+    res.json({ success: true, message: 'Logged out successfully.' });
+  });
+
+  // ==========================================
+  // CONSTITUENCY OFFICES & RBAC API
+  // ==========================================
+  app.get('/api/offices', (req, res) => {
+    res.json(store.offices);
+  });
+
+  app.post('/api/offices', (req, res) => {
+    const { name, code, location, description, headOfOffice, contactEmail, contactPhone, status, authorizedTabs, assignedAdminEmails } = req.body;
+    if (!name || !code) {
+      return res.status(400).json({ error: 'Office name and office code are required.' });
+    }
+
+    const newOffice: ConstituencyOffice = {
+      id: `off-${Date.now()}`,
+      code: code.trim().toUpperCase(),
+      name: name.trim(),
+      location: location || 'Danmaje Civic Liaison Secretariat, Yabo Metropolis',
+      description: description || 'Official Constituency Functional Bureau',
+      headOfOffice: headOfOffice || 'Constituency Officer',
+      contactEmail: contactEmail || 'office@danmayeyabo.gov.ng',
+      contactPhone: contactPhone || '+234 803 000 0000',
+      status: status === 'Inactive' ? 'Inactive' : 'Active',
+      authorizedTabs: Array.isArray(authorizedTabs) && authorizedTabs.length > 0 ? authorizedTabs : ['overview'],
+      assignedAdminEmails: Array.isArray(assignedAdminEmails) ? assignedAdminEmails : [],
+      createdAt: new Date().toISOString().split('T')[0]
+    };
+
+    store.offices.unshift(newOffice);
+    persistStore();
+    res.status(201).json(newOffice);
+  });
+
+  app.put('/api/offices/:id', (req, res) => {
+    const { id } = req.params;
+    const index = store.offices.findIndex(o => o.id === id);
+    if (index === -1) return res.status(404).json({ error: 'Office not found.' });
+
+    store.offices[index] = {
+      ...store.offices[index],
+      ...req.body,
+      id,
+      updatedAt: new Date().toISOString().split('T')[0]
+    };
+
+    // If office name was changed, sync officeName in assigned admin users
+    if (req.body.name) {
+      store.adminUsers.forEach(u => {
+        if (u.officeId === id) {
+          u.officeName = req.body.name;
+        }
+      });
+    }
+
+    persistStore();
+    res.json(store.offices[index]);
+  });
+
+  app.delete('/api/offices/:id', (req, res) => {
+    const { id } = req.params;
+    store.offices = store.offices.filter(o => o.id !== id);
+    // Unassign users from deleted office
+    store.adminUsers.forEach(u => {
+      if (u.officeId === id) {
+        u.officeId = undefined;
+        u.officeName = undefined;
+      }
+    });
+    persistStore();
+    res.json({ success: true });
+  });
+
+  // ==========================================
+  // ADMIN USERS DIRECTORY & ASSIGNMENTS API
+  // ==========================================
+  app.get('/api/admin/users', (req, res) => {
+    // Return users without exposing hashes or salts
+    const safeUsers = store.adminUsers.map(({ passwordHash, salt, ...rest }) => rest);
+    res.json(safeUsers);
+  });
+
+  app.post('/api/admin/users', (req, res) => {
+    const { name, email, role, officeId, password } = req.body;
+    if (!name || !email) {
+      return res.status(400).json({ error: 'Name and email are required.' });
+    }
+
+    const cleanEmail = email.trim().toLowerCase();
+    if (store.adminUsers.some(u => u.email.toLowerCase() === cleanEmail)) {
+      return res.status(409).json({ error: 'An administrator account with this email already exists.' });
+    }
+
+    const salt = crypto.randomBytes(16).toString('hex');
+    const pwd = password || (role === 'Super Administrator' ? 'DANMAJEFOREVER' : 'OfficePass2026!');
+    const passwordHash = hashPassword(pwd, salt);
+
+    let officeName: string | undefined;
+    if (officeId) {
+      const office = store.offices.find(o => o.id === officeId);
+      if (office) {
+        officeName = office.name;
+        if (!office.assignedAdminEmails.includes(cleanEmail)) {
+          office.assignedAdminEmails.push(cleanEmail);
+        }
+      }
+    }
+
+    const newUser: AdminUser = {
+      id: `usr-${Date.now()}`,
+      name: name.trim(),
+      email: cleanEmail,
+      role: role === 'Super Administrator' ? 'Super Administrator' : 'Office Administrator',
+      officeId: role === 'Super Administrator' ? undefined : officeId,
+      officeName: role === 'Super Administrator' ? 'Executive Master Control (All Offices)' : officeName,
+      passwordHash,
+      salt,
+      isActive: true,
+      createdAt: new Date().toISOString().split('T')[0]
+    };
+
+    store.adminUsers.unshift(newUser);
+    persistStore();
+
+    const { passwordHash: _ph, salt: _s, ...safeUser } = newUser;
+    res.status(201).json(safeUser);
+  });
+
+  app.put('/api/admin/users/:id', (req, res) => {
+    const { id } = req.params;
+    const index = store.adminUsers.findIndex(u => u.id === id);
+    if (index === -1) return res.status(404).json({ error: 'User not found.' });
+
+    const targetUser = store.adminUsers[index];
+    const { name, role, officeId, isActive, password } = req.body;
+
+    if (name) targetUser.name = name.trim();
+    if (role) targetUser.role = role;
+    if (typeof isActive === 'boolean') targetUser.isActive = isActive;
+
+    if (officeId !== undefined) {
+      targetUser.officeId = officeId || undefined;
+      const office = store.offices.find(o => o.id === officeId);
+      targetUser.officeName = office ? office.name : undefined;
+    }
+
+    if (password && password.trim().length >= 6) {
+      const salt = crypto.randomBytes(16).toString('hex');
+      targetUser.salt = salt;
+      targetUser.passwordHash = hashPassword(password.trim(), salt);
+    }
+
+    persistStore();
+
+    const { passwordHash: _ph, salt: _s, ...safeUser } = targetUser;
+    res.json(safeUser);
+  });
+
+  app.delete('/api/admin/users/:id', (req, res) => {
+    const { id } = req.params;
+    const user = store.adminUsers.find(u => u.id === id);
+    if (user && user.role === 'Super Administrator' && store.adminUsers.filter(u => u.role === 'Super Administrator').length <= 1) {
+      return res.status(400).json({ error: 'Cannot delete the primary Chief Super Administrator account.' });
+    }
+    store.adminUsers = store.adminUsers.filter(u => u.id !== id);
+    persistStore();
+    res.json({ success: true });
   });
 
   // Setup Vite middleware for development

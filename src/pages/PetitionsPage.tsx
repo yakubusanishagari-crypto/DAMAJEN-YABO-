@@ -175,28 +175,31 @@ export const PetitionsPage: React.FC<Props> = ({
             An open democratic channel for constituents of Yabo/Shagari Federal Constituency to submit formal grievances, petition National Assembly interventions, and track official decision letters issued by Hon. Umar Yusuf (Danmaje Yabo).
           </p>
 
-          <div className="pt-2 flex flex-wrap gap-3">
+          <div className="pt-3 flex flex-wrap items-center gap-3.5">
             <button
-              onClick={() => setActiveTab('all')}
-              className={`px-5 py-2.5 rounded-xl font-bold text-xs uppercase tracking-wider transition cursor-pointer flex items-center gap-2 ${
-                activeTab === 'all'
-                  ? 'bg-[#C6A15B] text-[#09291F] shadow-lg font-black'
-                  : 'bg-white/10 text-white hover:bg-white/20'
-              }`}
+              onClick={() => setActiveTab('track')}
+              className="bg-gradient-to-r from-[#D4AF37] via-[#C6A15B] to-[#B38F44] hover:brightness-110 active:scale-95 text-[#09291F] px-7 py-3.5 rounded-2xl font-black text-xs sm:text-sm uppercase tracking-wider shadow-2xl transition cursor-pointer border-2 border-[#E5C16C] flex items-center gap-2.5 transform hover:-translate-y-0.5"
             >
-              <FileText className="w-4 h-4" />
-              <span>EXPLORE PUBLIC PETITIONS ({petitions.length})</span>
+              <Send className="w-4 h-4 text-[#09291F]" />
+              <span>SUBMIT PETITION</span>
             </button>
             <button
               onClick={() => setActiveTab('track')}
-              className={`px-5 py-2.5 rounded-xl font-bold text-xs uppercase tracking-wider transition cursor-pointer flex items-center gap-2 ${
-                activeTab === 'track'
-                  ? 'bg-[#C6A15B] text-[#09291F] shadow-lg font-black'
-                  : 'bg-white/10 text-white hover:bg-white/20'
+              className="bg-emerald-950/90 hover:bg-[#103C2E] text-white px-7 py-3.5 rounded-2xl font-black text-xs sm:text-sm uppercase tracking-wider shadow-xl hover:shadow-2xl active:scale-95 transition cursor-pointer border-2 border-[#D4AF37]/60 flex items-center gap-2.5 transform hover:-translate-y-0.5"
+            >
+              <Search className="w-4 h-4 text-[#D4AF37]" />
+              <span>TRACK PETITION</span>
+            </button>
+            <button
+              onClick={() => setActiveTab('all')}
+              className={`px-5 py-3 rounded-2xl font-bold text-xs uppercase tracking-wider transition cursor-pointer flex items-center gap-2 ${
+                activeTab === 'all'
+                  ? 'bg-white/20 text-white border border-white/30 font-black shadow-md'
+                  : 'bg-white/5 text-stone-300 hover:bg-white/10 border border-white/10'
               }`}
             >
-              <Search className="w-4 h-4" />
-              <span>SUBMIT / TRACK PETITION TICKET</span>
+              <FileText className="w-4 h-4 text-[#D4AF37]" />
+              <span>EXPLORE PUBLIC PETITIONS ({petitions.length})</span>
             </button>
           </div>
         </div>
@@ -270,9 +273,10 @@ export const PetitionsPage: React.FC<Props> = ({
                 </p>
                 <button
                   onClick={() => setActiveTab('track')}
-                  className="bg-[#103C2E] hover:bg-[#09291F] text-white px-6 py-2.5 rounded-xl font-bold text-xs uppercase tracking-wider shadow"
+                  className="bg-gradient-to-r from-[#D4AF37] via-[#C6A15B] to-[#B38F44] hover:brightness-110 active:scale-95 text-[#09291F] px-7 py-3 rounded-2xl font-black text-xs uppercase tracking-wider shadow-lg border border-[#E5C16C] inline-flex items-center gap-2 cursor-pointer"
                 >
-                  Submit New Petition
+                  <Send className="w-4 h-4 text-[#09291F]" />
+                  <span>SUBMIT PETITION</span>
                 </button>
               </div>
             ) : (

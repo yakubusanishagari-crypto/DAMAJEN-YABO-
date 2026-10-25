@@ -223,3 +223,35 @@ export async function apiDeleteAdminUser(id: string): Promise<boolean> {
   const res = await sendJson<{ success: boolean }>(`/admin/users/${id}`, 'DELETE');
   return res?.success ?? false;
 }
+
+// ==================== PETITIONS & GRIEVANCE REDRESS ====================
+export async function apiFetchPetitions(): Promise<any[] | null> {
+  const data = await fetchJson<any[]>('/petitions');
+  if (data && Array.isArray(data)) {
+    safeSetItem('danmaje_petitions', JSON.stringify(data));
+    return data;
+  }
+  return null;
+}
+
+export async function apiCreatePetition(petition: any): Promise<any | null> {
+  return await sendJson<any>('/petitions', 'POST', petition);
+}
+
+export async function apiUpdatePetition(id: string, petition: any): Promise<any | null> {
+  return await sendJson<any>(`/petitions/${id}`, 'PUT', petition);
+}
+
+export async function apiDispatchPetitionDecision(id: string, decisionPayload: any): Promise<any | null> {
+  return await sendJson<any>(`/petitions/${id}/decision`, 'POST', decisionPayload);
+}
+
+// ==================== POLLS & TOWN HALL ====================
+export async function apiFetchPolls(): Promise<any[] | null> {
+  const data = await fetchJson<any[]>('/polls');
+  if (data && Array.isArray(data)) {
+    safeSetItem('danmaje_polls', JSON.stringify(data));
+    return data;
+  }
+  return null;
+}
