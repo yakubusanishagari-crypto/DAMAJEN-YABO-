@@ -40,7 +40,7 @@ const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
 const supabaseKey = process.env.SUPABASE_ANON_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.VITE_SUPABASE_ANON_KEY;
 const supabase = (supabaseUrl && supabaseKey) ? createClient(supabaseUrl, supabaseKey) : null;
 
-async function startServer() {
+export async function startServer() {
   const app = express();
   const PORT = process.env.PORT || 3000;
 
@@ -1163,9 +1163,14 @@ async function startServer() {
     });
   }
 
-  app.listen(Number(PORT), '0.0.0.0', () => {
-    console.log(`Server running on port ${PORT}`);
-  });
+  return app;
 }
 
-startServer();
+if (process.env.VERCEL !== '1') {
+  startServer().then(app => {
+    const PORT = process.env.PORT || 3000;
+    app.listen(Number(PORT), '0.0.0.0', () => {
+      console.log(`Server running on port ${PORT}`);
+    });
+  });
+}
