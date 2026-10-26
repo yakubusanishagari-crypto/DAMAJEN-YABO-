@@ -4,11 +4,12 @@ import {
 } from '../types';
 import { ConstituencyStats } from '../App';
 import { safeSetItem, safeGetItem } from './safeStorage';
-import { db, storage, handleFirestoreError, OperationType } from './firebase';
+import { db, storage, auth, handleFirestoreError, OperationType } from './firebase';
 import { 
   collection, getDocs, doc, setDoc, addDoc, updateDoc, deleteDoc, getDoc, query, orderBy 
 } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { signInAnonymously } from 'firebase/auth';
 
 // ==================== STORAGE UPLOAD (Firebase Cloud Storage) ====================
 export async function apiCheckStorageStatus(): Promise<any> {
@@ -17,6 +18,15 @@ export async function apiCheckStorageStatus(): Promise<any> {
 
 export async function apiUploadFile(file: File | string, fileName?: string, bucket?: string): Promise<string> {
   try {
+    // Ensure Firebase Auth session is active to satisfy storage rules
+    if (!auth.currentUser) {
+      try {
+        await signInAnonymously(auth);
+      } catch (authErr) {
+        console.warn('Anonymous auth warning during upload:', authErr);
+      }
+    }
+
     let blob: Blob;
     let name = fileName || 'upload.jpg';
 
@@ -49,10 +59,16 @@ export async function apiUploadFile(file: File | string, fileName?: string, buck
     const cleanName = name.replace(/[^a-zA-Z0-9.-]/g, '_');
     const storageRef = ref(storage, `constituency/${Date.now()}-${cleanName}`);
     
-    await uploadBytes(storageRef, blob);
+    // Upload with timeout protection (30 seconds)
+    const uploadPromise = uploadBytes(storageRef, blob);
+    const timeoutPromise = new Promise((_, reject) => 
+      setTimeout(() => reject(new Error('Firebase Storage upload timed out after 30 seconds.')), 30000)
+    );
+
+    await Promise.race([uploadPromise, timeoutPromise]);
     const downloadUrl = await getDownloadURL(storageRef);
     return downloadUrl;
-  } catch (err) {
+  } catch (err: any) {
     console.error('Firebase Storage upload error:', err);
     throw new Error(err instanceof Error ? err.message : 'Failed to upload file to Firebase Storage.');
   }
