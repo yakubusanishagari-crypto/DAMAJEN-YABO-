@@ -35,10 +35,27 @@ import { sanitizeGalleryList } from './src/utils/youtube';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Supabase Initialization with multi-environment variable fallback
-const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
-const supabaseKey = process.env.SUPABASE_ANON_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.VITE_SUPABASE_ANON_KEY;
-const supabase = (supabaseUrl && supabaseKey) ? createClient(supabaseUrl, supabaseKey) : null;
+// Supabase Initialization with multi-environment variable fallback & Service Role prioritization
+export function createSupabaseClient() {
+  const url = (process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || '').trim();
+  const key = (
+    process.env.SUPABASE_SERVICE_ROLE_KEY || 
+    process.env.SUPABASE_ANON_KEY || 
+    process.env.VITE_SUPABASE_ANON_KEY || 
+    ''
+  ).trim();
+
+  if (!url || !key) return null;
+  return createClient(url, key, {
+    auth: {
+      persistSession: false,
+      autoRefreshToken: false,
+      detectSessionInUrl: false
+    }
+  });
+}
+
+let supabase = createSupabaseClient();
 
 export async function startServer() {
   const app = express();
@@ -47,6 +64,25 @@ export async function startServer() {
   // Increase payload limits to 50MB for high-resolution site photo & image uploads
   app.use(express.json({ limit: '50mb' }));
   app.use(express.urlencoded({ limit: '50mb', extended: true }));
+
+  // Ensure fresh Supabase client instance with runtime environment variables
+  supabase = createSupabaseClient();
+
+  // Normalize API requests whether forwarded as /api/* or /* across Vercel rewrite configurations
+  app.use((req, res, next) => {
+    if (
+      !req.url.startsWith('/api') && 
+      !req.url.startsWith('/@') && 
+      !req.url.startsWith('/src') && 
+      !req.url.startsWith('/node_modules') && 
+      !req.url.startsWith('/dist') &&
+      !req.url.startsWith('/assets') &&
+      !req.url.includes('.')
+    ) {
+      req.url = '/api' + (req.url.startsWith('/') ? req.url : '/' + req.url);
+    }
+    next();
+  });
 
   const DATA_FILE = path.join(__dirname, 'data', 'store.json');
 
@@ -169,14 +205,14 @@ export async function startServer() {
     }
   }
 
-  // Helper to persist store locally and push updates to Supabase asynchronously
-  function persistStore() {
+  // Helper to persist store locally and push updates to Supabase securely
+  async function persistStore() {
     try {
       fs.mkdirSync(path.dirname(DATA_FILE), { recursive: true });
       fs.writeFileSync(DATA_FILE, JSON.stringify(store, null, 2));
 
       if (supabase) {
-        Promise.allSettled([
+        await Promise.allSettled([
           supabase.from('projects').upsert(store.projects),
           supabase.from('legislative').upsert(store.legislative),
           supabase.from('programs').upsert(store.programs),
@@ -187,7 +223,7 @@ export async function startServer() {
           supabase.from('polls').upsert(store.polls),
           supabase.from('petitions').upsert(store.petitions),
           supabase.from('offices').upsert(store.offices)
-        ]).catch(err => console.warn('Background Supabase upsert notice:', err));
+        ]);
       }
     } catch (e) {
       console.error('Failed to persist local store:', e);
@@ -210,28 +246,30 @@ export async function startServer() {
 
   // ==================== HEALTH & SUPABASE STATUS API ====================
   app.get('/api/health', (req, res) => {
+    const activeSupabase = createSupabaseClient() || supabase;
     res.json({ 
       status: 'ok', 
-      supabaseConnected: Boolean(supabase),
+      supabaseConnected: Boolean(activeSupabase),
       timestamp: new Date().toISOString() 
     });
   });
 
   app.get('/api/supabase/status', async (req, res) => {
-    if (!supabase) {
+    const activeSupabase = createSupabaseClient() || supabase;
+    if (!activeSupabase) {
       return res.json({
         connected: false,
-        message: 'Supabase URL or Key not detected in environment. Operating in persistent local store mode.'
+        message: 'Supabase URL or Key not detected in environment. Please check Vercel environment variables.'
       });
     }
     try {
-      const { data, error } = await supabase.from('projects').select('id').limit(1);
+      const { data, error } = await activeSupabase.from('projects').select('id').limit(1);
       if (error) {
         return res.json({
           connected: true,
           tableReady: false,
           error: error.message,
-          message: 'Connected to Supabase project URL, table query warning.'
+          message: 'Connected to Supabase project URL, table query warning: ' + error.message
         });
       }
       res.json({
@@ -248,6 +286,182 @@ export async function startServer() {
       });
     }
   });
+
+  // ==================== STORAGE & SUPABASE DIAGNOSTIC API ====================
+  app.get('/api/storage/status', async (req, res) => {
+    const activeSupabase = createSupabaseClient() || supabase;
+    const url = (process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || '').trim();
+    const hasServiceRoleKey = Boolean(process.env.SUPABASE_SERVICE_ROLE_KEY);
+    const hasAnonKey = Boolean(process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY);
+
+    if (!activeSupabase) {
+      return res.status(503).json({
+        connected: false,
+        hasServiceRoleKey,
+        hasAnonKey,
+        message: 'Supabase credentials missing. Configure SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY in Vercel.'
+      });
+    }
+
+    try {
+      const { data: buckets, error: bErr } = await activeSupabase.storage.listBuckets();
+      const sanitizedUrl = url ? url.replace(/^(https?:\/\/)([^.]+)(\..*)$/, '$1$2$3') : '';
+
+      return res.json({
+        connected: true,
+        projectUrl: sanitizedUrl,
+        hasServiceRoleKey,
+        hasAnonKey,
+        buckets: buckets ? buckets.map(b => ({ id: b.id, name: b.name, public: b.public })) : [],
+        bucketsError: bErr ? bErr.message : null,
+        message: 'Supabase client operational.'
+      });
+    } catch (err: any) {
+      return res.status(500).json({
+        connected: false,
+        error: err.message,
+        message: 'Failed to query Supabase storage.'
+      });
+    }
+  });
+
+  // ==================== SUPABASE STORAGE UPLOAD API ====================
+  app.post('/api/upload', async (req, res) => {
+    try {
+      const activeSupabase = createSupabaseClient() || supabase;
+      if (!activeSupabase) {
+        console.error('[Upload API] Supabase credentials not found in environment.');
+        return res.status(503).json({ 
+          success: false, 
+          error: 'Supabase Storage is not connected. Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY (or SUPABASE_ANON_KEY) in Vercel Environment Variables.' 
+        });
+      }
+
+      const { fileName, fileData } = req.body;
+      const requestedBucket = (req.body.bucket || '').trim();
+      const configuredBucket = (process.env.SUPABASE_STORAGE_BUCKET || process.env.SUPABASE_BUCKET || '').trim();
+
+      if (!fileData) {
+        return res.status(400).json({ success: false, error: 'No file data provided in request body.' });
+      }
+
+      // Convert base64 data URL to Buffer and detect MIME type
+      let buffer: Buffer;
+      let contentType = 'image/jpeg';
+
+      if (typeof fileData === 'string' && fileData.startsWith('data:')) {
+        const matches = fileData.match(/^data:([^;]+);base64,(.+)$/);
+        if (!matches || matches.length !== 3) {
+          return res.status(400).json({ success: false, error: 'Invalid base64 data URL format.' });
+        }
+        contentType = matches[1];
+        buffer = Buffer.from(matches[2], 'base64');
+      } else if (typeof fileData === 'string') {
+        buffer = Buffer.from(fileData, 'base64');
+      } else {
+        return res.status(400).json({ success: false, error: 'Unsupported file data format.' });
+      }
+
+      // Dynamic bucket discovery: inspect user's existing Supabase Storage buckets
+      let targetBucket = configuredBucket || requestedBucket || 'uploads';
+      let existingBucketsList: string[] = [];
+
+      try {
+        const { data: buckets, error: listError } = await activeSupabase.storage.listBuckets();
+        if (listError) {
+          console.warn('[Upload API] Notice when listing buckets:', listError.message);
+        } else if (buckets && buckets.length > 0) {
+          existingBucketsList = buckets.map(b => b.name);
+          console.log('[Upload API] Existing Supabase Storage buckets:', existingBucketsList);
+
+          // If targetBucket is present in buckets, use it
+          const exactMatch = buckets.find(b => b.name === targetBucket || b.id === targetBucket);
+          if (exactMatch) {
+            targetBucket = exactMatch.name;
+          } else {
+            // Find existing common bucket or fallback to first available bucket
+            const candidate = buckets.find(b => 
+              ['uploads', 'media', 'images', 'photos', 'public', 'danmaje', 'documents'].includes(b.name.toLowerCase())
+            ) || buckets[0];
+
+            console.log(`[Upload API] Target "${targetBucket}" not found. Auto-selected existing bucket: "${candidate.name}"`);
+            targetBucket = candidate.name;
+          }
+        } else if (buckets && buckets.length === 0) {
+          // No buckets found; attempt to auto-create 'uploads' bucket with public access
+          console.log('[Upload API] No buckets found. Attempting to create public bucket "uploads"...');
+          const { error: createErr } = await activeSupabase.storage.createBucket('uploads', {
+            public: true,
+            fileSizeLimit: 25 * 1024 * 1024
+          });
+          if (!createErr) {
+            targetBucket = 'uploads';
+            console.log('[Upload API] Created public bucket "uploads".');
+          } else {
+            console.warn('[Upload API] Bucket auto-creation failed:', createErr.message);
+          }
+        }
+      } catch (discErr: any) {
+        console.warn('[Upload API] Bucket discovery error:', discErr.message);
+      }
+
+      // Generate unique path
+      const ext = contentType.split('/')[1] || 'jpg';
+      const cleanFileName = (fileName || `media-${Date.now()}.${ext}`).replace(/[^a-zA-Z0-9.-]/g, '_');
+      const filePath = `constituency/${Date.now()}-${cleanFileName}`;
+
+      console.log(`[Upload API] Uploading ${filePath} (${buffer.length} bytes, type ${contentType}) to bucket "${targetBucket}"...`);
+
+      // Upload file directly to Supabase Storage
+      const { data: uploadData, error: uploadError } = await activeSupabase.storage
+        .from(targetBucket)
+        .upload(filePath, buffer, {
+          contentType,
+          upsert: true
+        });
+
+      if (uploadError) {
+        console.error('[Upload API] Supabase storage upload error:', uploadError);
+        return res.status(500).json({ 
+          success: false, 
+          error: `Supabase Storage upload failed: ${uploadError.message}`,
+          bucket: targetBucket,
+          availableBuckets: existingBucketsList
+        });
+      }
+
+      // Obtain permanent public URL from Supabase Storage
+      const { data: urlData } = activeSupabase.storage
+        .from(targetBucket)
+        .getPublicUrl(filePath);
+
+      const publicUrl = urlData?.publicUrl;
+      if (!publicUrl) {
+        return res.status(500).json({
+          success: false,
+          error: 'Supabase Storage confirmed upload, but failed to retrieve public URL.',
+          bucket: targetBucket
+        });
+      }
+
+      console.log(`[Upload API] Upload confirmed by Supabase! Permanent URL: ${publicUrl}`);
+
+      return res.json({
+        success: true,
+        url: publicUrl,
+        path: filePath,
+        bucket: targetBucket,
+        size: buffer.length
+      });
+    } catch (err: any) {
+      console.error('[Upload API] Internal error:', err);
+      return res.status(500).json({ 
+        success: false, 
+        error: err.message || 'Internal server error during upload.' 
+      });
+    }
+  });
+
 
   // ==================== STATS API ====================
   app.get('/api/stats', (req, res) => {

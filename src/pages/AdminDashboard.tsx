@@ -35,8 +35,17 @@ import {
 } from '../utils/youtube';
 import { getAnalyticsStore, resetAnalyticsBaseline, AnalyticsStore } from '../utils/analytics';
 import { compressImageFile } from '../utils/imageCompressor';
-import { apiCreateProject, apiUpdateProject } from '../utils/apiSync';
+import { 
+  apiCreateProject, apiUpdateProject, apiDeleteProject,
+  apiCreateNews, apiUpdateNews, apiDeleteNews,
+  apiCreateGallery, apiUpdateGallery, apiDeleteGallery,
+  apiCreateProgram, apiUpdateProgram, apiDeleteProgram,
+  apiCreateLegislative, apiUpdateLegislative, apiDeleteLegislative,
+  apiUpdateStats, apiCheckStorageStatus, apiUploadFile
+} from '../utils/apiSync';
 import { INITIAL_OFFICES, INITIAL_ADMIN_USERS } from '../data/initialData';
+
+
 
 interface Props {
   projects: Project[];
@@ -378,9 +387,11 @@ export const AdminDashboard: React.FC<Props> = ({
     try {
       localStorage.setItem('danmaje_stats', JSON.stringify(editableStats));
     } catch {}
+    apiUpdateStats(editableStats).catch(err => console.warn('API update stats warning:', err));
     setStatsSavedMsg(true);
     setTimeout(() => setStatsSavedMsg(false), 3000);
   };
+
 
   // Admin Users List State
   interface AdminUserItem {
@@ -498,6 +509,13 @@ export const AdminDashboard: React.FC<Props> = ({
   const [editingProject, setEditingProject] = useState<Project | null>(null);
   const [isCompressingProjImg, setIsCompressingProjImg] = useState(false);
   const [projectSuccessNotice, setProjectSuccessNotice] = useState('');
+  const [storageStatus, setStorageStatus] = useState<any>(null);
+
+  useEffect(() => {
+    apiCheckStorageStatus().then(status => {
+      if (status) setStorageStatus(status);
+    }).catch(() => {});
+  }, []);
 
   const handleProjectImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -505,21 +523,16 @@ export const AdminDashboard: React.FC<Props> = ({
     try {
       setIsCompressingProjImg(true);
       const compressedDataUrl = await compressImageFile(file, 1600, 1200, 0.82);
+      const permanentUrl = await apiUploadFile(compressedDataUrl, file.name);
       setNewProj(prev => ({
         ...prev,
-        images: [compressedDataUrl, ...prev.images.filter(img => !img.startsWith('data:'))]
+        images: [permanentUrl, ...prev.images.filter(img => !img.startsWith('data:'))]
       }));
-    } catch (err) {
-      console.warn('Image compression fallback:', err);
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        const result = reader.result as string;
-        setNewProj(prev => ({
-          ...prev,
-          images: [result, ...prev.images.filter(img => !img.startsWith('data:'))]
-        }));
-      };
-      reader.readAsDataURL(file);
+      setProjectSuccessNotice('Project photo confirmed and stored in Supabase Storage.');
+      setTimeout(() => setProjectSuccessNotice(''), 4000);
+    } catch (err: any) {
+      console.error('Image upload error:', err);
+      alert(`Supabase Storage Upload Error: ${err.message || 'Failed to upload image. Please verify Supabase connection.'}`);
     } finally {
       setIsCompressingProjImg(false);
     }
@@ -531,24 +544,21 @@ export const AdminDashboard: React.FC<Props> = ({
     try {
       setIsCompressingProjImg(true);
       const compressedDataUrl = await compressImageFile(file, 1600, 1200, 0.82);
+      const permanentUrl = await apiUploadFile(compressedDataUrl, file.name);
       setEditingProject(prev => prev ? {
         ...prev,
-        images: [compressedDataUrl, ...(prev.images ? prev.images.slice(1) : [])]
+        images: [permanentUrl, ...(prev.images ? prev.images.slice(1) : [])]
       } : null);
-    } catch (err) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        const result = reader.result as string;
-        setEditingProject(prev => prev ? {
-          ...prev,
-          images: [result, ...(prev.images ? prev.images.slice(1) : [])]
-        } : null);
-      };
-      reader.readAsDataURL(file);
+      setProjectSuccessNotice('Project photo updated in Supabase Storage.');
+      setTimeout(() => setProjectSuccessNotice(''), 4000);
+    } catch (err: any) {
+      console.error('Image upload error:', err);
+      alert(`Supabase Storage Upload Error: ${err.message || 'Failed to upload image. Please verify Supabase connection.'}`);
     } finally {
       setIsCompressingProjImg(false);
     }
   };
+
 
   const handleCreateProject = (e: React.FormEvent) => {
     e.preventDefault();
@@ -619,6 +629,7 @@ export const AdminDashboard: React.FC<Props> = ({
     const updated = projects.filter(p => p.id !== id);
     setProjects(updated);
     try { localStorage.setItem('danmaje_projects', JSON.stringify(updated)); } catch {}
+    apiDeleteProject(id).catch(err => console.warn('API delete project warning:', err));
     setActivityLogs(prev => [{
       id: `log-${Date.now()}`,
       user: email,
@@ -647,17 +658,26 @@ export const AdminDashboard: React.FC<Props> = ({
   const [newsImagePreview, setNewsImagePreview] = useState<string>('');
   const [editingNews, setEditingNews] = useState<NewsArticle | null>(null);
 
-  const handleNewsImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const [isUploadingNewsImg, setIsUploadingNewsImg] = useState(false);
+
+  const handleNewsImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      if (file.size > 8 * 1024 * 1024) return;
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        const result = reader.result as string;
-        setNewsImagePreview(result);
-        setNewNews(prev => ({ ...prev, imageUrl: result }));
-      };
-      reader.readAsDataURL(file);
+    if (!file) return;
+    try {
+      setIsUploadingNewsImg(true);
+      const compressedDataUrl = await compressImageFile(file, 1600, 1200, 0.82);
+      setNewsImagePreview(compressedDataUrl);
+      const permanentUrl = await apiUploadFile(compressedDataUrl, file.name);
+      setNewsImagePreview(permanentUrl);
+      setNewNews(prev => ({ ...prev, imageUrl: permanentUrl }));
+      setProjectSuccessNotice('News featured image confirmed and uploaded to Supabase Storage.');
+      setTimeout(() => setProjectSuccessNotice(''), 4000);
+    } catch (err: any) {
+      console.error('News image upload error:', err);
+      alert(`Supabase Storage Upload Error: ${err.message || 'Failed to upload image. Please verify Supabase connection.'}`);
+      setNewsImagePreview('');
+    } finally {
+      setIsUploadingNewsImg(false);
     }
   };
 
@@ -690,6 +710,7 @@ export const AdminDashboard: React.FC<Props> = ({
     const updated = [created, ...news];
     setNews(updated);
     try { localStorage.setItem('danmaje_news', JSON.stringify(updated)); } catch {}
+    apiCreateNews(created).catch(err => console.warn('API create news warning:', err));
     setShowAddNews(false);
     setCustomNewNewsCategory('');
     setNewsImagePreview('');
@@ -723,6 +744,7 @@ export const AdminDashboard: React.FC<Props> = ({
     const updated = news.map(n => n.id === editingNews.id ? newsToSave : n);
     setNews(updated);
     try { localStorage.setItem('danmaje_news', JSON.stringify(updated)); } catch {}
+    apiUpdateNews(editingNews.id, newsToSave).catch(err => console.warn('API update news warning:', err));
     setEditingNews(null);
     setCustomEditNewsCategory('');
     setActivityLogs(prev => [{
@@ -738,6 +760,7 @@ export const AdminDashboard: React.FC<Props> = ({
     const updated = news.filter(n => n.id !== id);
     setNews(updated);
     try { localStorage.setItem('danmaje_news', JSON.stringify(updated)); } catch {}
+    apiDeleteNews(id).catch(err => console.warn('API delete news warning:', err));
     setActivityLogs(prev => [{
       id: `log-${Date.now()}`,
       user: email,
@@ -747,7 +770,9 @@ export const AdminDashboard: React.FC<Props> = ({
     }, ...prev]);
   };
 
+
   // Legislative CRUD State
+
   const [showAddLeg, setShowAddLeg] = useState(false);
   const [editingLeg, setEditingLeg] = useState<LegislativeRecord | null>(null);
   const [newLeg, setNewLeg] = useState({
@@ -780,6 +805,7 @@ export const AdminDashboard: React.FC<Props> = ({
     const updated = [created, ...legislative];
     setLegislative(updated);
     try { localStorage.setItem('danmaje_legislative', JSON.stringify(updated)); } catch {}
+    apiCreateLegislative(created).catch(err => console.warn('API create legislative warning:', err));
     setShowAddLeg(false);
     setCustomNewLegCategory('');
     setNewLeg({ title: '', category: 'Bill', status: 'Proposed', date: new Date().toISOString().split('T')[0], description: '', statusNotes: '', coSponsors: ['Hon. Umar Yusuf Danmaje'] });
@@ -808,6 +834,10 @@ export const AdminDashboard: React.FC<Props> = ({
     });
     setLegislative(updated);
     try { localStorage.setItem('danmaje_legislative', JSON.stringify(updated)); } catch {}
+    const updatedRecord = updated.find(l => l.id === id);
+    if (updatedRecord) {
+      apiUpdateLegislative(id, updatedRecord).catch(err => console.warn('API update legislative warning:', err));
+    }
     if (editingLeg && editingLeg.id === id) {
       setEditingLeg({
         ...editingLeg,
@@ -841,6 +871,10 @@ export const AdminDashboard: React.FC<Props> = ({
     } : l);
     setLegislative(updated);
     try { localStorage.setItem('danmaje_legislative', JSON.stringify(updated)); } catch {}
+    const updatedItem = updated.find(l => l.id === editingLeg.id);
+    if (updatedItem) {
+      apiUpdateLegislative(editingLeg.id, updatedItem).catch(err => console.warn('API update legislative warning:', err));
+    }
     setActivityLogs(prev => [{
       id: `log-${Date.now()}`,
       user: email,
@@ -856,10 +890,12 @@ export const AdminDashboard: React.FC<Props> = ({
     const updated = legislative.filter(l => l.id !== id);
     setLegislative(updated);
     try { localStorage.setItem('danmaje_legislative', JSON.stringify(updated)); } catch {}
+    apiDeleteLegislative(id).catch(err => console.warn('API delete legislative warning:', err));
     setActivityLogs(prev => [{
       id: `log-${Date.now()}`,
       user: email,
       action: `Deleted legislative record #${id}`,
+
       timestamp: new Date().toISOString().replace('T', ' ').substring(0, 16),
       role: adminRole
     }, ...prev]);
@@ -922,6 +958,7 @@ export const AdminDashboard: React.FC<Props> = ({
     const updated = [created, ...programs];
     setPrograms(updated);
     try { localStorage.setItem('danmaje_programs', JSON.stringify(updated)); } catch {}
+    apiCreateProgram(created).catch(err => console.warn('API create program warning:', err));
     setShowAddProg(false);
     setNewProg({
       title: '',
@@ -956,6 +993,7 @@ export const AdminDashboard: React.FC<Props> = ({
     const updated = programs.filter(p => p.id !== id);
     setPrograms(updated);
     try { localStorage.setItem('danmaje_programs', JSON.stringify(updated)); } catch {}
+    apiDeleteProgram(id).catch(err => console.warn('API delete program warning:', err));
     setActivityLogs(prev => [{
       id: `log-${Date.now()}`,
       user: email,
@@ -1030,21 +1068,32 @@ export const AdminDashboard: React.FC<Props> = ({
     }
   };
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const [isUploadingMediaImg, setIsUploadingMediaImg] = useState(false);
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     setUploadError('');
     const file = e.target.files?.[0];
     if (file) {
-      if (file.size > 8 * 1024 * 1024) {
-        setUploadError('Image file size exceeds 8MB. Please choose an optimized image.');
+      if (file.size > 20 * 1024 * 1024) {
+        setUploadError('Image file size exceeds 20MB. Please choose an optimized image.');
         return;
       }
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        const result = reader.result as string;
-        setUploadedImagePreview(result);
-        setNewMedia(prev => ({ ...prev, imageUrl: result }));
-      };
-      reader.readAsDataURL(file);
+      try {
+        setIsUploadingMediaImg(true);
+        const compressedDataUrl = await compressImageFile(file, 1600, 1200, 0.85);
+        setUploadedImagePreview(compressedDataUrl);
+        const permanentUrl = await apiUploadFile(compressedDataUrl, file.name);
+        setUploadedImagePreview(permanentUrl);
+        setNewMedia(prev => ({ ...prev, imageUrl: permanentUrl }));
+        setProjectSuccessNotice('Media photograph confirmed and uploaded to Supabase Storage.');
+        setTimeout(() => setProjectSuccessNotice(''), 4000);
+      } catch (err: any) {
+        console.error('Gallery image upload error:', err);
+        setUploadError(`Failed to upload to Supabase Storage: ${err.message || 'Network error'}`);
+        setUploadedImagePreview('');
+      } finally {
+        setIsUploadingMediaImg(false);
+      }
     }
   };
 
@@ -1100,6 +1149,8 @@ export const AdminDashboard: React.FC<Props> = ({
     try {
       localStorage.setItem('danmaje_gallery', JSON.stringify(updated));
     } catch {}
+    apiCreateGallery(createdItem).catch(err => console.warn('API create gallery warning:', err));
+
 
     setShowAddMedia(false);
     setCustomNewMediaCategory('');
@@ -1190,6 +1241,7 @@ export const AdminDashboard: React.FC<Props> = ({
     try {
       localStorage.setItem('danmaje_gallery', JSON.stringify(updated));
     } catch {}
+    apiDeleteGallery(id).catch(err => console.warn('API delete gallery warning:', err));
     setActivityLogs(prev => [{
       id: `log-${Date.now()}`,
       user: email,
@@ -1208,6 +1260,10 @@ export const AdminDashboard: React.FC<Props> = ({
     try {
       localStorage.setItem('danmaje_gallery', JSON.stringify(updated));
     } catch {}
+    const featured = updated.find(g => g.id === id);
+    if (featured) {
+      apiUpdateGallery(id, featured).catch(err => console.warn('API update gallery warning:', err));
+    }
     setActivityLogs(prev => [{
       id: `log-${Date.now()}`,
       user: email,
@@ -1216,6 +1272,7 @@ export const AdminDashboard: React.FC<Props> = ({
       role: adminRole
     }, ...prev]);
   };
+
 
   const handleResyncAllVideoThumbnails = () => {
     const sanitized = sanitizeGalleryList(gallery);
@@ -1510,6 +1567,19 @@ export const AdminDashboard: React.FC<Props> = ({
         </div>
 
         <div className="flex items-center space-x-2 sm:space-x-3">
+          {storageStatus && (
+            <div 
+              title={storageStatus.connected ? `Supabase Storage connected (${storageStatus.buckets?.length || 0} bucket(s) ready)` : storageStatus.message}
+              className={`hidden md:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[10px] font-black border uppercase tracking-wider ${
+                storageStatus.connected 
+                  ? 'bg-emerald-950/70 text-emerald-300 border-emerald-500/40 shadow-xs' 
+                  : 'bg-amber-950/70 text-amber-300 border-amber-500/40 shadow-xs'
+              }`}
+            >
+              <span className={`w-2 h-2 rounded-full ${storageStatus.connected ? 'bg-emerald-400 animate-pulse' : 'bg-amber-400'}`}></span>
+              <span>{storageStatus.connected ? 'SUPABASE STORAGE' : 'STORAGE LOCAL'}</span>
+            </div>
+          )}
           <button
             onClick={handleLogout}
             className="flex items-center gap-1.5 bg-rose-600/20 hover:bg-rose-600/30 text-rose-300 px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-xl text-xs font-bold border border-rose-500/30 transition cursor-pointer uppercase"

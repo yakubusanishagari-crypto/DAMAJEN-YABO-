@@ -255,3 +255,48 @@ export async function apiFetchPolls(): Promise<any[] | null> {
   }
   return null;
 }
+
+// ==================== STORAGE UPLOAD ====================
+export async function apiCheckStorageStatus(): Promise<any> {
+  return await fetchJson<any>('/storage/status');
+}
+
+export async function apiUploadFile(file: File | string, fileName?: string, bucket = 'uploads'): Promise<string> {
+  let fileData = '';
+  let name = fileName || 'upload.jpg';
+
+  if (typeof file === 'string') {
+    fileData = file;
+  } else {
+    name = file.name;
+    fileData = await new Promise<string>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onloadend = () => resolve(reader.result as string);
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+  }
+
+  const res = await fetch(`${API_BASE}/upload`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ fileName: name, fileData, bucket })
+  });
+
+  const data = await res.json().catch(() => ({}));
+
+  if (!res.ok || !data.success || !data.url) {
+    const errorMsg = data?.error || `Upload to Supabase Storage failed (Status ${res.status})`;
+    console.error('apiUploadFile failed:', errorMsg);
+    throw new Error(errorMsg);
+  }
+
+  // Strictly verify it's a real remote URL, never local fallback
+  if (data.url.startsWith('data:')) {
+    throw new Error('Supabase Storage did not return a remote URL. Upload unconfirmed.');
+  }
+
+  return data.url;
+}
+
+

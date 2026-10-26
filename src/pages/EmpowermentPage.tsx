@@ -9,6 +9,8 @@ import {
 import { Language, t, Translations } from '../utils/i18n';
 import { ApplicationSlipModal } from '../components/ApplicationSlipModal';
 import { ApplicationTracker } from '../components/ApplicationTracker';
+import { compressImageFile } from '../utils/imageCompressor';
+import { apiUploadFile } from '../utils/apiSync';
 
 interface Props {
   programs: EmpowermentProgram[];
@@ -183,18 +185,35 @@ export const EmpowermentPage: React.FC<Props> = ({
     }));
   };
 
-  const handlePassportPhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handlePassportPhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    const reader = new FileReader();
-    reader.onload = () => {
-      setFormData(prev => ({
-        ...prev,
-        passportPhoto: reader.result as string
-      }));
-    };
-    reader.readAsDataURL(file);
+    try {
+      const compressedDataUrl = await compressImageFile(file, 600, 600, 0.82);
+      try {
+        const permanentUrl = await apiUploadFile(compressedDataUrl, file.name);
+        setFormData(prev => ({
+          ...prev,
+          passportPhoto: permanentUrl
+        }));
+      } catch {
+        setFormData(prev => ({
+          ...prev,
+          passportPhoto: compressedDataUrl
+        }));
+      }
+    } catch {
+      const reader = new FileReader();
+      reader.onload = () => {
+        setFormData(prev => ({
+          ...prev,
+          passportPhoto: reader.result as string
+        }));
+      };
+      reader.readAsDataURL(file);
+    }
   };
+
 
   const handleUseSamplePassport = () => {
     const samplePassportDataUrl = 'data:image/svg+xml;utf8,' + encodeURIComponent(`
