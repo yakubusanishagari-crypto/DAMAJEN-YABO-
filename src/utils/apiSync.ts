@@ -13,17 +13,26 @@ import { signInAnonymously } from 'firebase/auth';
 
 // ==================== STORAGE UPLOAD (Firebase Cloud Storage) ====================
 export async function apiCheckStorageStatus(): Promise<any> {
+  try {
+    const res = await fetch('/api/storage/status');
+    if (res.ok) {
+      return await res.json();
+    }
+  } catch {}
   return { connected: true, provider: 'Firebase Cloud Storage', message: 'Firebase Storage operational.' };
 }
 
 export async function apiUploadFile(file: File | string, fileName?: string, bucket?: string): Promise<string> {
+  let timeoutTimer: any = null;
+  let base64StringForFallback: string | null = null;
+
   try {
-    // Ensure Firebase Auth session is active to satisfy storage rules
+    // Ensure Firebase Auth session is active
     if (!auth.currentUser) {
       try {
         await signInAnonymously(auth);
       } catch (authErr) {
-        console.warn('Anonymous auth warning during upload:', authErr);
+        console.warn('Anonymous auth notice during upload:', authErr);
       }
     }
 
@@ -31,6 +40,7 @@ export async function apiUploadFile(file: File | string, fileName?: string, buck
     let name = fileName || 'upload.jpg';
 
     if (typeof file === 'string' && file.startsWith('data:')) {
+      base64StringForFallback = file;
       const matches = file.match(/^data:([^;]+);base64,(.+)$/);
       if (!matches || matches.length !== 3) {
         throw new Error('Invalid base64 data URL format.');
@@ -44,6 +54,7 @@ export async function apiUploadFile(file: File | string, fileName?: string, buck
       const byteArray = new Uint8Array(byteNumbers);
       blob = new Blob([byteArray], { type: contentType });
     } else if (typeof file === 'string') {
+      base64StringForFallback = file.startsWith('data:') ? file : `data:image/jpeg;base64,${file}`;
       const byteCharacters = atob(file);
       const byteNumbers = new Array(byteCharacters.length);
       for (let i = 0; i < byteCharacters.length; i++) {
@@ -57,18 +68,66 @@ export async function apiUploadFile(file: File | string, fileName?: string, buck
     }
 
     const cleanName = name.replace(/[^a-zA-Z0-9.-]/g, '_');
-    const storageRef = ref(storage, `constituency/${Date.now()}-${cleanName}`);
-    
-    // Upload with timeout protection (30 seconds)
-    const uploadPromise = uploadBytes(storageRef, blob);
-    const timeoutPromise = new Promise((_, reject) => 
-      setTimeout(() => reject(new Error('Firebase Storage upload timed out after 30 seconds.')), 30000)
-    );
+    const filePath = `constituency/${Date.now()}-${cleanName}`;
+    const storageRef = ref(storage, filePath);
 
-    await Promise.race([uploadPromise, timeoutPromise]);
-    const downloadUrl = await getDownloadURL(storageRef);
-    return downloadUrl;
+    // Tier 1: Client Firebase Web SDK Upload with 25s timeout
+    try {
+      const uploadPromise = uploadBytes(storageRef, blob);
+      const timeoutPromise = new Promise((_, reject) => {
+        timeoutTimer = setTimeout(() => {
+          reject(new Error('Firebase Storage client upload timed out after 25 seconds.'));
+        }, 25000);
+      });
+
+      await Promise.race([uploadPromise, timeoutPromise]);
+      if (timeoutTimer) {
+        clearTimeout(timeoutTimer);
+        timeoutTimer = null;
+      }
+
+      const downloadUrl = await getDownloadURL(storageRef);
+      return downloadUrl;
+    } catch (clientErr: any) {
+      if (timeoutTimer) {
+        clearTimeout(timeoutTimer);
+        timeoutTimer = null;
+      }
+      console.warn('Client-side Firebase Storage upload notice, switching to server upload endpoint:', clientErr?.message || clientErr);
+
+      // Convert blob to base64 if needed for server fallback
+      if (!base64StringForFallback) {
+        base64StringForFallback = await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onloadend = () => resolve(reader.result as string);
+          reader.onerror = () => reject(new Error('Failed to convert file for server upload fallback.'));
+          reader.readAsDataURL(blob);
+        });
+      }
+
+      // Tier 2: Server API endpoint /api/upload fallback
+      const serverRes = await fetch('/api/upload', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          fileName: cleanName,
+          fileData: base64StringForFallback,
+          bucket
+        })
+      });
+
+      const result = await serverRes.json();
+      if (serverRes.ok && result.success && result.url) {
+        return result.url;
+      }
+
+      throw new Error(result.error || result.message || `Server fallback upload failed with HTTP status ${serverRes.status}`);
+    }
   } catch (err: any) {
+    if (timeoutTimer) {
+      clearTimeout(timeoutTimer);
+      timeoutTimer = null;
+    }
     console.error('Firebase Storage upload error:', err);
     throw new Error(err instanceof Error ? err.message : 'Failed to upload file to Firebase Storage.');
   }

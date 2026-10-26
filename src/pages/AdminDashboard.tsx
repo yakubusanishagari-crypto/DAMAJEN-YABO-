@@ -44,6 +44,9 @@ import {
   apiUpdateStats, apiCheckStorageStatus, apiUploadFile
 } from '../utils/apiSync';
 import { INITIAL_OFFICES, INITIAL_ADMIN_USERS } from '../data/initialData';
+import { auth } from '../utils/firebase';
+import { signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'firebase/auth';
+
 
 
 
@@ -528,11 +531,11 @@ export const AdminDashboard: React.FC<Props> = ({
         ...prev,
         images: [permanentUrl, ...prev.images.filter(img => !img.startsWith('data:'))]
       }));
-      setProjectSuccessNotice('Project photo confirmed and stored in Supabase Storage.');
+      setProjectSuccessNotice('Project photo confirmed and stored in Firebase Storage.');
       setTimeout(() => setProjectSuccessNotice(''), 4000);
     } catch (err: any) {
       console.error('Image upload error:', err);
-      alert(`Supabase Storage Upload Error: ${err.message || 'Failed to upload image. Please verify Supabase connection.'}`);
+      alert(`Firebase Storage Upload Error: ${err.message || 'Failed to upload image. Please verify Firebase connection.'}`);
     } finally {
       setIsCompressingProjImg(false);
     }
@@ -549,11 +552,11 @@ export const AdminDashboard: React.FC<Props> = ({
         ...prev,
         images: [permanentUrl, ...(prev.images ? prev.images.slice(1) : [])]
       } : null);
-      setProjectSuccessNotice('Project photo updated in Supabase Storage.');
+      setProjectSuccessNotice('Project photo updated in Firebase Storage.');
       setTimeout(() => setProjectSuccessNotice(''), 4000);
     } catch (err: any) {
       console.error('Image upload error:', err);
-      alert(`Supabase Storage Upload Error: ${err.message || 'Failed to upload image. Please verify Supabase connection.'}`);
+      alert(`Firebase Storage Upload Error: ${err.message || 'Failed to upload image. Please verify Firebase connection.'}`);
     } finally {
       setIsCompressingProjImg(false);
     }
@@ -670,11 +673,11 @@ export const AdminDashboard: React.FC<Props> = ({
       const permanentUrl = await apiUploadFile(compressedDataUrl, file.name);
       setNewsImagePreview(permanentUrl);
       setNewNews(prev => ({ ...prev, imageUrl: permanentUrl }));
-      setProjectSuccessNotice('News featured image confirmed and uploaded to Supabase Storage.');
+      setProjectSuccessNotice('News featured image confirmed and uploaded to Firebase Storage.');
       setTimeout(() => setProjectSuccessNotice(''), 4000);
     } catch (err: any) {
       console.error('News image upload error:', err);
-      alert(`Supabase Storage Upload Error: ${err.message || 'Failed to upload image. Please verify Supabase connection.'}`);
+      alert(`Firebase Storage Upload Error: ${err.message || 'Failed to upload image. Please verify Firebase connection.'}`);
       setNewsImagePreview('');
     } finally {
       setIsUploadingNewsImg(false);
@@ -1085,11 +1088,11 @@ export const AdminDashboard: React.FC<Props> = ({
         const permanentUrl = await apiUploadFile(compressedDataUrl, file.name);
         setUploadedImagePreview(permanentUrl);
         setNewMedia(prev => ({ ...prev, imageUrl: permanentUrl }));
-        setProjectSuccessNotice('Media photograph confirmed and uploaded to Supabase Storage.');
+        setProjectSuccessNotice('Media photograph confirmed and uploaded to Firebase Storage.');
         setTimeout(() => setProjectSuccessNotice(''), 4000);
       } catch (err: any) {
         console.error('Gallery image upload error:', err);
-        setUploadError(`Failed to upload to Supabase Storage: ${err.message || 'Network error'}`);
+        setUploadError(`Failed to upload to Firebase Storage: ${err.message || 'Network error'}`);
         setUploadedImagePreview('');
       } finally {
         setIsUploadingMediaImg(false);
@@ -1319,6 +1322,14 @@ export const AdminDashboard: React.FC<Props> = ({
         setLoginError(data.error || 'Authentication failed. Please verify your credentials.');
         setIsSubmittingLogin(false);
         return;
+      }
+
+      try {
+        await signInWithEmailAndPassword(auth, email.trim(), password);
+      } catch {
+        try {
+          await createUserWithEmailAndPassword(auth, email.trim(), password);
+        } catch {}
       }
 
       setAuthToken(data.token);

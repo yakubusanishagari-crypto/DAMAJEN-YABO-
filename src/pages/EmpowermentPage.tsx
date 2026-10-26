@@ -347,30 +347,33 @@ export const EmpowermentPage: React.FC<Props> = ({
     };
 
     try {
-      await fetch('/api/applications', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(newApplication)
-      });
-    } catch {
-      // Local fallback
-    }
+      try {
+        await fetch('/api/applications', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(newApplication)
+        });
+      } catch {
+        // Local fallback
+      }
 
-    try {
-      const stored = JSON.parse(localStorage.getItem('danmaje_applications') || '[]');
-      stored.unshift(newApplication);
-      localStorage.setItem('danmaje_applications', JSON.stringify(stored));
-      localStorage.removeItem('danmaje_app_draft');
-    } catch {
-      // Storage fallback
-    }
+      try {
+        const stored = JSON.parse(localStorage.getItem('danmaje_applications') || '[]');
+        stored.unshift(newApplication);
+        localStorage.setItem('danmaje_applications', JSON.stringify(stored));
+        localStorage.removeItem('danmaje_app_draft');
+      } catch {
+        // Storage fallback
+      }
 
-    setCreatedApplication(newApplication);
-    setShowSlipModal(true);
-    setFormData(initialForm);
-    setCurrentStep(1);
-    setSelectedProgram(null);
-    setSubmitting(false);
+      setCreatedApplication(newApplication);
+      setShowSlipModal(true);
+      setFormData(initialForm);
+      setCurrentStep(1);
+      setSelectedProgram(null);
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const isRtl = currentLang === 'ar';

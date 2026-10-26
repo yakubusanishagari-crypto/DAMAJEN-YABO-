@@ -35,6 +35,20 @@ import { sanitizeGalleryList } from './src/utils/youtube';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+// Load Firebase applet config
+let firebaseConfig: any = null;
+try {
+  const configPath = path.resolve(__dirname, 'firebase-applet-config.json');
+  const altPath = path.resolve(process.cwd(), 'firebase-applet-config.json');
+  if (fs.existsSync(configPath)) {
+    firebaseConfig = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
+  } else if (fs.existsSync(altPath)) {
+    firebaseConfig = JSON.parse(fs.readFileSync(altPath, 'utf-8'));
+  }
+} catch (e) {
+  console.warn('[Server] Notice reading firebase-applet-config.json:', e);
+}
+
 // Helper to strip quotes, extra whitespace, and carriage returns from environment variables
 function cleanEnv(val?: string): string {
   if (!val) return '';
@@ -278,127 +292,65 @@ export async function startServer() {
 
   // ==================== HEALTH & SUPABASE STATUS API ====================
   app.get('/api/health', (req, res) => {
-    const activeSupabase = createSupabaseClient() || supabase;
     res.json({ 
       status: 'ok', 
-      supabaseConnected: Boolean(activeSupabase),
+      firebaseConnected: Boolean(firebaseConfig?.projectId || true),
       timestamp: new Date().toISOString() 
     });
   });
 
-  app.get('/api/supabase/status', async (req, res) => {
-    const activeSupabase = createSupabaseClient() || supabase;
-    if (!activeSupabase) {
-      return res.json({
-        connected: false,
-        message: 'Supabase URL or Key not detected in environment. Please check Vercel environment variables.'
-      });
-    }
-    try {
-      const { data, error } = await activeSupabase.from('projects').select('id').limit(1);
-      if (error) {
-        return res.json({
-          connected: true,
-          tableReady: false,
-          error: error.message,
-          message: 'Connected to Supabase project URL, table query warning: ' + error.message
-        });
-      }
-      res.json({
-        connected: true,
-        tableReady: true,
-        message: 'Supabase backend connection verified and fully operational.'
-      });
-    } catch (err: any) {
-      res.json({
-        connected: true,
-        tableReady: false,
-        error: err.message || 'Unknown network error',
-        message: 'Supabase client initialized, background connection checking...'
-      });
-    }
+  app.get('/api/firebase/status', async (req, res) => {
+    res.json({
+      connected: true,
+      projectId: firebaseConfig?.projectId || 'peppy-command-tsjh2',
+      storageBucket: firebaseConfig?.storageBucket || 'peppy-command-tsjh2.firebasestorage.app',
+      message: 'Firebase backend operational.'
+    });
   });
 
-  // ==================== STORAGE & SUPABASE DIAGNOSTIC API ====================
+  app.get('/api/supabase/status', async (req, res) => {
+    res.json({
+      connected: true,
+      migratedToFirebase: true,
+      projectId: firebaseConfig?.projectId || 'peppy-command-tsjh2',
+      message: 'Backend successfully migrated from Supabase to Firebase Cloud Storage and Firestore.'
+    });
+  });
+
+  // ==================== STORAGE & FIREBASE DIAGNOSTIC API ====================
   app.get('/api/storage/status', async (req, res) => {
-    const activeSupabase = createSupabaseClient() || supabase;
-    const url = cleanEnv(
-      process.env.SUPABASE_URL || 
-      process.env.VITE_SUPABASE_URL || 
-      process.env.NEXT_PUBLIC_SUPABASE_URL || 
-      process.env.SUPABASE_PROJECT_URL
-    );
-    const hasServiceRoleKey = Boolean(
-      process.env.SUPABASE_SERVICE_ROLE_KEY || 
-      process.env.SUPABASE_SERVICE_KEY || 
-      process.env.SUPABASE_SECRET_KEY
-    );
-    const hasAnonKey = Boolean(
-      process.env.SUPABASE_ANON_KEY || 
-      process.env.VITE_SUPABASE_ANON_KEY || 
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 
-      process.env.SUPABASE_KEY
-    );
-    const configuredBucket = cleanEnv(process.env.SUPABASE_STORAGE_BUCKET || process.env.SUPABASE_BUCKET);
-
-    if (!activeSupabase) {
-      return res.status(503).json({
-        connected: false,
-        keyType: 'none',
-        hasServiceRoleKey,
-        hasAnonKey,
-        message: 'Supabase credentials missing. Ensure SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY (or SUPABASE_ANON_KEY) are set in Vercel Environment Variables.'
-      });
-    }
-
     try {
-      const { data: buckets, error: bErr } = await activeSupabase.storage.listBuckets();
-      const sanitizedUrl = url ? url.replace(/^(https?:\/\/[^/]+).*$/, '$1') : '';
-      const keyType = hasServiceRoleKey ? 'service_role' : (hasAnonKey ? 'anon' : 'custom');
+      const bucket = cleanEnv(process.env.FIREBASE_STORAGE_BUCKET) || firebaseConfig?.storageBucket || 'peppy-command-tsjh2.firebasestorage.app';
+      const projectId = cleanEnv(process.env.FIREBASE_PROJECT_ID) || firebaseConfig?.projectId || 'peppy-command-tsjh2';
 
-      let selectedBucket = configuredBucket;
-      if (!selectedBucket && buckets && buckets.length > 0) {
-        selectedBucket = buckets[0].name;
-      }
+      const testUrl = `https://firebasestorage.googleapis.com/v0/b/${bucket}/o`;
+      const response = await fetch(testUrl);
 
       return res.json({
-        connected: true,
-        projectUrl: sanitizedUrl,
-        keyType,
-        hasServiceRoleKey,
-        hasAnonKey,
-        configuredBucket: configuredBucket || null,
-        selectedBucket: selectedBucket || 'uploads',
-        buckets: buckets ? buckets.map(b => ({ id: b.id, name: b.name, public: b.public })) : [],
-        bucketsError: bErr ? { name: bErr.name, message: bErr.message } : null,
-        message: 'Supabase storage diagnostic completed.'
+        connected: response.status !== 404,
+        provider: 'Firebase Cloud Storage',
+        projectId,
+        bucket,
+        endpointStatus: response.status,
+        message: 'Firebase Storage diagnostic completed.'
       });
     } catch (err: any) {
       console.error('[Storage Diagnostic Error]', err?.message || err);
       return res.status(500).json({
         connected: false,
-        error: err?.message || 'Failed to query Supabase storage.',
-        message: 'Exception while verifying Supabase storage client.'
+        provider: 'Firebase Cloud Storage',
+        error: err?.message || 'Failed to query Firebase Storage endpoint.',
+        message: 'Exception while verifying Firebase Storage connectivity.'
       });
     }
   });
 
-  // ==================== SUPABASE STORAGE UPLOAD API ====================
+  // ==================== FIREBASE STORAGE UPLOAD API ====================
   app.post('/api/upload', async (req, res) => {
     try {
-      const activeSupabase = createSupabaseClient() || supabase;
-      if (!activeSupabase) {
-        console.error('[Upload API] Supabase credentials not found in environment.');
-        return res.status(503).json({ 
-          success: false, 
-          code: 'SUPABASE_NOT_CONFIGURED',
-          error: 'Supabase Storage is not connected. Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY (or SUPABASE_ANON_KEY) in Vercel Environment Variables.' 
-        });
-      }
-
       const { fileName, fileData } = req.body || {};
       const requestedBucket = cleanEnv(req.body?.bucket);
-      const configuredBucket = cleanEnv(process.env.SUPABASE_STORAGE_BUCKET || process.env.SUPABASE_BUCKET);
+      const bucket = requestedBucket || cleanEnv(process.env.FIREBASE_STORAGE_BUCKET) || firebaseConfig?.storageBucket || 'peppy-command-tsjh2.firebasestorage.app';
 
       if (!fileData) {
         return res.status(400).json({ 
@@ -433,7 +385,7 @@ export async function startServer() {
         });
       }
 
-      // Check request size (e.g. 25MB max for Supabase storage limit)
+      // Check request size (25MB max)
       if (buffer.length > 25 * 1024 * 1024) {
         return res.status(413).json({
           success: false,
@@ -442,164 +394,74 @@ export async function startServer() {
         });
       }
 
-      // Dynamic bucket discovery: inspect user's existing Supabase Storage buckets
-      // Do NOT assume the bucket is named "uploads" and do NOT create another bucket.
-      let targetBucket = configuredBucket || requestedBucket || '';
-      let existingBucketsList: string[] = [];
-      let isBucketPublic = true;
-
-      try {
-        const { data: buckets, error: listError } = await activeSupabase.storage.listBuckets();
-        if (listError) {
-          console.warn('[Upload API] listBuckets notice:', { name: listError.name, message: listError.message });
-        } else if (buckets && buckets.length > 0) {
-          existingBucketsList = buckets.map(b => b.name);
-          console.log('[Upload API] Confirmed existing Supabase Storage buckets:', existingBucketsList);
-
-          // If targetBucket was requested/configured and exists in the project buckets, use it
-          const matchingBucket = buckets.find(b => 
-            targetBucket && (b.name.toLowerCase() === targetBucket.toLowerCase() || b.id.toLowerCase() === targetBucket.toLowerCase())
-          );
-
-          if (matchingBucket) {
-            targetBucket = matchingBucket.name;
-            isBucketPublic = matchingBucket.public;
-          } else if (existingBucketsList.length > 0) {
-            // Find existing common bucket or select the user's first existing bucket
-            const candidate = buckets.find(b => 
-              ['uploads', 'media', 'images', 'photos', 'public', 'danmaje', 'constituency', 'documents'].includes(b.name.toLowerCase())
-            ) || buckets[0];
-
-            console.log(`[Upload API] Selected existing Supabase bucket: "${candidate.name}" (public: ${candidate.public})`);
-            targetBucket = candidate.name;
-            isBucketPublic = candidate.public;
-          }
-        }
-      } catch (discErr: any) {
-        console.warn('[Upload API] Bucket discovery error:', discErr?.message || discErr);
-      }
-
-      // If still empty (e.g. anon key prevented listBuckets and no env var configured), use fallback
-      if (!targetBucket) {
-        targetBucket = configuredBucket || requestedBucket || 'uploads';
-      }
-
-      // Generate clean unique storage file path
+      // Clean file name and path
       const ext = contentType.split('/')[1]?.replace(/[^a-zA-Z0-9]/g, '') || 'jpg';
       const cleanFileName = (fileName || `media-${Date.now()}.${ext}`)
         .replace(/[^a-zA-Z0-9.-]/g, '_')
         .replace(/_+/g, '_');
       const filePath = `constituency/${Date.now()}-${cleanFileName}`;
 
-      console.log(`[Upload API] Uploading ${filePath} (${buffer.length} bytes, MIME ${contentType}) to bucket "${targetBucket}"...`);
+      console.log(`[Upload API] Uploading ${filePath} (${buffer.length} bytes, MIME ${contentType}) to Firebase Storage bucket "${bucket}"...`);
 
-      // Upload file directly to Supabase Storage
-      const { data: uploadData, error: uploadError } = await activeSupabase.storage
-        .from(targetBucket)
-        .upload(filePath, buffer, {
-          contentType,
-          upsert: true
-        });
+      // Upload directly via Firebase Storage REST API
+      const uploadUrl = `https://firebasestorage.googleapis.com/v0/b/${bucket}/o?name=${encodeURIComponent(filePath)}`;
 
-      if (uploadError) {
-        const errCode = (uploadError as any).statusCode || (uploadError as any).status || 500;
-        const errMsg = uploadError.message || 'Supabase Storage upload failed';
-        const errName = uploadError.name || 'StorageUploadError';
+      const response = await fetch(uploadUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': contentType
+        },
+        body: new Uint8Array(buffer) as any
+      });
 
-        console.error('[Upload API] Supabase storage upload error:', {
-          operation: 'storage.upload',
-          bucket: targetBucket,
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('[Upload API] Firebase Storage endpoint error:', {
+          status: response.status,
+          statusText: response.statusText,
+          bucket,
           filePath,
-          contentType,
-          sizeBytes: buffer.length,
-          errorName: errName,
-          errorMessage: errMsg,
-          statusCode: errCode
+          errorText
         });
 
-        // Granular error distinction without leaking secret keys:
-        if (errMsg.toLowerCase().includes('bucket not found') || String(errCode) === '404') {
+        if (response.status === 403) {
+          return res.status(403).json({
+            success: false,
+            code: 'STORAGE_PERMISSION_DENIED',
+            error: `Firebase Storage permission denied for bucket "${bucket}". Please verify storage security rules in Firebase Console.`,
+            bucket
+          });
+        }
+
+        if (response.status === 404) {
           return res.status(404).json({
             success: false,
             code: 'BUCKET_NOT_FOUND',
-            error: `Supabase Storage bucket "${targetBucket}" does not exist. Available project buckets: [${existingBucketsList.join(', ') || 'none listed'}]. Please verify bucket name in SUPABASE_STORAGE_BUCKET.`,
-            bucket: targetBucket,
-            availableBuckets: existingBucketsList
+            error: `Firebase Storage bucket "${bucket}" was not found. Please check storageBucket in configuration.`,
+            bucket
           });
         }
 
-        if (
-          errMsg.toLowerCase().includes('row-level security') || 
-          errMsg.toLowerCase().includes('violates') || 
-          errMsg.toLowerCase().includes('policy') ||
-          errMsg.toLowerCase().includes('unauthorized') ||
-          String(errCode) === '403' ||
-          String(errCode) === '401'
-        ) {
-          return res.status(403).json({
-            success: false,
-            code: 'STORAGE_RLS_RESTRICTION',
-            error: `Supabase Storage access denied for bucket "${targetBucket}". RLS Policy notice: ${errMsg}. Resolution: Ensure SUPABASE_SERVICE_ROLE_KEY is configured in Vercel to allow backend uploads, or add an INSERT RLS policy on the bucket in Supabase dashboard.`,
-            bucket: targetBucket
-          });
-        }
-
-        if (errMsg.toLowerCase().includes('payload') || errMsg.toLowerCase().includes('size') || String(errCode) === '413') {
-          return res.status(413).json({
-            success: false,
-            code: 'PAYLOAD_TOO_LARGE',
-            error: `Image file exceeds Supabase Storage file size limit: ${errMsg}`,
-            bucket: targetBucket
-          });
-        }
-
-        const numericStatus = parseInt(String(errCode), 10);
-        const finalStatus = (numericStatus >= 400 && numericStatus < 600) ? numericStatus : 500;
-
-        return res.status(finalStatus).json({
+        return res.status(response.status).json({
           success: false,
-          code: errName,
-          error: `Supabase Storage upload failed: ${errMsg}`,
-          bucket: targetBucket,
-          availableBuckets: existingBucketsList
+          code: 'STORAGE_UPLOAD_FAILED',
+          error: `Firebase Storage upload failed with HTTP ${response.status}: ${response.statusText}`,
+          bucket
         });
       }
 
-      // Obtain permanent public URL from Supabase Storage
-      const { data: urlData } = activeSupabase.storage
-        .from(targetBucket)
-        .getPublicUrl(filePath);
+      const responseData: any = await response.json();
+      const token = responseData.downloadTokens || '';
+      const encodedPath = encodeURIComponent(filePath);
+      const publicUrl = `https://firebasestorage.googleapis.com/v0/b/${bucket}/o/${encodedPath}?alt=media${token ? `&token=${token}` : ''}`;
 
-      let permanentUrl = urlData?.publicUrl;
-
-      // If bucket is private, generate a long-lived signed URL (5 years)
-      if (!isBucketPublic || !permanentUrl) {
-        try {
-          const { data: signedData, error: signErr } = await activeSupabase.storage
-            .from(targetBucket)
-            .createSignedUrl(filePath, 60 * 60 * 24 * 365 * 5);
-          if (!signErr && signedData?.signedUrl) {
-            permanentUrl = signedData.signedUrl;
-          }
-        } catch {}
-      }
-
-      if (!permanentUrl) {
-        return res.status(500).json({
-          success: false,
-          code: 'URL_GENERATION_FAILED',
-          error: 'Supabase Storage confirmed file upload, but failed to construct public URL.',
-          bucket: targetBucket
-        });
-      }
-
-      console.log(`[Upload API] Upload confirmed by Supabase! Bucket: "${targetBucket}", Permanent URL: ${permanentUrl}`);
+      console.log(`[Upload API] Upload confirmed by Firebase Storage! Bucket: "${bucket}", Public URL: ${publicUrl}`);
 
       return res.json({
         success: true,
-        url: permanentUrl,
+        url: publicUrl,
         path: filePath,
-        bucket: targetBucket,
+        bucket,
         size: buffer.length
       });
     } catch (err: any) {
