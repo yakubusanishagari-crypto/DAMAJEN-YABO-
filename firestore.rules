@@ -88,5 +88,32 @@ service cloud.firestore {
     match /adminUsers/{userId} {
       allow read, write: if isAdmin() || request.auth.uid == userId;
     }
+
+    // Storage Files Metadata: Public read for public files, admin read/write
+    match /storageFiles/{fileId} {
+      allow read: if resource.data.visibility == 'Public' || isAdmin();
+      allow create, update, delete: if isAdmin();
+    }
+
+    // Recycle Bin: Admin only
+    match /recycleBin/{itemId} {
+      allow read, write: if isAdmin();
+    }
+
+    // File Versions: Admin only
+    match /fileVersions/{versionId} {
+      allow read, write: if isAdmin();
+    }
+
+    // Backups: Admin only
+    match /backups/{backupId} {
+      allow read, write: if isAdmin();
+    }
+
+    // Audit Logs: Admin read/create (immutable - no update or delete)
+    match /auditLogs/{logId} {
+      allow read, create: if isAdmin();
+      allow update, delete: if false;
+    }
   }
 }

@@ -15,7 +15,7 @@ import {
   Clock, Printer, ExternalLink, FileCheck, Star, Sparkles, RefreshCw, Menu,
   Send, Calendar, MapPin, Sliders, ChevronDown, Landmark, Smartphone, Monitor, Laptop,
   Tablet, Compass, CheckSquare, BarChart2, Share2, Copy, User, Camera, ExternalLink as ExtLink,
-  Building2, Key, Power, ShieldCheck
+  Building2, Key, Power, ShieldCheck, HardDrive
 } from 'lucide-react';
 import { ApplicationSlipModal } from '../components/ApplicationSlipModal';
 import { CongratulationOfferModal } from '../components/CongratulationOfferModal';
@@ -23,6 +23,7 @@ import { ElectionTab } from '../components/ElectionTab';
 import { AdminTownHallTab } from '../components/AdminTownHallTab';
 import { AdminPetitionsTab } from '../components/AdminPetitionsTab';
 import { AdminOfficesTab } from '../components/AdminOfficesTab';
+import { AdminStorageTab } from '../components/AdminStorageTab';
 import { YouTubeDownloadModal } from '../components/YouTubeDownloadModal';
 import { 
   extractYouTubeId, 
@@ -92,6 +93,7 @@ export type DashboardTab =
   | 'petitions'
   | 'enquiries' 
   | 'election'
+  | 'storage'
   | 'offices'
   | 'settings';
 
@@ -1396,8 +1398,9 @@ export const AdminDashboard: React.FC<Props> = ({
     { id: 'petitions', label: '10. COMMUNITY PETITIONS', icon: FileCheck, count: petitions.length },
     { id: 'enquiries', label: '11. ENQUIRIES', icon: Mail, count: contacts.length },
     { id: 'election', label: '12. ELECTION RESULTS & AGENTS', icon: CheckSquare },
-    { id: 'offices', label: '13. OFFICES & ACCESS CONTROL', icon: Building2, count: offices.length },
-    { id: 'settings', label: '14. USER SETTINGS', icon: Settings },
+    { id: 'storage', label: '13. DANMAJE INTERNAL STORAGE', icon: HardDrive },
+    { id: 'offices', label: '14. OFFICES & ACCESS CONTROL', icon: Building2, count: offices.length },
+    { id: 'settings', label: '15. USER SETTINGS', icon: Settings },
   ];
 
   // RBAC Filter: If office administrator, show only authorized modules for their bureau
@@ -4914,12 +4917,33 @@ export const AdminDashboard: React.FC<Props> = ({
               agents={agents} 
               setAgents={setAgents} 
               electionReports={electionReports} 
-              setElectionReports={setElectionReports} 
+              setElectionReports={setElectionReports}
             />
           )}
 
           {/* ========================================================
-               TAB 13: OFFICES & ACCESS CONTROL (MULTI-BUREAU RBAC)
+               TAB 13: DANMAJE INTERNAL STORAGE & DATA PROTECTION
+              ======================================================== */}
+          {activeTab === 'storage' && (
+            <AdminStorageTab
+              adminEmail={email}
+              adminRole={adminRole}
+              projectsCount={projects.length}
+              newsCount={news.length}
+              programsCount={programs.length}
+              applicationsCount={applications.length}
+              legislativeCount={legislative.length}
+              galleryCount={gallery.length}
+              contactsCount={contacts.length}
+              petitionsCount={petitions.length}
+              pollsCount={polls.length}
+              officesCount={offices.length}
+              adminUsersCount={adminUsers.length}
+            />
+          )}
+
+          {/* ========================================================
+               TAB 14: OFFICES & ACCESS CONTROL (MULTI-BUREAU RBAC)
               ======================================================== */}
           {activeTab === 'offices' && (
             <AdminOfficesTab

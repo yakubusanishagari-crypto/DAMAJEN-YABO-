@@ -413,3 +413,113 @@ export interface AdminUser {
   lastLogin?: string;
 }
 
+// ==================== DANMAJE INTERNAL STORAGE SYSTEM TYPES ====================
+
+export interface StorageFileMetadata {
+  id: string;
+  originalFilename: string;
+  storagePath: string;
+  publicUrl: string;
+  mimeType: string;
+  fileSize: number;
+  fileSizeFormatted: string;
+  uploadTimestamp: string;
+  uploaderIdentity: string;
+  associatedModule: 'Projects' | 'News' | 'Gallery' | 'Empowerment' | 'Legislative' | 'Applications' | 'System' | string;
+  associatedDocId?: string;
+  visibility: 'Public' | 'Restricted' | 'Private';
+  integrityChecksum?: string;
+  version: number;
+  previousVersionPath?: string;
+  isDeleted?: boolean;
+  deletedAt?: string;
+  deletedBy?: string;
+}
+
+export interface StorageFolder {
+  id: string;
+  name: string;
+  path: string;
+  parentPath?: string;
+  module: string;
+  fileCount: number;
+  totalSizeBytes: number;
+  createdAt: string;
+  createdBy: string;
+}
+
+export interface RecycleBinItem {
+  id: string;
+  entityId: string;
+  entityType: 'file' | 'project' | 'news' | 'gallery' | 'program' | 'application' | 'legislative' | 'petition' | 'poll';
+  title: string;
+  storagePath?: string;
+  originalModule: string;
+  deletedAt: string;
+  deletedBy: string;
+  autoPurgeDate: string;
+  dataPayload: any;
+}
+
+export interface FileVersionRecord {
+  id: string;
+  fileId: string;
+  versionNumber: number;
+  filename: string;
+  storagePath: string;
+  publicUrl: string;
+  fileSize: number;
+  mimeType: string;
+  uploadedAt: string;
+  uploadedBy: string;
+  changeNote?: string;
+}
+
+export interface BackupRecord {
+  id: string;
+  backupName: string;
+  backupType: 'DATABASE_FULL' | 'FILES_MANIFEST' | 'COMPLETE_DISASTER_RECOVERY';
+  timestamp: string;
+  createdBy: string;
+  status: 'COMPLETED' | 'IN_PROGRESS' | 'FAILED';
+  totalCollections: number;
+  totalRecords: number;
+  totalFiles: number;
+  totalSizeBytes: number;
+  formattedSize: string;
+  checksum: string;
+  downloadUrl?: string;
+  metadataSnapshot: any;
+  notes?: string;
+}
+
+export interface ActivityAuditLog {
+  id: string;
+  timestamp: string;
+  user: string;
+  userRole: string;
+  action: 'UPLOAD' | 'DELETE' | 'RESTORE' | 'PERMANENT_DELETE' | 'BACKUP_CREATED' | 'RESTORE_EXECUTED' | 'ROLE_CHANGE' | 'SETTINGS_CHANGE' | 'SECURITY_ALERT';
+  targetModule: string;
+  targetId?: string;
+  details: string;
+  ipAddress?: string;
+  status: 'SUCCESS' | 'WARNING' | 'FAILED';
+}
+
+export interface StorageHealthStatus {
+  firestoreConnected: boolean;
+  storageConnected: boolean;
+  projectId: string;
+  storageBucket: string;
+  endpointStatus: number;
+  lastSuccessfulBackup: string | null;
+  lastFailedOperation: string | null;
+  totalFilesCount: number;
+  totalStorageSizeBytes: number;
+  formattedTotalStorageSize: string;
+  integrityIssuesCount: number;
+  orphanedFilesCount: number;
+  checkedAt: string;
+}
+
+
