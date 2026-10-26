@@ -3,7 +3,8 @@ import {
   Database, HardDrive, Shield, ShieldCheck, FileText, Folder, RefreshCw, Upload, 
   Trash2, Download, CheckCircle, AlertTriangle, Eye, Lock, FileCheck, Layers, 
   BarChart3, Activity, Clock, Search, Filter, Plus, FileCode, Check, X, RotateCcw,
-  Sparkles, ShieldAlert, FilePlus, Server, Key, ChevronRight, AlertCircle, File, Image as ImageIcon, Video
+  Sparkles, ShieldAlert, FilePlus, Server, Key, ChevronRight, AlertCircle, File, Image as ImageIcon, Video,
+  Edit, Edit3, Move, Copy, ExternalLink, FolderPlus
 } from 'lucide-react';
 import { 
   StorageFileMetadata, StorageFolder, RecycleBinItem, FileVersionRecord, 
@@ -13,7 +14,9 @@ import {
   apiFetchStorageFiles, apiRegisterStorageFile, apiUpdateStorageFile, apiDeleteStorageFile,
   apiFetchRecycleBin, apiAddToRecycleBin, apiRestoreFromRecycleBin, apiPurgeFromRecycleBin,
   apiFetchBackups, apiCreateBackup, apiRestoreBackup,
-  apiFetchAuditLogs, apiLogAdminActivity, apiUploadFile, apiCheckStorageStatus
+  apiFetchAuditLogs, apiLogAdminActivity, apiUploadFile, apiCheckStorageStatus,
+  apiRenameStorageFile, apiMoveStorageFile, apiVerifyFileExistence, apiCheckDuplicateFile,
+  apiFetchFolders, apiCreateFolder, apiDeleteFolder
 } from '../utils/apiSync';
 
 interface Props {
@@ -106,6 +109,20 @@ export const AdminStorageTab: React.FC<Props> = ({
     checkedAt: new Date().toISOString()
   });
 
+  // Folders & Operations state
+  const [customFolders, setCustomFolders] = useState<StorageFolder[]>([]);
+  const [showNewFolderModal, setShowNewFolderModal] = useState<boolean>(false);
+  const [newFolderName, setNewFolderName] = useState<string>('');
+  const [newFolderModule, setNewFolderModule] = useState<string>('Projects');
+
+  // File Operations Modals
+  const [renameModalFile, setRenameModalFile] = useState<StorageFileMetadata | null>(null);
+  const [renameInput, setRenameInput] = useState<string>('');
+  const [moveModalFile, setMoveModalFile] = useState<StorageFileMetadata | null>(null);
+  const [moveInput, setMoveInput] = useState<string>('constituency/projects');
+  const [fileInspectorModal, setFileInspectorModal] = useState<StorageFileMetadata | null>(null);
+  const [duplicateNotice, setDuplicateNotice] = useState<string>('');
+
   // Direct File Upload modal
   const [showUploadModal, setShowUploadModal] = useState<boolean>(false);
   const [uploadFileObj, setUploadFileObj] = useState<File | null>(null);
@@ -177,7 +194,7 @@ export const AdminStorageTab: React.FC<Props> = ({
 
     try {
       setIsUploadingFile(true);
-      const downloadUrl = await apiUploadFile(
+      await apiUploadFile(
         uploadFileObj,
         uploadFileObj.name,
         undefined,
@@ -194,6 +211,55 @@ export const AdminStorageTab: React.FC<Props> = ({
       triggerNotice(`Upload error: ${err.message || 'Failed to upload file.'}`, true);
     } finally {
       setIsUploadingFile(false);
+    }
+  };
+
+  // Handle file rename
+  const handleExecuteRename = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!renameModalFile || !renameInput.trim()) return;
+
+    try {
+      await apiRenameStorageFile(renameModalFile.id, renameInput.trim());
+      triggerNotice(`File renamed to "${renameInput.trim()}".`);
+      setRenameModalFile(null);
+      setRenameInput('');
+      await loadStorageData();
+    } catch (err: any) {
+      triggerNotice(`Rename error: ${err.message}`, true);
+    }
+  };
+
+  // Handle file move
+  const handleExecuteMove = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!moveModalFile || !moveInput.trim()) return;
+
+    try {
+      await apiMoveStorageFile(moveModalFile.id, moveInput.trim());
+      triggerNotice(`File moved to path "${moveInput.trim()}".`);
+      setMoveModalFile(null);
+      setMoveInput('');
+      await loadStorageData();
+    } catch (err: any) {
+      triggerNotice(`Move error: ${err.message}`, true);
+    }
+  };
+
+  // Handle custom folder creation
+  const handleCreateFolder = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newFolderName.trim()) return;
+
+    try {
+      const folderPath = `constituency/${newFolderName.toLowerCase().replace(/[^a-z0-9]/g, '_')}`;
+      await apiCreateFolder(newFolderName.trim(), folderPath, newFolderModule);
+      triggerNotice(`Folder "${newFolderName.trim()}" created successfully at path /${folderPath}`);
+      setShowNewFolderModal(false);
+      setNewFolderName('');
+      await loadStorageData();
+    } catch (err: any) {
+      triggerNotice(`Folder error: ${err.message}`, true);
     }
   };
 
@@ -670,15 +736,42 @@ export const AdminStorageTab: React.FC<Props> = ({
                         </span>
                       </td>
                       <td className="p-3 text-slate-500">{new Date(file.uploadTimestamp).toLocaleDateString()}</td>
-                      <td className="p-3 text-right space-x-2">
+                      <td className="p-3 text-right space-x-1.5">
+                        <button
+                          onClick={() => setFileInspectorModal(file)}
+                          className="p-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded inline-block"
+                          title="Inspect File & Preview"
+                        >
+                          <Eye className="w-3.5 h-3.5" />
+                        </button>
+                        <button
+                          onClick={() => {
+                            setRenameModalFile(file);
+                            setRenameInput(file.originalFilename);
+                          }}
+                          className="p-1.5 bg-amber-50 hover:bg-amber-100 text-amber-700 rounded inline-block"
+                          title="Rename File"
+                        >
+                          <Edit3 className="w-3.5 h-3.5" />
+                        </button>
+                        <button
+                          onClick={() => {
+                            setMoveModalFile(file);
+                            setMoveInput(file.storagePath);
+                          }}
+                          className="p-1.5 bg-purple-50 hover:bg-purple-100 text-purple-700 rounded inline-block"
+                          title="Move Folder Path"
+                        >
+                          <Move className="w-3.5 h-3.5" />
+                        </button>
                         <a
                           href={file.publicUrl}
                           target="_blank"
                           rel="noreferrer"
                           className="p-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded inline-block"
-                          title="View / Download"
+                          title="Direct Download"
                         >
-                          <Eye className="w-3.5 h-3.5" />
+                          <Download className="w-3.5 h-3.5" />
                         </a>
                         <button
                           onClick={() => handleSoftDeleteFile(file)}
@@ -1185,6 +1278,176 @@ export const AdminStorageTab: React.FC<Props> = ({
               >
                 Permanently Purge
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Rename File Modal */}
+      {renameModalFile && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-xl max-w-sm w-full p-6 shadow-2xl space-y-4 border border-slate-200 animate-scale-up">
+            <div className="flex items-center justify-between pb-2 border-b border-slate-100">
+              <h3 className="text-sm font-bold text-slate-900 flex items-center space-x-2">
+                <Edit3 className="w-4 h-4 text-amber-600" />
+                <span>Rename File</span>
+              </h3>
+              <button onClick={() => setRenameModalFile(null)} className="text-slate-400 hover:text-slate-600">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            <form onSubmit={handleExecuteRename} className="space-y-3 text-xs">
+              <div>
+                <label className="block font-bold text-slate-700 mb-1">New Filename</label>
+                <input
+                  type="text"
+                  value={renameInput}
+                  onChange={(e) => setRenameInput(e.target.value)}
+                  className="w-full p-2 border border-slate-200 rounded-lg outline-none"
+                  required
+                />
+              </div>
+              <div className="flex justify-end space-x-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setRenameModalFile(null)}
+                  className="px-3 py-1.5 bg-slate-100 text-slate-700 font-semibold rounded-lg"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-3 py-1.5 bg-amber-600 text-white font-bold rounded-lg shadow-sm"
+                >
+                  Save Rename
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Move File Modal */}
+      {moveModalFile && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-xl max-w-sm w-full p-6 shadow-2xl space-y-4 border border-slate-200 animate-scale-up">
+            <div className="flex items-center justify-between pb-2 border-b border-slate-100">
+              <h3 className="text-sm font-bold text-slate-900 flex items-center space-x-2">
+                <Move className="w-4 h-4 text-purple-600" />
+                <span>Move Folder Path</span>
+              </h3>
+              <button onClick={() => setMoveModalFile(null)} className="text-slate-400 hover:text-slate-600">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            <form onSubmit={handleExecuteMove} className="space-y-3 text-xs">
+              <div>
+                <label className="block font-bold text-slate-700 mb-1">Destination Path</label>
+                <input
+                  type="text"
+                  value={moveInput}
+                  onChange={(e) => setMoveInput(e.target.value)}
+                  className="w-full p-2 border border-slate-200 rounded-lg outline-none font-mono"
+                  required
+                />
+              </div>
+              <div className="flex justify-end space-x-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setMoveModalFile(null)}
+                  className="px-3 py-1.5 bg-slate-100 text-slate-700 font-semibold rounded-lg"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-3 py-1.5 bg-purple-600 text-white font-bold rounded-lg shadow-sm"
+                >
+                  Confirm Move
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* File Inspector / Preview Modal */}
+      {fileInspectorModal && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-xl max-w-lg w-full p-6 shadow-2xl space-y-4 border border-slate-200 animate-scale-up">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+              <h3 className="text-base font-bold text-slate-900 flex items-center space-x-2">
+                <FileText className="w-5 h-5 text-[#103C2E]" />
+                <span className="truncate">{fileInspectorModal.originalFilename}</span>
+              </h3>
+              <button onClick={() => setFileInspectorModal(null)} className="text-slate-400 hover:text-slate-600">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Media Preview Box */}
+            <div className="bg-slate-900 rounded-lg p-3 flex items-center justify-center min-h-[180px] max-h-[260px] overflow-hidden">
+              {fileInspectorModal.mimeType?.startsWith('image/') ? (
+                <img
+                  src={fileInspectorModal.publicUrl}
+                  alt={fileInspectorModal.originalFilename}
+                  className="max-h-56 object-contain rounded"
+                />
+              ) : fileInspectorModal.mimeType?.startsWith('video/') ? (
+                <video
+                  src={fileInspectorModal.publicUrl}
+                  controls
+                  className="max-h-56 rounded"
+                />
+              ) : (
+                <div className="text-center text-slate-300 space-y-2">
+                  <File className="w-12 h-12 mx-auto text-slate-400" />
+                  <p className="text-xs font-semibold">{fileInspectorModal.mimeType}</p>
+                </div>
+              )}
+            </div>
+
+            {/* Metadata Card */}
+            <div className="grid grid-cols-2 gap-3 text-xs bg-slate-50 p-3 rounded-lg border border-slate-200">
+              <div>
+                <span className="text-slate-400 font-bold block">Size:</span>
+                <span className="font-semibold text-slate-800">{fileInspectorModal.fileSizeFormatted}</span>
+              </div>
+              <div>
+                <span className="text-slate-400 font-bold block">Module:</span>
+                <span className="font-semibold text-slate-800">{fileInspectorModal.associatedModule}</span>
+              </div>
+              <div>
+                <span className="text-slate-400 font-bold block">Visibility:</span>
+                <span className="font-semibold text-slate-800">{fileInspectorModal.visibility}</span>
+              </div>
+              <div>
+                <span className="text-slate-400 font-bold block">Uploader:</span>
+                <span className="font-semibold text-slate-800">{fileInspectorModal.uploaderIdentity}</span>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-between pt-2">
+              <button
+                onClick={() => {
+                  navigator.clipboard.writeText(fileInspectorModal.publicUrl);
+                  triggerNotice('Public URL copied to clipboard!');
+                }}
+                className="flex items-center space-x-1.5 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold rounded-lg text-xs"
+              >
+                <Copy className="w-3.5 h-3.5" />
+                <span>Copy URL</span>
+              </button>
+
+              <a
+                href={fileInspectorModal.publicUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="flex items-center space-x-1.5 px-4 py-2 bg-[#103C2E] hover:bg-[#0c2c22] text-white font-bold rounded-lg text-xs shadow-md"
+              >
+                <Download className="w-3.5 h-3.5" />
+                <span>Download File</span>
+              </a>
             </div>
           </div>
         </div>

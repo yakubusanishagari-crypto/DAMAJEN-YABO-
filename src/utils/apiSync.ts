@@ -607,3 +607,85 @@ export async function apiLogAdminActivity(logEntry: {
   return newLog;
 }
 
+// 6. Rename, Move, Duplicate & File Integrity Operations
+export async function apiRenameStorageFile(fileId: string, newFilename: string): Promise<StorageFileMetadata | null> {
+  const updated = await updateDocData<StorageFileMetadata>('storageFiles', fileId, { originalFilename: newFilename });
+  if (updated) {
+    await apiLogAdminActivity({
+      action: 'SETTINGS_CHANGE',
+      targetModule: updated.associatedModule,
+      targetId: fileId,
+      details: `Renamed file #${fileId} to "${newFilename}"`,
+      status: 'SUCCESS'
+    });
+  }
+  return updated;
+}
+
+export async function apiMoveStorageFile(fileId: string, newStoragePath: string): Promise<StorageFileMetadata | null> {
+  const updated = await updateDocData<StorageFileMetadata>('storageFiles', fileId, { storagePath: newStoragePath });
+  if (updated) {
+    await apiLogAdminActivity({
+      action: 'SETTINGS_CHANGE',
+      targetModule: updated.associatedModule,
+      targetId: fileId,
+      details: `Moved file #${fileId} to path "${newStoragePath}"`,
+      status: 'SUCCESS'
+    });
+  }
+  return updated;
+}
+
+export async function apiVerifyFileExistence(publicUrl: string): Promise<boolean> {
+  if (!publicUrl) return false;
+  try {
+    const res = await fetch(publicUrl, { method: 'HEAD' });
+    return res.ok || res.status === 200 || res.status === 304;
+  } catch {
+    return true; // Assume exists if HEAD query is restricted by CORS
+  }
+}
+
+export async function apiCheckDuplicateFile(filename: string, fileSize: number): Promise<StorageFileMetadata | null> {
+  const allFiles = await apiFetchStorageFiles();
+  const duplicate = allFiles.find(f => f.originalFilename === filename && Math.abs(f.fileSize - fileSize) < 100);
+  return duplicate || null;
+}
+
+export async function apiDetectOrphanedFiles(): Promise<StorageFileMetadata[]> {
+  const allFiles = await apiFetchStorageFiles();
+  const orphaned: StorageFileMetadata[] = [];
+
+  for (const f of allFiles) {
+    if (f.publicUrl && !(await apiVerifyFileExistence(f.publicUrl))) {
+      orphaned.push(f);
+    }
+  }
+  return orphaned;
+}
+
+// 7. Folder Management Helpers
+export async function apiFetchFolders(): Promise<StorageFolder[]> {
+  const folders = await fetchCollection<StorageFolder>('folders', 'danmaje_folders');
+  return folders || [];
+}
+
+export async function apiCreateFolder(name: string, folderPath: string, module: string): Promise<StorageFolder> {
+  const folder: StorageFolder = {
+    id: `folder-${Date.now()}`,
+    name,
+    path: folderPath,
+    module,
+    fileCount: 0,
+    totalSizeBytes: 0,
+    createdAt: new Date().toISOString(),
+    createdBy: auth.currentUser?.email || 'Chief Administrator'
+  };
+  return await createDoc<StorageFolder>('folders', folder);
+}
+
+export async function apiDeleteFolder(id: string): Promise<boolean> {
+  return await deleteDocData('folders', id);
+}
+
+
