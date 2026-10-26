@@ -261,7 +261,7 @@ export async function apiCheckStorageStatus(): Promise<any> {
   return await fetchJson<any>('/storage/status');
 }
 
-export async function apiUploadFile(file: File | string, fileName?: string, bucket = 'uploads'): Promise<string> {
+export async function apiUploadFile(file: File | string, fileName?: string, bucket?: string): Promise<string> {
   let fileData = '';
   let name = fileName || 'upload.jpg';
 
@@ -277,17 +277,22 @@ export async function apiUploadFile(file: File | string, fileName?: string, buck
     });
   }
 
+  const payload: any = { fileName: name, fileData };
+  if (bucket && bucket.trim()) {
+    payload.bucket = bucket.trim();
+  }
+
   const res = await fetch(`${API_BASE}/upload`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ fileName: name, fileData, bucket })
+    body: JSON.stringify(payload)
   });
 
   const data = await res.json().catch(() => ({}));
 
   if (!res.ok || !data.success || !data.url) {
-    const errorMsg = data?.error || `Upload to Supabase Storage failed (Status ${res.status})`;
-    console.error('apiUploadFile failed:', errorMsg);
+    const errorMsg = data?.error || (data?.message ? `${data.message}` : `Supabase Storage upload failed with HTTP status ${res.status}`);
+    console.error('[Upload Error from API]', { status: res.status, code: data?.code, error: errorMsg, bucket: data?.bucket });
     throw new Error(errorMsg);
   }
 

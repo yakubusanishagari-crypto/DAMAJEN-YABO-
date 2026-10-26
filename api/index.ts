@@ -1,12 +1,23 @@
 import { startServer } from '../server';
-import serverless from 'serverless-http';
 
-let handler: any;
+let appPromise: Promise<any> | null = null;
 
-export default async (req: any, res: any) => {
-  if (!handler) {
-    const app = await startServer();
-    handler = serverless(app);
+export default async function handler(req: any, res: any) {
+  try {
+    if (!appPromise) {
+      appPromise = startServer();
+    }
+    const app = await appPromise;
+    return app(req, res);
+  } catch (err: any) {
+    console.error('[Vercel API Handler Error]', err?.message || err);
+    if (!res.headersSent) {
+      res.statusCode = 500;
+      res.setHeader('Content-Type', 'application/json');
+      res.end(JSON.stringify({ 
+        success: false, 
+        error: `Server initialization error: ${err?.message || 'Internal server error'}` 
+      }));
+    }
   }
-  return handler(req, res);
-};
+}
