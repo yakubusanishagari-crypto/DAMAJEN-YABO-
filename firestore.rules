@@ -1,0 +1,92 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return isSignedIn() && (
+        request.auth.token.email == 'admin@danmayeyabo.gov.ng' ||
+        (exists(/databases/$(database)/documents/adminUsers/$(request.auth.uid)) &&
+         get(/databases/$(database)/documents/adminUsers/$(request.auth.uid)).data.isActive == true)
+      );
+    }
+
+    // Default deny catch-all
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Projects: Public read, admin write
+    match /projects/{projectId} {
+      allow read: if true;
+      allow create, update, delete: if isAdmin();
+    }
+
+    // News: Public read, admin write
+    match /news/{newsId} {
+      allow read: if true;
+      allow create, update, delete: if isAdmin();
+    }
+
+    // Programs: Public read, admin write
+    match /programs/{programId} {
+      allow read: if true;
+      allow create, update, delete: if isAdmin();
+    }
+
+    // Legislative: Public read, admin write
+    match /legislative/{recordId} {
+      allow read: if true;
+      allow create, update, delete: if isAdmin();
+    }
+
+    // Gallery: Public read, admin write
+    match /gallery/{galleryId} {
+      allow read: if true;
+      allow create, update, delete: if isAdmin();
+    }
+
+    // Contacts: Anyone can create inquiry, admin can read/update/delete
+    match /contacts/{contactId} {
+      allow create: if request.resource.data.name is string && request.resource.data.email is string;
+      allow read, update, delete: if isAdmin();
+    }
+
+    // Applications: Citizens can create applications, admin can read/update
+    match /applications/{appId} {
+      allow create: if request.resource.data.applicantName is string && request.resource.data.email is string;
+      allow read, update, delete: if isAdmin() || (isSignedIn() && resource.data.email == request.auth.token.email);
+    }
+
+    // Polls: Public read, anyone can vote (update voters/options), admin create/delete
+    match /polls/{pollId} {
+      allow read: if true;
+      allow create, delete: if isAdmin();
+      allow update: if true;
+    }
+
+    // Petitions: Public read/create, admin update/delete
+    match /petitions/{petitionId} {
+      allow read, create: if true;
+      allow update, delete: if isAdmin();
+    }
+
+    // Offices: Public read, admin write
+    match /offices/{officeId} {
+      allow read: if true;
+      allow create, update, delete: if isAdmin();
+    }
+
+    // Admin Users: Admin only
+    match /adminUsers/{userId} {
+      allow read, write: if isAdmin() || request.auth.uid == userId;
+    }
+  }
+}
