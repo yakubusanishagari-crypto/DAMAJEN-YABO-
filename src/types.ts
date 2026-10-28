@@ -10,7 +10,7 @@ export interface ProjectUpdate {
 export interface Project {
   id: string;
   title: string;
-  category: 'Roads & Infrastructure' | 'Education' | 'Healthcare' | 'Water & Sanitation' | 'Youth Development' | 'Women Empowerment' | 'Agriculture' | 'Community Facilities' | string;
+  category: 'Roads & Infrastructure' | 'Education' | 'Healthcare' | 'Water & Sanitation' | 'Youth Development' | 'Women Empowerment' | 'Agriculture' | 'Community Facilities';
   location: string;
   status: ProjectStatus;
   description: string;
@@ -27,35 +27,18 @@ export interface Project {
   isFeatured?: boolean;
 }
 
-export type LegislativeStatus = 
-  | 'Proposed' 
-  | 'Under Review' 
-  | 'Approved' 
-  | 'Rejected' 
-  | 'Passed' 
-  | 'First Reading' 
-  | 'Second Reading' 
-  | 'Committee Stage' 
-  | 'Third Reading' 
-  | 'Adopted' 
-  | 'Introduced' 
-  | 'Pending' 
-  | 'Assented' 
-  | 'Withdrawn';
+export type LegislativeStatus = 'Introduced' | 'Pending' | 'Passed' | 'Assented' | 'Withdrawn';
 
 export interface LegislativeRecord {
   id: string;
   title: string;
-  category: 'Bill' | 'Motion' | 'Committee' | 'Parliamentary Question' | 'Petition' | 'Constituency Intervention' | string;
+  category: 'Bill' | 'Motion' | 'Committee' | 'Parliamentary Question' | 'Petition';
   status: LegislativeStatus;
   date: string;
   description: string;
   documentUrl?: string;
   source?: string;
   coSponsors?: string[];
-  statusNotes?: string;
-  statusUpdatedAt?: string;
-  statusUpdatedBy?: string;
 }
 
 export type ProgramStatus = 'Active' | 'Upcoming' | 'Closed';
@@ -63,7 +46,7 @@ export type ProgramStatus = 'Active' | 'Upcoming' | 'Closed';
 export interface EmpowermentProgram {
   id: string;
   title: string;
-  category: 'Skills Acquisition' | 'Youth Development' | 'Women Empowerment' | 'Educational Support' | 'Small Business Grant' | 'Agricultural Support' | string;
+  category: 'Skills Acquisition' | 'Youth Development' | 'Women Empowerment' | 'Educational Support' | 'Small Business Grant' | 'Agricultural Support';
   eligibility: string;
   targetBeneficiaries: string;
   startDate: string;
@@ -86,7 +69,7 @@ export interface NewsArticle {
   title: string;
   excerpt: string;
   content: string;
-  category: 'Press Release' | 'Constituency News' | 'Legislative Update' | 'Speech' | 'Event' | string;
+  category: 'Press Release' | 'Constituency News' | 'Legislative Update' | 'Speech' | 'Event';
   date: string;
   imageUrl: string;
   videoUrl?: string;
@@ -102,19 +85,13 @@ export interface GalleryItem {
   id: string;
   title: string;
   type?: MediaType;
-  category: 'Projects' | 'Constituency Visits' | 'National Assembly' | 'Empowerment' | 'Town Halls' | 'Interviews & Debates' | string;
+  category: 'Projects' | 'Constituency Visits' | 'National Assembly' | 'Empowerment' | 'Town Halls' | 'Interviews & Debates';
   imageUrl: string;
   videoUrl?: string;
   showOnHomepage?: boolean;
   youtubeTitle?: string;
   date: string;
   description: string;
-  hasDownloadPermission?: boolean;
-  downloadUrl?: string;
-  downloadFileSize?: string;
-  downloadQuality?: string;
-  permissionNote?: string;
-  officialChannelUrl?: string;
 }
 
 export interface ContactSubmission {
@@ -196,50 +173,7 @@ export interface ProgramApplication {
   publicFeedback?: string;
   notes?: string;
   verifiedBy?: string;
-
-  // Automated Petitioner Communication & Civic Encouragement
-  petitionerDecisionMessage?: PetitionerDecisionMessage;
-  decisionHistory?: PetitionerDecisionMessage[];
 }
-
-export interface PetitionerDecisionMessage {
-  id: string;
-  petitionId: string;
-  referenceNumber?: string;
-  recipientName: string;
-  recipientPhone?: string;
-  recipientEmail?: string;
-  wardOrTown?: string;
-  category?: string;
-  petitionTitle?: string;
-  decision?: 'APPROVED' | 'REJECTED' | 'INITIAL REVIEW' | 'SUBMITTED' | 'Approved' | 'Rejected' | string;
-  status?: 'Approved' | 'Rejected' | string;
-  decisionTitle?: string;
-  salutation?: string;
-  officialGreeting?: string;
-  executiveSummary?: string;
-  decisionSummary?: string;
-  detailedReason?: string;
-  detailedRationale?: string;
-  committedAction?: string;
-  nextStepsOrAlternatives?: string;
-  civicEncouragement?: string;
-  communityEncouragement?: string;
-  sentAt: string;
-  senderTitle?: string;
-  signatory?: string;
-  sentBy?: string;
-  subject?: string;
-  channels?: {
-    smsDelivered: boolean;
-    portalNotified: boolean;
-    emailQueued: boolean;
-  };
-  deliveryChannels?: string[];
-  smsExcerpt?: string;
-}
-
-export type PetitionDecisionMessage = PetitionerDecisionMessage;
 
 export interface PollingUnitAgentLink {
   id: string;
@@ -304,222 +238,4 @@ export interface UssdSessionRecord {
   timestamp: string;
   status: 'COMPLETED' | 'TIMEOUT';
 }
-
-export type PetitionCategory = 'Infrastructure & Roads' | 'Water & Sanitation' | 'Healthcare' | 'Education' | 'Youth & Employment' | 'Agriculture' | 'Security & Peace' | 'Constituency Petition' | 'General Inquiry';
-export type PetitionStatus = 'Submitted' | 'Under Review' | 'In Field Investigation' | 'Committee Hearing' | 'Approved' | 'Rejected' | 'Archived';
-
-export interface CommunityPetition {
-  id: string;
-  referenceNumber: string;
-  title: string;
-  category: string;
-  petitionerName: string;
-  petitionerEmail: string;
-  petitionerPhone?: string;
-  email?: string;
-  phone?: string;
-  ward: string;
-  wardOrTown?: string;
-  targetWard?: string;
-  localGovernment?: string;
-  address?: string;
-  description: string;
-  problemStatement?: string;
-  proposedSolution?: string;
-  expectedImpact?: string;
-  signatoriesCount?: number;
-  signaturesCount?: number;
-  supporters?: Array<{ name: string; ward?: string; timestamp?: string }>;
-  supportingDocName?: string;
-  status: 'Submitted' | 'Under Review' | 'In Field Investigation' | 'Committee Hearing' | 'Approved' | 'Rejected' | 'Archived' | string;
-  decision?: string | { status?: 'Approved' | 'Rejected' | string; decisionDate?: string; decisionBy?: string; decisionNotes?: string; officialLetter?: string; deliveredVia?: string[]; rationale?: string; [key: string]: any };
-  submittedDate: string;
-  date?: string;
-  reviewNotes?: string;
-  updatedAt?: string;
-  decisionLetter?: string;
-  decisionMessage?: string | PetitionerDecisionMessage;
-}
-
-export interface PollOption {
-  id: string;
-  text: string;
-  votes: number;
-  votesCount?: number;
-}
-
-export interface PollVoterRecord {
-  id: string;
-  pollId: string;
-  voterId: string;
-  voterName?: string;
-  ward?: string;
-  selectedOptionId: string;
-  optionId?: string;
-  ipHash?: string;
-  timestamp: string;
-}
-
-export type PollVoteRecord = PollVoterRecord;
-export type PollCategory = string;
-export type PollStatus = 'Active' | 'Closed' | 'Upcoming' | string;
-
-export interface TownHallPoll {
-  id: string;
-  title: string;
-  question: string;
-  description?: string;
-  category: string;
-  targetWard: string;
-  status: 'Active' | 'Closed' | 'Upcoming' | string;
-  startDate: string;
-  endDate: string;
-  createdBy: string;
-  createdAt: string;
-  isFeatured?: boolean;
-  totalVotes: number;
-  options: PollOption[];
-  voters?: PollVoterRecord[];
-  votes?: PollVoterRecord[];
-}
-
-export interface ConstituencyOffice {
-  id: string;
-  code: string;
-  name: string;
-  location: string;
-  description: string;
-  headOfOffice: string;
-  contactEmail: string;
-  contactPhone: string;
-  status: 'Active' | 'Inactive';
-  authorizedTabs: string[];
-  assignedAdminEmails: string[];
-  createdAt: string;
-  updatedAt?: string;
-}
-
-export interface AdminUser {
-  id: string;
-  email: string;
-  name: string;
-  role: 'Super Administrator' | 'Office Administrator';
-  officeId?: string;
-  officeName?: string;
-  passwordHash?: string;
-  salt?: string;
-  isActive: boolean;
-  createdAt: string;
-  lastLogin?: string;
-}
-
-// ==================== DANMAJE INTERNAL STORAGE SYSTEM TYPES ====================
-
-export interface StorageFileMetadata {
-  id: string;
-  originalFilename: string;
-  storagePath: string;
-  publicUrl: string;
-  mimeType: string;
-  fileSize: number;
-  fileSizeFormatted: string;
-  uploadTimestamp: string;
-  uploaderIdentity: string;
-  associatedModule: 'Projects' | 'News' | 'Gallery' | 'Empowerment' | 'Legislative' | 'Applications' | 'System' | string;
-  associatedDocId?: string;
-  visibility: 'Public' | 'Restricted' | 'Private';
-  integrityChecksum?: string;
-  version: number;
-  previousVersionPath?: string;
-  isDeleted?: boolean;
-  deletedAt?: string;
-  deletedBy?: string;
-}
-
-export interface StorageFolder {
-  id: string;
-  name: string;
-  path: string;
-  parentPath?: string;
-  module: string;
-  fileCount: number;
-  totalSizeBytes: number;
-  createdAt: string;
-  createdBy: string;
-}
-
-export interface RecycleBinItem {
-  id: string;
-  entityId: string;
-  entityType: 'file' | 'project' | 'news' | 'gallery' | 'program' | 'application' | 'legislative' | 'petition' | 'poll';
-  title: string;
-  storagePath?: string;
-  originalModule: string;
-  deletedAt: string;
-  deletedBy: string;
-  autoPurgeDate: string;
-  dataPayload: any;
-}
-
-export interface FileVersionRecord {
-  id: string;
-  fileId: string;
-  versionNumber: number;
-  filename: string;
-  storagePath: string;
-  publicUrl: string;
-  fileSize: number;
-  mimeType: string;
-  uploadedAt: string;
-  uploadedBy: string;
-  changeNote?: string;
-}
-
-export interface BackupRecord {
-  id: string;
-  backupName: string;
-  backupType: 'DATABASE_FULL' | 'FILES_MANIFEST' | 'COMPLETE_DISASTER_RECOVERY';
-  timestamp: string;
-  createdBy: string;
-  status: 'COMPLETED' | 'IN_PROGRESS' | 'FAILED';
-  totalCollections: number;
-  totalRecords: number;
-  totalFiles: number;
-  totalSizeBytes: number;
-  formattedSize: string;
-  checksum: string;
-  downloadUrl?: string;
-  metadataSnapshot: any;
-  notes?: string;
-}
-
-export interface ActivityAuditLog {
-  id: string;
-  timestamp: string;
-  user: string;
-  userRole: string;
-  action: 'UPLOAD' | 'DELETE' | 'RESTORE' | 'PERMANENT_DELETE' | 'BACKUP_CREATED' | 'RESTORE_EXECUTED' | 'ROLE_CHANGE' | 'SETTINGS_CHANGE' | 'SECURITY_ALERT';
-  targetModule: string;
-  targetId?: string;
-  details: string;
-  ipAddress?: string;
-  status: 'SUCCESS' | 'WARNING' | 'FAILED';
-}
-
-export interface StorageHealthStatus {
-  firestoreConnected: boolean;
-  storageConnected: boolean;
-  projectId: string;
-  storageBucket: string;
-  endpointStatus: number;
-  lastSuccessfulBackup: string | null;
-  lastFailedOperation: string | null;
-  totalFilesCount: number;
-  totalStorageSizeBytes: number;
-  formattedTotalStorageSize: string;
-  integrityIssuesCount: number;
-  orphanedFilesCount: number;
-  checkedAt: string;
-}
-
 

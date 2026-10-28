@@ -16,37 +16,18 @@ import { NewsPage } from './pages/NewsPage';
 import { GalleryPage } from './pages/GalleryPage';
 import { ContactPage } from './pages/ContactPage';
 import { LegalPage } from './pages/LegalPage';
-import { TownHallPage } from './pages/TownHallPage';
-import { PetitionsPage } from './pages/PetitionsPage';
 import { AdminDashboard } from './pages/AdminDashboard';
-import { 
-  INITIAL_PROJECTS, 
-  INITIAL_LEGISLATIVE, 
-  INITIAL_PROGRAMS, 
-  INITIAL_NEWS, 
-  INITIAL_GALLERY, 
-  INITIAL_CONTACTS,
-  INITIAL_POLLS,
-  INITIAL_PETITIONS
-} from './data/initialData';
+import { INITIAL_PROJECTS, INITIAL_LEGISLATIVE, INITIAL_PROGRAMS, INITIAL_NEWS, INITIAL_GALLERY, INITIAL_CONTACTS } from './data/initialData';
 import { INITIAL_AGENTS } from './data/initialAgents';
-import { 
-  Project, 
-  LegislativeRecord, 
-  EmpowermentProgram, 
-  NewsArticle, 
-  GalleryItem, 
-  ContactSubmission, 
-  PollingUnitAgentLink, 
-  ElectionReport,
-  TownHallPoll,
-  CommunityPetition
-} from './types';
+import { Project, LegislativeRecord, EmpowermentProgram, NewsArticle, GalleryItem, ContactSubmission, PollingUnitAgentLink, ElectionReport } from './types';
 import { Language, Translations, DEFAULT_TRANSLATIONS } from './utils/i18n';
 import { sanitizeGalleryList } from './utils/youtube';
 import { recordPageView } from './utils/analytics';
-import { safeSetItem } from './utils/safeStorage';
 import { AgentElectionPortal } from './components/AgentElectionPortal';
+import { ConstituencyGISMap } from './components/ConstituencyGISMap';
+import { TownHallWidget } from './components/TownHallWidget';
+import { PetitionTrackerWidget } from './components/PetitionTrackerWidget';
+import { ParliamentaryGazetteExporter } from './components/ParliamentaryGazetteExporter';
 
 export interface ConstituencyStats {
   projectsCount: string;
@@ -188,110 +169,6 @@ export default function App() {
     ];
   });
 
-  const [polls, setPolls] = useState<TownHallPoll[]>(() => {
-    const saved = localStorage.getItem('danmaje_polls');
-    return saved ? JSON.parse(saved) : INITIAL_POLLS;
-  });
-
-  const [petitions, setPetitions] = useState<CommunityPetition[]>(() => {
-    const saved = localStorage.getItem('danmaje_petitions');
-    return saved ? JSON.parse(saved) : INITIAL_PETITIONS;
-  });
-
-  // Comprehensive live database sync on mount across Vercel deployments & Git pushes
-  useEffect(() => {
-    // 1. Projects
-    fetch('/api/projects')
-      .then(res => res.json())
-      .then(data => {
-        if (Array.isArray(data) && data.length > 0) {
-          setProjects(data);
-          safeSetItem('danmaje_projects', JSON.stringify(data));
-        }
-      }).catch(() => {});
-
-    // 2. Legislative
-    fetch('/api/legislative')
-      .then(res => res.json())
-      .then(data => {
-        if (Array.isArray(data) && data.length > 0) {
-          setLegislative(data);
-          safeSetItem('danmaje_legislative', JSON.stringify(data));
-        }
-      }).catch(() => {});
-
-    // 3. Empowerment Programs
-    fetch('/api/programs')
-      .then(res => res.json())
-      .then(data => {
-        if (Array.isArray(data) && data.length > 0) {
-          setPrograms(data);
-          safeSetItem('danmaje_programs', JSON.stringify(data));
-        }
-      }).catch(() => {});
-
-    // 4. News Articles
-    fetch('/api/news')
-      .then(res => res.json())
-      .then(data => {
-        if (Array.isArray(data) && data.length > 0) {
-          setNews(data);
-          safeSetItem('danmaje_news', JSON.stringify(data));
-        }
-      }).catch(() => {});
-
-    // 5. Gallery & Photos
-    fetch('/api/gallery')
-      .then(res => res.json())
-      .then(data => {
-        if (Array.isArray(data) && data.length > 0) {
-          const sanitized = sanitizeGalleryList(data);
-          setGallery(sanitized);
-          safeSetItem('danmaje_gallery', JSON.stringify(sanitized));
-        }
-      }).catch(() => {});
-
-    // 6. Citizen Contacts & Enquiries
-    fetch('/api/contacts')
-      .then(res => res.json())
-      .then(data => {
-        if (Array.isArray(data) && data.length > 0) {
-          setContacts(data);
-          safeSetItem('danmaje_contacts', JSON.stringify(data));
-        }
-      }).catch(() => {});
-
-    // 7. Stats
-    fetch('/api/stats')
-      .then(res => res.json())
-      .then(data => {
-        if (data && typeof data === 'object' && data.projectsCount) {
-          setStats(data);
-          safeSetItem('danmaje_stats', JSON.stringify(data));
-        }
-      }).catch(() => {});
-
-    // 8. Town Hall Polls
-    fetch('/api/polls')
-      .then(res => res.json())
-      .then(data => {
-        if (Array.isArray(data) && data.length > 0) {
-          setPolls(data);
-          safeSetItem('danmaje_polls', JSON.stringify(data));
-        }
-      }).catch(() => {});
-
-    // 9. Community Petitions
-    fetch('/api/petitions')
-      .then(res => res.json())
-      .then(data => {
-        if (Array.isArray(data) && data.length > 0) {
-          setPetitions(data);
-          safeSetItem('danmaje_petitions', JSON.stringify(data));
-        }
-      }).catch(() => {});
-  }, []);
-
   useEffect(() => {
     localStorage.setItem('danmaje_projects', JSON.stringify(projects));
   }, [projects]);
@@ -325,20 +202,11 @@ export default function App() {
     localStorage.setItem('danmaje_election_reports', JSON.stringify(electionReports));
   }, [electionReports]);
 
-  useEffect(() => {
-    localStorage.setItem('danmaje_polls', JSON.stringify(polls));
-  }, [polls]);
-
-  useEffect(() => {
-    localStorage.setItem('danmaje_petitions', JSON.stringify(petitions));
-  }, [petitions]);
-
   const isAgentPortalRoute = 
     Boolean(agentToken) || 
     urlParams.get('portal') === 'agent' || 
     urlParams.get('agent') === 'true' || 
-    window.location.pathname.includes('agent') || 
-    currentTab === 'agent-portal';
+    window.location.pathname.includes('agent');
 
   if (isAgentPortalRoute) {
     return (
@@ -402,23 +270,6 @@ export default function App() {
             translations={translations}
           />
         )}
-        {currentTab === 'townhall' && (
-          <TownHallPage 
-            polls={polls}
-            setPolls={setPolls}
-            currentLang={currentLang}
-            translations={translations}
-          />
-        )}
-        {currentTab === 'petitions' && (
-          <PetitionsPage 
-            petitions={petitions}
-            setPetitions={setPetitions}
-            currentLang={currentLang}
-            translations={translations}
-            setCurrentTab={setCurrentTab}
-          />
-        )}
         {currentTab === 'empowerment' && (
           <EmpowermentPage 
             programs={programs} 
@@ -448,6 +299,18 @@ export default function App() {
             currentLang={currentLang}
             translations={translations}
           />
+        )}
+        {currentTab === 'gis-map' && (
+          <ConstituencyGISMap projects={projects} currentLang={currentLang} />
+        )}
+        {currentTab === 'townhall' && (
+          <TownHallWidget currentLang={currentLang} />
+        )}
+        {currentTab === 'petitions' && (
+          <PetitionTrackerWidget currentLang={currentLang} />
+        )}
+        {currentTab === 'gazette' && (
+          <ParliamentaryGazetteExporter legislative={legislative} projects={projects} programs={programs} currentLang={currentLang} />
         )}
         {(currentTab === 'privacy' || currentTab === 'terms' || currentTab === 'accessibility') && (
           <LegalPage
@@ -482,10 +345,6 @@ export default function App() {
           setGallery={setGallery}
           contacts={contacts}
           setContacts={setContacts}
-          polls={polls}
-          setPolls={setPolls}
-          petitions={petitions}
-          setPetitions={setPetitions}
           agents={agents}
           setAgents={setAgents}
           electionReports={electionReports}

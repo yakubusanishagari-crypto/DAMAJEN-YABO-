@@ -59,23 +59,13 @@ export const DEFAULT_TRANSLATIONS: Translations = {
     ha: 'Tuntubar Mazabu',
     ar: 'اتصال الدائرة'
   },
-  townhall: {
-    en: 'Town Hall',
-    ha: 'Dandalin Jama\'a',
-    ar: 'المنبر الشعبي'
-  },
-  petitions: {
-    en: 'Petitions',
-    ha: 'Korafe-korafe',
-    ar: 'العرائض والشكاوى'
-  },
   exploreProjects: {
     en: 'EXPLORE PROJECTS',
     ha: 'Bincika Ayruka',
     ar: 'استكشاف المشاريع'
   },
   contactOffice: {
-    en: 'CONTACT OFFICE',
+    en: 'CONTACT THE OFFICE',
     ha: 'Tuntubi Ofishin',
     ar: 'اتصل بالمكتب'
   },
@@ -435,7 +425,7 @@ export const DEFAULT_TRANSLATIONS: Translations = {
     ar: 'يعتمد النائب عمر يوسف دانماجي سياسة الباب المفتوح الدائم. يمكن للمواطنين ووجهاء الدوائر والشباب تقديم العرائض وطلبات المشاريع في أي وقت عبر بوابتنا الرقمية أو مكاتب الاتصال.'
   },
   officeLocationsTitle: {
-    en: 'Office Locations & Liaison Desks',
+    en: 'OFFICE LOCATIONS & LIAISON DESKS',
     ha: 'Wuraren Ofisoshi da Sadarwa',
     ar: 'مواقع المكاتب ومراكز الاتصال'
   },

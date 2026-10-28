@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { GalleryItem } from '../types';
 import { 
   Image as ImageIcon, Video, Calendar, X, ZoomIn, Play, 
-  ExternalLink, Shield, Film, Filter, Share2, Download
+  ExternalLink, Shield, Film, Filter, Share2 
 } from 'lucide-react';
 import { YouTubeVideoTheater } from '../components/YouTubeVideoTheater';
 import { Language, t, Translations } from '../utils/i18n';
@@ -66,10 +66,9 @@ export const GalleryPage: React.FC<Props> = ({
   return (
     <div className={`max-w-7xl mx-auto px-4 sm:px-8 py-12 space-y-12 ${isRtl ? 'rtl text-right' : ''}`}>
       {/* Header Banner */}
-      <div className="bg-gradient-to-br from-[#072118] via-[#0E3529] to-[#0A261E] text-white rounded-3xl p-8 sm:p-14 shadow-2xl relative overflow-hidden border border-[#C6A15B]/40">
-        <div className="absolute right-0 top-0 w-96 h-96 bg-[#C6A15B]/15 rounded-full blur-3xl pointer-events-none"></div>
+      <div className="bg-gradient-to-br from-[#072118] via-[#0E3529] to-[#0A261E] text-white rounded-3xl p-8 sm:p-14 shadow-2xl relative overflow-hidden border border-emerald-500/30">
         <div className="relative z-10 max-w-3xl space-y-4">
-          <div className="inline-flex items-center gap-2.5 px-3.5 py-1.5 rounded-full bg-[#C6A15B]/20 border border-[#C6A15B]/40 text-xs font-semibold text-[#D4AF37] tracking-wider uppercase">
+          <div className="inline-flex items-center gap-2.5 px-3.5 py-1.5 rounded-full bg-emerald-900/60 border border-emerald-500/40 text-xs font-semibold text-emerald-200 tracking-wider uppercase">
             <img src="/official_logo.png" alt="Official Seal" className="w-5 h-5 rounded-full object-contain shrink-0" />
             <span>{t('galleryPageBadge', currentLang, translations)}</span>
           </div>
@@ -223,19 +222,7 @@ export const GalleryPage: React.FC<Props> = ({
                   </p>
 
                   <div className="pt-2 border-t border-stone-100 flex items-center justify-between text-xs font-bold text-[#103C2E]">
-                    <span className="flex items-center gap-1.5">
-                      <span>{isVideo ? t('clickToPlayVideo', currentLang, translations) : t('viewHighResPhoto', currentLang, translations)}</span>
-                      {isVideo && (
-                        <span className={`text-[10px] px-2 py-0.5 rounded-full inline-flex items-center gap-1 font-semibold ${
-                          item.hasDownloadPermission 
-                            ? 'bg-emerald-100 text-emerald-800 border border-emerald-300' 
-                            : 'bg-stone-100 text-stone-600 border border-stone-300'
-                        }`}>
-                          <Download className="w-2.5 h-2.5" />
-                          <span>{item.hasDownloadPermission ? 'Downloadable' : 'YouTube Option'}</span>
-                        </span>
-                      )}
-                    </span>
+                    <span>{isVideo ? t('clickToPlayVideo', currentLang, translations) : t('viewHighResPhoto', currentLang, translations)}</span>
                     <span className="text-[#C6A15B]">{isRtl ? '←' : '→'}</span>
                   </div>
                 </div>

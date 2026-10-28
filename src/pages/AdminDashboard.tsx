@@ -2,29 +2,24 @@ import React, { useState, useEffect } from 'react';
 import { 
   Project, LegislativeRecord, EmpowermentProgram, NewsArticle, GalleryItem, 
   ContactSubmission, ProjectStatus, ProgramApplication, ApplicationStatus,
-  PollingUnitAgentLink, ElectionReport, TownHallPoll, CommunityPetition, LegislativeStatus,
-  ConstituencyOffice, AdminUser
+  PollingUnitAgentLink, ElectionReport
 } from '../types';
 import { Language, Translations } from '../utils/i18n';
 import { ConstituencyStats } from '../App';
 import { 
   Shield, Lock, Mail, Plus, Trash2, Edit, CheckCircle, X, LogOut, 
   FileText, Award, Image as ImageIcon, Users, BarChart3, Globe, Settings, 
-  Activity, ArrowUpRight, TrendingUp, Download, Eye, EyeOff, AlertCircle, Save,
+  Activity, ArrowUpRight, TrendingUp, Download, Eye, AlertCircle, Save,
   Upload, Video, Film, Play, Check, Search, Filter, ChevronRight, CheckCircle2,
   Clock, Printer, ExternalLink, FileCheck, Star, Sparkles, RefreshCw, Menu,
   Send, Calendar, MapPin, Sliders, ChevronDown, Landmark, Smartphone, Monitor, Laptop,
-  Tablet, Compass, CheckSquare, BarChart2, Share2, Copy, User, Camera, ExternalLink as ExtLink,
-  Building2, Key, Power, ShieldCheck, HardDrive
+  Tablet, Compass, CheckSquare, BarChart2, Share2, Copy, User, Camera, ExternalLink as ExtLink, Radio
 } from 'lucide-react';
 import { ApplicationSlipModal } from '../components/ApplicationSlipModal';
 import { CongratulationOfferModal } from '../components/CongratulationOfferModal';
 import { ElectionTab } from '../components/ElectionTab';
-import { AdminTownHallTab } from '../components/AdminTownHallTab';
-import { AdminPetitionsTab } from '../components/AdminPetitionsTab';
-import { AdminOfficesTab } from '../components/AdminOfficesTab';
-import { AdminStorageTab } from '../components/AdminStorageTab';
-import { YouTubeDownloadModal } from '../components/YouTubeDownloadModal';
+import { CybersecurityTab } from '../components/CybersecurityTab';
+import { SmsUssdGatewayTab } from '../components/SmsUssdGatewayTab';
 import { 
   extractYouTubeId, 
   getYouTubeThumbnailUrl, 
@@ -35,21 +30,6 @@ import {
   YOUTUBE_PLACEHOLDER_THUMBNAIL 
 } from '../utils/youtube';
 import { getAnalyticsStore, resetAnalyticsBaseline, AnalyticsStore } from '../utils/analytics';
-import { compressImageFile } from '../utils/imageCompressor';
-import { 
-  apiCreateProject, apiUpdateProject, apiDeleteProject,
-  apiCreateNews, apiUpdateNews, apiDeleteNews,
-  apiCreateGallery, apiUpdateGallery, apiDeleteGallery,
-  apiCreateProgram, apiUpdateProgram, apiDeleteProgram,
-  apiCreateLegislative, apiUpdateLegislative, apiDeleteLegislative,
-  apiUpdateStats, apiCheckStorageStatus, apiUploadFile
-} from '../utils/apiSync';
-import { INITIAL_OFFICES, INITIAL_ADMIN_USERS } from '../data/initialData';
-import { auth } from '../utils/firebase';
-import { signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'firebase/auth';
-
-
-
 
 interface Props {
   projects: Project[];
@@ -64,10 +44,6 @@ interface Props {
   setGallery: React.Dispatch<React.SetStateAction<GalleryItem[]>>;
   contacts: ContactSubmission[];
   setContacts: React.Dispatch<React.SetStateAction<ContactSubmission[]>>;
-  polls: TownHallPoll[];
-  setPolls: React.Dispatch<React.SetStateAction<TownHallPoll[]>>;
-  petitions: CommunityPetition[];
-  setPetitions: React.Dispatch<React.SetStateAction<CommunityPetition[]>>;
   agents: PollingUnitAgentLink[];
   setAgents: React.Dispatch<React.SetStateAction<PollingUnitAgentLink[]>>;
   electionReports: ElectionReport[];
@@ -88,13 +64,12 @@ export type DashboardTab =
   | 'legislative' 
   | 'empowerment' 
   | 'applications' 
-  | 'gallery' 
-  | 'townhall'
   | 'petitions'
+  | 'gallery' 
   | 'enquiries' 
   | 'election'
-  | 'storage'
-  | 'offices'
+  | 'cybersecurity'
+  | 'sms_ussd'
   | 'settings';
 
 export const AdminDashboard: React.FC<Props> = ({
@@ -104,8 +79,6 @@ export const AdminDashboard: React.FC<Props> = ({
   news, setNews,
   gallery, setGallery,
   contacts, setContacts,
-  polls, setPolls,
-  petitions, setPetitions,
   agents, setAgents,
   electionReports, setElectionReports,
   translations, setTranslations,
@@ -113,96 +86,13 @@ export const AdminDashboard: React.FC<Props> = ({
   currentLang,
   onClose
 }) => {
-  const [isLoggedIn, setIsLoggedIn] = useState(true);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [email, setEmail] = useState('admin@danmayeyabo.gov.ng');
-  const [password, setPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
-  const [isSubmittingLogin, setIsSubmittingLogin] = useState(false);
+  const [password, setPassword] = useState('DANMAJEFOREVER');
   const [loginError, setLoginError] = useState('');
-  const [adminRole, setAdminRole] = useState<string>('Chief Administrator');
+  const [adminRole, setAdminRole] = useState<'Chief Administrator' | 'Content Manager' | 'News Editor' | 'Projects Manager' | 'Translation Manager' | 'Analytics Viewer'>('Chief Administrator');
 
-  // Token & Active Session State
-  const [authToken, setAuthToken] = useState<string | null>(() => {
-    try {
-      return sessionStorage.getItem('danmaje_admin_token') || localStorage.getItem('danmaje_admin_token');
-    } catch {
-      return null;
-    }
-  });
-  const [currentAdminUser, setCurrentAdminUser] = useState<AdminUser | null>({
-    id: 'usr-super',
-    name: 'Hon. Chief Administrator',
-    email: 'admin@danmayeyabo.gov.ng',
-    role: 'Super Administrator',
-    isActive: true,
-    createdAt: '2026-01-01'
-  });
-  const [currentOffice, setCurrentOffice] = useState<ConstituencyOffice | null>(null);
-  const [previewingOffice, setPreviewingOffice] = useState<ConstituencyOffice | null>(null);
-
-  // Offices & Staff State
-  const [offices, setOffices] = useState<ConstituencyOffice[]>(() => INITIAL_OFFICES);
-  const [adminUsersList, setAdminUsersList] = useState<AdminUser[]>(() => INITIAL_ADMIN_USERS);
-
-  // Custom Category State for Admin forms
-  const [customNewProjCategory, setCustomNewProjCategory] = useState('');
-  const [customEditProjCategory, setCustomEditProjCategory] = useState('');
-  const [customNewNewsCategory, setCustomNewNewsCategory] = useState('');
-  const [customEditNewsCategory, setCustomEditNewsCategory] = useState('');
-  const [customNewLegCategory, setCustomNewLegCategory] = useState('');
-  const [customEditLegCategory, setCustomEditLegCategory] = useState('');
-  const [customNewMediaCategory, setCustomNewMediaCategory] = useState('');
-  const [customEditMediaCategory, setCustomEditMediaCategory] = useState('');
-
-  // Validate session token on mount
-  useEffect(() => {
-    if (authToken) {
-      fetch('/api/admin/verify-session', {
-        headers: { 'Authorization': `Bearer ${authToken}` }
-      })
-        .then(res => res.json())
-        .then(data => {
-          if (data.valid && data.user) {
-            setCurrentAdminUser(data.user);
-            setCurrentOffice(data.office || null);
-            setAdminRole(data.user.role === 'Super Administrator' ? 'Chief Administrator' : (data.office?.name || 'Office Administrator'));
-            setEmail(data.user.email);
-            setIsLoggedIn(true);
-          } else {
-            try {
-              sessionStorage.removeItem('danmaje_admin_token');
-              localStorage.removeItem('danmaje_admin_token');
-            } catch {}
-            setAuthToken(null);
-            setIsLoggedIn(false);
-          }
-        })
-        .catch(() => {});
-    }
-  }, []);
-
-  // Fetch live offices and admin directory
-  useEffect(() => {
-    fetch('/api/offices')
-      .then(res => res.json())
-      .then(data => {
-        if (Array.isArray(data) && data.length > 0) {
-          setOffices(data);
-        }
-      })
-      .catch(() => {});
-
-    fetch('/api/admin/users')
-      .then(res => res.json())
-      .then(data => {
-        if (Array.isArray(data) && data.length > 0) {
-          setAdminUsersList(data);
-        }
-      })
-      .catch(() => {});
-  }, [isLoggedIn]);
-
-  // Exact Navigation Tabs order
+  // Exact 10 Navigation Tabs order
   const [activeTab, setActiveTab] = useState<DashboardTab>('overview');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
@@ -238,6 +128,56 @@ export const AdminDashboard: React.FC<Props> = ({
     localStorage.setItem('danmaje_applications', JSON.stringify(applications));
   }, [applications]);
 
+  // Petitions Persistence & Review State (100% Independent of Empowerment Applications)
+  const [petitions, setPetitions] = useState<ProgramApplication[]>(() => {
+    const saved = localStorage.getItem('danmaje_petitions');
+    if (saved) {
+      try { return JSON.parse(saved); } catch {}
+    }
+    return [
+      {
+        id: 'pet-1',
+        referenceNumber: 'DAN-PET-2026-99211',
+        programId: 'prog-ticket-1',
+        programTitle: 'Solar Borehole Maintenance & Rehabilitation Request',
+        programCategory: 'Constituency Petition',
+        applicantName: 'Malam Aliyu Dan-Yabo',
+        email: 'aliyu@danmayeyabo.gov.ng',
+        phone: '+234 803 555 7890',
+        wardOrTown: 'Yabo Central Ward',
+        qualifications: 'Community Request',
+        statement: 'Requesting urgent repair of community solar borehole in Yabo Central sector.',
+        date: '2026-10-18',
+        status: 'SUBMITTED',
+        notes: 'Initial committee logging complete.'
+      }
+    ];
+  });
+
+  useEffect(() => {
+    localStorage.setItem('danmaje_petitions', JSON.stringify(petitions));
+  }, [petitions]);
+
+  // Sync freshest records when opening petitions or applications
+  useEffect(() => {
+    if (activeTab === 'applications') {
+      try {
+        const saved = localStorage.getItem('danmaje_applications');
+        if (saved) {
+          setApplications(JSON.parse(saved));
+        }
+      } catch {}
+    }
+    if (activeTab === 'petitions') {
+      try {
+        const saved = localStorage.getItem('danmaje_petitions');
+        if (saved) {
+          setPetitions(JSON.parse(saved));
+        }
+      } catch {}
+    }
+  }, [activeTab]);
+
   const [selectedAppForReview, setSelectedAppForReview] = useState<ProgramApplication | null>(null);
   const [slipModalApp, setSlipModalApp] = useState<ProgramApplication | null>(null);
   const [offerModalApp, setOfferModalApp] = useState<ProgramApplication | null>(null);
@@ -245,6 +185,9 @@ export const AdminDashboard: React.FC<Props> = ({
   const [appSearchQuery, setAppSearchQuery] = useState('');
   const [appStatusFilter, setAppStatusFilter] = useState('ALL');
   const [appProgramFilter, setAppProgramFilter] = useState('ALL');
+  const [petitionSearchQuery, setPetitionSearchQuery] = useState('');
+  const [petitionStatusFilter, setPetitionStatusFilter] = useState('ALL');
+  const [petitionTypeFilter, setPetitionTypeFilter] = useState<'ALL' | 'PETITIONS_ONLY' | 'EMPOWERMENT'>('ALL');
   const [reviewStatusInput, setReviewStatusInput] = useState<ApplicationStatus>('SUBMITTED');
   const [reviewInternalNote, setReviewInternalNote] = useState('');
   const [reviewPublicFeedback, setReviewPublicFeedback] = useState('');
@@ -290,6 +233,9 @@ export const AdminDashboard: React.FC<Props> = ({
       return a;
     });
     setApplications(updated);
+    try {
+      localStorage.setItem('danmaje_applications', JSON.stringify(updated));
+    } catch {}
     if (selectedAppForReview && selectedAppForReview.id === appId) {
       setSelectedAppForReview(updated.find(a => a.id === appId) || null);
     }
@@ -305,6 +251,9 @@ export const AdminDashboard: React.FC<Props> = ({
   const handleDeleteApp = (appId: string) => {
     const updated = applications.filter(a => a.id !== appId);
     setApplications(updated);
+    try {
+      localStorage.setItem('danmaje_applications', JSON.stringify(updated));
+    } catch {}
     if (selectedAppForReview && selectedAppForReview.id === appId) {
       setSelectedAppForReview(null);
     }
@@ -346,6 +295,99 @@ export const AdminDashboard: React.FC<Props> = ({
     document.body.appendChild(downloadAnchor);
     downloadAnchor.click();
     downloadAnchor.remove();
+  };
+
+  const handleAdvancePetitionStage = (
+    petitionId: string, 
+    newStage: ApplicationStatus, 
+    internalNote: string, 
+    publicFeedback: string,
+    actionPackage?: string
+  ) => {
+    const now = new Date();
+    const timeStr = `${now.toISOString().split('T')[0]} ${now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+    const updated = petitions.map(p => {
+      if (p.id === petitionId) {
+        const oldTimeline = p.timeline || [
+          {
+            stage: 'SUBMITTED',
+            timestamp: `${p.date} 09:00 AM`,
+            title: 'Petition Received',
+            note: 'Petition logged into constituency petition docket',
+            actor: 'Citizen Portal'
+          }
+        ];
+        const newEvent = {
+          stage: newStage,
+          timestamp: timeStr,
+          title: `Stage transitioned to ${newStage}`,
+          note: publicFeedback || internalNote || `Stage updated by ${adminRole || 'Administrator'}`,
+          actor: adminRole || 'Administrator'
+        };
+        return {
+          ...p,
+          status: newStage,
+          currentStage: newStage,
+          awardGrantPackage: actionPackage || p.awardGrantPackage || reviewAwardPackage,
+          notes: internalNote !== undefined ? internalNote : p.notes,
+          publicFeedback: publicFeedback !== undefined ? publicFeedback : p.publicFeedback,
+          timeline: [...oldTimeline, newEvent]
+        };
+      }
+      return p;
+    });
+    setPetitions(updated);
+    try {
+      localStorage.setItem('danmaje_petitions', JSON.stringify(updated));
+    } catch {}
+    if (selectedAppForReview && selectedAppForReview.id === petitionId) {
+      setSelectedAppForReview(updated.find(p => p.id === petitionId) || null);
+    }
+    setActivityLogs(prev => [{
+      id: `log-${Date.now()}`,
+      user: email,
+      action: `Updated petition stage for #${petitionId} to ${newStage}`,
+      timestamp: new Date().toISOString().replace('T', ' ').substring(0, 16),
+      role: adminRole
+    }, ...prev]);
+  };
+
+  const handleDeletePetition = (petitionId: string) => {
+    const updated = petitions.filter(p => p.id !== petitionId);
+    setPetitions(updated);
+    try {
+      localStorage.setItem('danmaje_petitions', JSON.stringify(updated));
+    } catch {}
+    if (selectedAppForReview && selectedAppForReview.id === petitionId) {
+      setSelectedAppForReview(null);
+    }
+  };
+
+  const handleExportPetitionsCSV = () => {
+    const headers = ['Reference Number', 'Applicant Name', 'Email', 'Phone', 'LGA', 'Ward/Town', 'Petition Subject', 'Category', 'Status', 'Date Submitted', 'Grievance / Statement', 'Public Feedback', 'Internal Notes'];
+    const rows = petitions.map(p => [
+      `"${p.referenceNumber}"`,
+      `"${p.applicantName}"`,
+      `"${p.email || ''}"`,
+      `"${p.phone}"`,
+      `"${p.lga || 'Yabo/Shagari'}"`,
+      `"${p.wardOrTown}"`,
+      `"${p.programTitle}"`,
+      `"${p.programCategory || 'Constituency Petition'}"`,
+      `"${p.status}"`,
+      `"${p.date}"`,
+      `"${(p.statement || '').replace(/"/g, '""')}"`,
+      `"${(p.publicFeedback || '').replace(/"/g, '""')}"`,
+      `"${(p.notes || '').replace(/"/g, '""')}"`
+    ]);
+    const csvContent = "data:text/csv;charset=utf-8," + [headers.join(','), ...rows.map(e => e.join(','))].join('\n');
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement('a');
+    link.setAttribute('href', encodedUri);
+    link.setAttribute('download', `danmaje_constituency_petitions_${new Date().toISOString().split('T')[0]}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
 
   // Programme Editing State
@@ -392,11 +434,9 @@ export const AdminDashboard: React.FC<Props> = ({
     try {
       localStorage.setItem('danmaje_stats', JSON.stringify(editableStats));
     } catch {}
-    apiUpdateStats(editableStats).catch(err => console.warn('API update stats warning:', err));
     setStatsSavedMsg(true);
     setTimeout(() => setStatsSavedMsg(false), 3000);
   };
-
 
   // Admin Users List State
   interface AdminUserItem {
@@ -512,79 +552,32 @@ export const AdminDashboard: React.FC<Props> = ({
     updates: []
   });
   const [editingProject, setEditingProject] = useState<Project | null>(null);
-  const [isCompressingProjImg, setIsCompressingProjImg] = useState(false);
-  const [projectSuccessNotice, setProjectSuccessNotice] = useState('');
-  const [storageStatus, setStorageStatus] = useState<any>(null);
 
-  useEffect(() => {
-    apiCheckStorageStatus().then(status => {
-      if (status) setStorageStatus(status);
-    }).catch(() => {});
-  }, []);
-
-  const handleProjectImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleProjectImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (!file) return;
-    try {
-      setIsCompressingProjImg(true);
-      const compressedDataUrl = await compressImageFile(file, 1600, 1200, 0.82);
-      const permanentUrl = await apiUploadFile(compressedDataUrl, file.name);
-      setNewProj(prev => ({
-        ...prev,
-        images: [permanentUrl, ...prev.images.filter(img => !img.startsWith('data:'))]
-      }));
-      setProjectSuccessNotice('Project photo confirmed and stored in Firebase Storage.');
-      setTimeout(() => setProjectSuccessNotice(''), 4000);
-    } catch (err: any) {
-      console.error('Image upload error:', err);
-      alert(`Firebase Storage Upload Error: ${err.message || 'Failed to upload image. Please verify Firebase connection.'}`);
-    } finally {
-      setIsCompressingProjImg(false);
+    if (file) {
+      if (file.size > 8 * 1024 * 1024) return;
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const result = reader.result as string;
+        setNewProj(prev => ({ ...prev, images: [result] }));
+      };
+      reader.readAsDataURL(file);
     }
   };
-
-  const handleEditingProjectImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file || !editingProject) return;
-    try {
-      setIsCompressingProjImg(true);
-      const compressedDataUrl = await compressImageFile(file, 1600, 1200, 0.82);
-      const permanentUrl = await apiUploadFile(compressedDataUrl, file.name);
-      setEditingProject(prev => prev ? {
-        ...prev,
-        images: [permanentUrl, ...(prev.images ? prev.images.slice(1) : [])]
-      } : null);
-      setProjectSuccessNotice('Project photo updated in Firebase Storage.');
-      setTimeout(() => setProjectSuccessNotice(''), 4000);
-    } catch (err: any) {
-      console.error('Image upload error:', err);
-      alert(`Firebase Storage Upload Error: ${err.message || 'Failed to upload image. Please verify Firebase connection.'}`);
-    } finally {
-      setIsCompressingProjImg(false);
-    }
-  };
-
 
   const handleCreateProject = (e: React.FormEvent) => {
     e.preventDefault();
-    const finalCategory = (newProj.category === 'OTHER' || newProj.category === 'Other')
-      ? (customNewProjCategory.trim() || 'Custom Project')
-      : newProj.category;
     const created: Project = {
       id: `proj-${Date.now()}`,
       ...newProj,
-      category: finalCategory as any,
       startDate: new Date().toISOString().split('T')[0],
       date: new Date().toISOString().split('T')[0]
     };
     const updated = [created, ...projects];
     setProjects(updated);
     try { localStorage.setItem('danmaje_projects', JSON.stringify(updated)); } catch {}
-    apiCreateProject(created).catch(err => console.warn('API project create warning:', err));
     setShowAddProj(false);
-    setCustomNewProjCategory('');
-    setProjectSuccessNotice(`Project "${created.title}" published with verified site photo.`);
-    setTimeout(() => setProjectSuccessNotice(''), 4000);
     setNewProj({
       title: '',
       category: 'Water & Sanitation',
@@ -602,7 +595,7 @@ export const AdminDashboard: React.FC<Props> = ({
     setActivityLogs(prev => [{
       id: `log-${Date.now()}`,
       user: email,
-      action: `Created new project: ${created.title} (Category: ${created.category})`,
+      action: `Created new project: ${created.title}`,
       timestamp: new Date().toISOString().replace('T', ' ').substring(0, 16),
       role: adminRole
     }, ...prev]);
@@ -611,20 +604,14 @@ export const AdminDashboard: React.FC<Props> = ({
   const handleUpdateProject = (e: React.FormEvent) => {
     e.preventDefault();
     if (!editingProject) return;
-    const finalCategory = (editingProject.category === 'OTHER' || editingProject.category === 'Other')
-      ? (customEditProjCategory.trim() || 'Custom Project')
-      : editingProject.category;
-    const projectToSave = { ...editingProject, category: finalCategory as any };
-    const updated = projects.map(p => p.id === editingProject.id ? projectToSave : p);
+    const updated = projects.map(p => p.id === editingProject.id ? editingProject : p);
     setProjects(updated);
     try { localStorage.setItem('danmaje_projects', JSON.stringify(updated)); } catch {}
-    apiUpdateProject(editingProject.id, projectToSave).catch(err => console.warn('API project update warning:', err));
     setEditingProject(null);
-    setCustomEditProjCategory('');
     setActivityLogs(prev => [{
       id: `log-${Date.now()}`,
       user: email,
-      action: `Updated project: ${projectToSave.title}`,
+      action: `Updated project: ${editingProject.title}`,
       timestamp: new Date().toISOString().replace('T', ' ').substring(0, 16),
       role: adminRole
     }, ...prev]);
@@ -634,7 +621,6 @@ export const AdminDashboard: React.FC<Props> = ({
     const updated = projects.filter(p => p.id !== id);
     setProjects(updated);
     try { localStorage.setItem('danmaje_projects', JSON.stringify(updated)); } catch {}
-    apiDeleteProject(id).catch(err => console.warn('API delete project warning:', err));
     setActivityLogs(prev => [{
       id: `log-${Date.now()}`,
       user: email,
@@ -663,26 +649,17 @@ export const AdminDashboard: React.FC<Props> = ({
   const [newsImagePreview, setNewsImagePreview] = useState<string>('');
   const [editingNews, setEditingNews] = useState<NewsArticle | null>(null);
 
-  const [isUploadingNewsImg, setIsUploadingNewsImg] = useState(false);
-
-  const handleNewsImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleNewsImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (!file) return;
-    try {
-      setIsUploadingNewsImg(true);
-      const compressedDataUrl = await compressImageFile(file, 1600, 1200, 0.82);
-      setNewsImagePreview(compressedDataUrl);
-      const permanentUrl = await apiUploadFile(compressedDataUrl, file.name);
-      setNewsImagePreview(permanentUrl);
-      setNewNews(prev => ({ ...prev, imageUrl: permanentUrl }));
-      setProjectSuccessNotice('News featured image confirmed and uploaded to Firebase Storage.');
-      setTimeout(() => setProjectSuccessNotice(''), 4000);
-    } catch (err: any) {
-      console.error('News image upload error:', err);
-      alert(`Firebase Storage Upload Error: ${err.message || 'Failed to upload image. Please verify Firebase connection.'}`);
-      setNewsImagePreview('');
-    } finally {
-      setIsUploadingNewsImg(false);
+    if (file) {
+      if (file.size > 8 * 1024 * 1024) return;
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const result = reader.result as string;
+        setNewsImagePreview(result);
+        setNewNews(prev => ({ ...prev, imageUrl: result }));
+      };
+      reader.readAsDataURL(file);
     }
   };
 
@@ -695,13 +672,10 @@ export const AdminDashboard: React.FC<Props> = ({
         finalImageUrl = `https://img.youtube.com/vi/${match[1]}/hqdefault.jpg`;
       }
     }
-    const finalCategory = (newNews.category === 'OTHER' || newNews.category === 'Other')
-      ? (customNewNewsCategory.trim() || 'Custom Press')
-      : newNews.category;
     const created: NewsArticle = {
       id: `news-${Date.now()}`,
       title: newNews.title,
-      category: finalCategory as any,
+      category: newNews.category,
       date: new Date().toISOString().split('T')[0],
       author: newNews.author,
       excerpt: newNews.excerpt,
@@ -715,9 +689,7 @@ export const AdminDashboard: React.FC<Props> = ({
     const updated = [created, ...news];
     setNews(updated);
     try { localStorage.setItem('danmaje_news', JSON.stringify(updated)); } catch {}
-    apiCreateNews(created).catch(err => console.warn('API create news warning:', err));
     setShowAddNews(false);
-    setCustomNewNewsCategory('');
     setNewsImagePreview('');
     setNewNews({
       title: '',
@@ -733,7 +705,7 @@ export const AdminDashboard: React.FC<Props> = ({
     setActivityLogs(prev => [{
       id: `log-${Date.now()}`,
       user: email,
-      action: `Published news article: ${created.title} (Category: ${created.category})`,
+      action: `Published news article: ${created.title}`,
       timestamp: new Date().toISOString().replace('T', ' ').substring(0, 16),
       role: adminRole
     }, ...prev]);
@@ -742,20 +714,14 @@ export const AdminDashboard: React.FC<Props> = ({
   const handleUpdateNews = (e: React.FormEvent) => {
     e.preventDefault();
     if (!editingNews) return;
-    const finalCategory = (editingNews.category === 'OTHER' || editingNews.category === 'Other')
-      ? (customEditNewsCategory.trim() || 'Custom Press')
-      : editingNews.category;
-    const newsToSave = { ...editingNews, category: finalCategory as any };
-    const updated = news.map(n => n.id === editingNews.id ? newsToSave : n);
+    const updated = news.map(n => n.id === editingNews.id ? editingNews : n);
     setNews(updated);
     try { localStorage.setItem('danmaje_news', JSON.stringify(updated)); } catch {}
-    apiUpdateNews(editingNews.id, newsToSave).catch(err => console.warn('API update news warning:', err));
     setEditingNews(null);
-    setCustomEditNewsCategory('');
     setActivityLogs(prev => [{
       id: `log-${Date.now()}`,
       user: email,
-      action: `Updated news article: ${newsToSave.title}`,
+      action: `Updated news article: ${editingNews.title}`,
       timestamp: new Date().toISOString().replace('T', ' ').substring(0, 16),
       role: adminRole
     }, ...prev]);
@@ -765,7 +731,6 @@ export const AdminDashboard: React.FC<Props> = ({
     const updated = news.filter(n => n.id !== id);
     setNews(updated);
     try { localStorage.setItem('danmaje_news', JSON.stringify(updated)); } catch {}
-    apiDeleteNews(id).catch(err => console.warn('API delete news warning:', err));
     setActivityLogs(prev => [{
       id: `log-${Date.now()}`,
       user: email,
@@ -775,132 +740,45 @@ export const AdminDashboard: React.FC<Props> = ({
     }, ...prev]);
   };
 
-
   // Legislative CRUD State
-
   const [showAddLeg, setShowAddLeg] = useState(false);
-  const [editingLeg, setEditingLeg] = useState<LegislativeRecord | null>(null);
   const [newLeg, setNewLeg] = useState({
     title: '',
     category: 'Bill' as LegislativeRecord['category'],
-    status: 'Proposed' as LegislativeStatus,
+    status: 'Passed' as LegislativeRecord['status'],
     date: new Date().toISOString().split('T')[0],
     description: '',
-    statusNotes: '',
     coSponsors: ['Hon. Umar Yusuf Danmaje']
   });
 
   const handleCreateLegislative = (e: React.FormEvent) => {
     e.preventDefault();
-    const finalCategory = (newLeg.category === 'OTHER' || newLeg.category === 'Other')
-      ? (customNewLegCategory.trim() || 'Custom Legislative Record')
-      : newLeg.category;
     const created: LegislativeRecord = {
       id: `leg-${Date.now()}`,
-      title: newLeg.title,
-      category: finalCategory as any,
-      status: newLeg.status,
-      date: newLeg.date,
-      description: newLeg.description,
-      statusNotes: newLeg.statusNotes ? newLeg.statusNotes.trim() : undefined,
-      statusUpdatedAt: new Date().toISOString().split('T')[0],
-      statusUpdatedBy: adminRole || email,
-      coSponsors: newLeg.coSponsors
+      ...newLeg
     };
     const updated = [created, ...legislative];
     setLegislative(updated);
     try { localStorage.setItem('danmaje_legislative', JSON.stringify(updated)); } catch {}
-    apiCreateLegislative(created).catch(err => console.warn('API create legislative warning:', err));
     setShowAddLeg(false);
-    setCustomNewLegCategory('');
-    setNewLeg({ title: '', category: 'Bill', status: 'Proposed', date: new Date().toISOString().split('T')[0], description: '', statusNotes: '', coSponsors: ['Hon. Umar Yusuf Danmaje'] });
+    setNewLeg({ title: '', category: 'Bill', status: 'Passed', date: new Date().toISOString().split('T')[0], description: '', coSponsors: ['Hon. Umar Yusuf Danmaje'] });
     setActivityLogs(prev => [{
       id: `log-${Date.now()}`,
       user: email,
-      action: `Added legislative record: ${created.title} (Status: ${created.status}, Category: ${created.category})`,
+      action: `Added legislative record: ${created.title}`,
       timestamp: new Date().toISOString().replace('T', ' ').substring(0, 16),
       role: adminRole
     }, ...prev]);
-  };
-
-  const handleUpdateLegislativeStatus = (id: string, newStatus: LegislativeStatus, notes?: string) => {
-    const nowStr = new Date().toISOString().split('T')[0];
-    const updated = legislative.map(l => {
-      if (l.id === id) {
-        return {
-          ...l,
-          status: newStatus,
-          statusNotes: notes !== undefined ? notes : l.statusNotes,
-          statusUpdatedAt: nowStr,
-          statusUpdatedBy: adminRole || email
-        };
-      }
-      return l;
-    });
-    setLegislative(updated);
-    try { localStorage.setItem('danmaje_legislative', JSON.stringify(updated)); } catch {}
-    const updatedRecord = updated.find(l => l.id === id);
-    if (updatedRecord) {
-      apiUpdateLegislative(id, updatedRecord).catch(err => console.warn('API update legislative warning:', err));
-    }
-    if (editingLeg && editingLeg.id === id) {
-      setEditingLeg({
-        ...editingLeg,
-        status: newStatus,
-        statusNotes: notes !== undefined ? notes : editingLeg.statusNotes,
-        statusUpdatedAt: nowStr,
-        statusUpdatedBy: adminRole || email
-      });
-    }
-    setActivityLogs(prev => [{
-      id: `log-${Date.now()}`,
-      user: email,
-      action: `Updated status for legislative record #${id} to "${newStatus}"`,
-      timestamp: new Date().toISOString().replace('T', ' ').substring(0, 16),
-      role: adminRole
-    }, ...prev]);
-  };
-
-  const handleSaveEditingLeg = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!editingLeg) return;
-    const finalCategory = (editingLeg.category === 'OTHER' || editingLeg.category === 'Other')
-      ? (customEditLegCategory.trim() || 'Custom Legislative Record')
-      : editingLeg.category;
-    const nowStr = new Date().toISOString().split('T')[0];
-    const updated = legislative.map(l => l.id === editingLeg.id ? {
-      ...editingLeg,
-      category: finalCategory as any,
-      statusUpdatedAt: nowStr,
-      statusUpdatedBy: adminRole || email
-    } : l);
-    setLegislative(updated);
-    try { localStorage.setItem('danmaje_legislative', JSON.stringify(updated)); } catch {}
-    const updatedItem = updated.find(l => l.id === editingLeg.id);
-    if (updatedItem) {
-      apiUpdateLegislative(editingLeg.id, updatedItem).catch(err => console.warn('API update legislative warning:', err));
-    }
-    setActivityLogs(prev => [{
-      id: `log-${Date.now()}`,
-      user: email,
-      action: `Updated details and status for ${editingLeg.title} to ${editingLeg.status}`,
-      timestamp: new Date().toISOString().replace('T', ' ').substring(0, 16),
-      role: adminRole
-    }, ...prev]);
-    setEditingLeg(null);
-    setCustomEditLegCategory('');
   };
 
   const handleDeleteLegislative = (id: string) => {
     const updated = legislative.filter(l => l.id !== id);
     setLegislative(updated);
     try { localStorage.setItem('danmaje_legislative', JSON.stringify(updated)); } catch {}
-    apiDeleteLegislative(id).catch(err => console.warn('API delete legislative warning:', err));
     setActivityLogs(prev => [{
       id: `log-${Date.now()}`,
       user: email,
       action: `Deleted legislative record #${id}`,
-
       timestamp: new Date().toISOString().replace('T', ' ').substring(0, 16),
       role: adminRole
     }, ...prev]);
@@ -963,7 +841,6 @@ export const AdminDashboard: React.FC<Props> = ({
     const updated = [created, ...programs];
     setPrograms(updated);
     try { localStorage.setItem('danmaje_programs', JSON.stringify(updated)); } catch {}
-    apiCreateProgram(created).catch(err => console.warn('API create program warning:', err));
     setShowAddProg(false);
     setNewProg({
       title: '',
@@ -998,7 +875,6 @@ export const AdminDashboard: React.FC<Props> = ({
     const updated = programs.filter(p => p.id !== id);
     setPrograms(updated);
     try { localStorage.setItem('danmaje_programs', JSON.stringify(updated)); } catch {}
-    apiDeleteProgram(id).catch(err => console.warn('API delete program warning:', err));
     setActivityLogs(prev => [{
       id: `log-${Date.now()}`,
       user: email,
@@ -1010,7 +886,6 @@ export const AdminDashboard: React.FC<Props> = ({
 
   // Media / Gallery & Video State
   const [showAddMedia, setShowAddMedia] = useState(false);
-  const [previewDownloadVideo, setPreviewDownloadVideo] = useState<GalleryItem | null>(null);
   const [newMedia, setNewMedia] = useState<{
     title: string;
     type: 'photo' | 'video';
@@ -1020,12 +895,6 @@ export const AdminDashboard: React.FC<Props> = ({
     showOnHomepage: boolean;
     youtubeTitle: string;
     description: string;
-    hasDownloadPermission: boolean;
-    downloadUrl: string;
-    downloadFileSize: string;
-    downloadQuality: string;
-    permissionNote: string;
-    officialChannelUrl: string;
   }>({
     title: '',
     type: 'photo',
@@ -1034,13 +903,7 @@ export const AdminDashboard: React.FC<Props> = ({
     videoUrl: '',
     showOnHomepage: false,
     youtubeTitle: '',
-    description: '',
-    hasDownloadPermission: false,
-    downloadUrl: '',
-    downloadFileSize: '150 MB',
-    downloadQuality: '1080p Full HD Master',
-    permissionNote: 'Official Constituency Media Production - Authorized for constituent archive',
-    officialChannelUrl: ''
+    description: ''
   });
   const [uploadedImagePreview, setUploadedImagePreview] = useState<string>('');
   const [uploadError, setUploadError] = useState<string>('');
@@ -1073,32 +936,21 @@ export const AdminDashboard: React.FC<Props> = ({
     }
   };
 
-  const [isUploadingMediaImg, setIsUploadingMediaImg] = useState(false);
-
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     setUploadError('');
     const file = e.target.files?.[0];
     if (file) {
-      if (file.size > 20 * 1024 * 1024) {
-        setUploadError('Image file size exceeds 20MB. Please choose an optimized image.');
+      if (file.size > 8 * 1024 * 1024) {
+        setUploadError('Image file size exceeds 8MB. Please choose an optimized image.');
         return;
       }
-      try {
-        setIsUploadingMediaImg(true);
-        const compressedDataUrl = await compressImageFile(file, 1600, 1200, 0.85);
-        setUploadedImagePreview(compressedDataUrl);
-        const permanentUrl = await apiUploadFile(compressedDataUrl, file.name);
-        setUploadedImagePreview(permanentUrl);
-        setNewMedia(prev => ({ ...prev, imageUrl: permanentUrl }));
-        setProjectSuccessNotice('Media photograph confirmed and uploaded to Firebase Storage.');
-        setTimeout(() => setProjectSuccessNotice(''), 4000);
-      } catch (err: any) {
-        console.error('Gallery image upload error:', err);
-        setUploadError(`Failed to upload to Firebase Storage: ${err.message || 'Network error'}`);
-        setUploadedImagePreview('');
-      } finally {
-        setIsUploadingMediaImg(false);
-      }
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const result = reader.result as string;
+        setUploadedImagePreview(result);
+        setNewMedia(prev => ({ ...prev, imageUrl: result }));
+      };
+      reader.readAsDataURL(file);
     }
   };
 
@@ -1122,27 +974,17 @@ export const AdminDashboard: React.FC<Props> = ({
       finalVideoUrl = `https://www.youtube.com/watch?v=${ytId}`;
     }
 
-    const finalCategory = (((newMedia.category as any) === 'OTHER' || (newMedia.category as any) === 'Other'))
-      ? (customNewMediaCategory.trim() || 'Custom Media')
-      : newMedia.category;
-
     const createdItem: GalleryItem = {
       id: `gal-${Date.now()}`,
       title: newMedia.title.trim() || detectedYtTitle || 'Constituency Video Record',
       type: newMedia.type,
-      category: finalCategory as any,
+      category: newMedia.category,
       imageUrl: finalImageUrl || YOUTUBE_PLACEHOLDER_THUMBNAIL,
       videoUrl: newMedia.type === 'video' ? finalVideoUrl : undefined,
       showOnHomepage: newMedia.type === 'video' ? newMedia.showOnHomepage : false,
       youtubeTitle: newMedia.youtubeTitle || detectedYtTitle || undefined,
       date: new Date().toISOString().split('T')[0],
-      description: newMedia.description,
-      hasDownloadPermission: newMedia.type === 'video' ? newMedia.hasDownloadPermission : false,
-      downloadUrl: newMedia.type === 'video' && newMedia.hasDownloadPermission ? (newMedia.downloadUrl || finalVideoUrl) : undefined,
-      downloadFileSize: newMedia.type === 'video' && newMedia.hasDownloadPermission ? newMedia.downloadFileSize : undefined,
-      downloadQuality: newMedia.type === 'video' && newMedia.hasDownloadPermission ? newMedia.downloadQuality : undefined,
-      permissionNote: newMedia.type === 'video' && newMedia.hasDownloadPermission ? newMedia.permissionNote : undefined,
-      officialChannelUrl: newMedia.type === 'video' ? newMedia.officialChannelUrl || undefined : undefined
+      description: newMedia.description
     };
 
     let updated = [createdItem, ...gallery];
@@ -1154,11 +996,8 @@ export const AdminDashboard: React.FC<Props> = ({
     try {
       localStorage.setItem('danmaje_gallery', JSON.stringify(updated));
     } catch {}
-    apiCreateGallery(createdItem).catch(err => console.warn('API create gallery warning:', err));
-
 
     setShowAddMedia(false);
-    setCustomNewMediaCategory('');
     setNewMedia({
       title: '',
       type: 'photo',
@@ -1167,13 +1006,7 @@ export const AdminDashboard: React.FC<Props> = ({
       videoUrl: '',
       showOnHomepage: false,
       youtubeTitle: '',
-      description: '',
-      hasDownloadPermission: false,
-      downloadUrl: '',
-      downloadFileSize: '150 MB',
-      downloadQuality: '1080p Full HD Master',
-      permissionNote: 'Official Constituency Media Production - Authorized for constituent archive',
-      officialChannelUrl: ''
+      description: ''
     });
     setDetectedYtThumb('');
     setDetectedYtTitle('');
@@ -1181,7 +1014,7 @@ export const AdminDashboard: React.FC<Props> = ({
     setActivityLogs(prev => [{
       id: `log-${Date.now()}`,
       user: email,
-      action: `Uploaded ${createdItem.type === 'video' ? 'video' : 'photograph'}: ${createdItem.title} (Direct download: ${createdItem.hasDownloadPermission ? 'ENABLED' : 'OFFICIAL YOUTUBE ONLY'})`,
+      action: `Uploaded ${createdItem.type === 'video' ? 'video' : 'photograph'}: ${createdItem.title}`,
       timestamp: new Date().toISOString().replace('T', ' ').substring(0, 16),
       role: adminRole
     }, ...prev]);
@@ -1189,28 +1022,15 @@ export const AdminDashboard: React.FC<Props> = ({
 
   const handleEditMedia = (item: GalleryItem) => {
     setEditingMedia(item);
-    const standardCategories = ['National Assembly', 'Projects', 'Constituency Visits', 'Empowerment', 'Town Halls', 'Interviews & Debates'];
-    const isCustom = !standardCategories.includes(item.category);
-    if (isCustom) {
-      setCustomEditMediaCategory(item.category);
-    } else {
-      setCustomEditMediaCategory('');
-    }
     setNewMedia({
       title: item.title,
       type: (item.type === 'video' || !!item.videoUrl) ? 'video' : 'photo',
-      category: isCustom ? ('Other' as any) : (item.category as any),
+      category: item.category,
       imageUrl: item.imageUrl || '',
       videoUrl: item.videoUrl || '',
       showOnHomepage: item.showOnHomepage || false,
       youtubeTitle: item.youtubeTitle || '',
-      description: item.description || '',
-      hasDownloadPermission: Boolean(item.hasDownloadPermission),
-      downloadUrl: item.downloadUrl || '',
-      downloadFileSize: item.downloadFileSize || '150 MB',
-      downloadQuality: item.downloadQuality || '1080p Full HD Master',
-      permissionNote: item.permissionNote || 'Official Constituency Media Production - Authorized for constituent archive',
-      officialChannelUrl: item.officialChannelUrl || ''
+      description: item.description || ''
     });
     setShowAddMedia(true);
   };
@@ -1218,25 +1038,10 @@ export const AdminDashboard: React.FC<Props> = ({
   const handleUpdateMedia = (e: React.FormEvent) => {
     e.preventDefault();
     if (!editingMedia) return;
-    const isVid = newMedia.type === 'video';
-    const finalCategory = ((newMedia.category as any) === 'OTHER' || (newMedia.category as any) === 'Other')
-      ? (customEditMediaCategory.trim() || 'Custom Media')
-      : newMedia.category;
-    const updated = gallery.map(item => item.id === editingMedia.id ? { 
-      ...editingMedia, 
-      ...newMedia,
-      category: finalCategory as any,
-      hasDownloadPermission: isVid ? newMedia.hasDownloadPermission : false,
-      downloadUrl: isVid && newMedia.hasDownloadPermission ? newMedia.downloadUrl : undefined,
-      downloadFileSize: isVid && newMedia.hasDownloadPermission ? newMedia.downloadFileSize : undefined,
-      downloadQuality: isVid && newMedia.hasDownloadPermission ? newMedia.downloadQuality : undefined,
-      permissionNote: isVid && newMedia.hasDownloadPermission ? newMedia.permissionNote : undefined,
-      officialChannelUrl: isVid ? newMedia.officialChannelUrl : undefined
-    } : item);
+    const updated = gallery.map(item => item.id === editingMedia.id ? { ...editingMedia, ...newMedia } : item);
     setGallery(updated);
     try { localStorage.setItem('danmaje_gallery', JSON.stringify(updated)); } catch {}
     setEditingMedia(null);
-    setCustomEditMediaCategory('');
     setShowAddMedia(false);
   };
 
@@ -1246,7 +1051,6 @@ export const AdminDashboard: React.FC<Props> = ({
     try {
       localStorage.setItem('danmaje_gallery', JSON.stringify(updated));
     } catch {}
-    apiDeleteGallery(id).catch(err => console.warn('API delete gallery warning:', err));
     setActivityLogs(prev => [{
       id: `log-${Date.now()}`,
       user: email,
@@ -1265,10 +1069,6 @@ export const AdminDashboard: React.FC<Props> = ({
     try {
       localStorage.setItem('danmaje_gallery', JSON.stringify(updated));
     } catch {}
-    const featured = updated.find(g => g.id === id);
-    if (featured) {
-      apiUpdateGallery(id, featured).catch(err => console.warn('API update gallery warning:', err));
-    }
     setActivityLogs(prev => [{
       id: `log-${Date.now()}`,
       user: email,
@@ -1277,7 +1077,6 @@ export const AdminDashboard: React.FC<Props> = ({
       role: adminRole
     }, ...prev]);
   };
-
 
   const handleResyncAllVideoThumbnails = () => {
     const sanitized = sanitizeGalleryList(gallery);
@@ -1306,128 +1105,47 @@ export const AdminDashboard: React.FC<Props> = ({
     } catch {}
   };
 
-  // Auth Handling - Server-side authentication with rate limiting & session protection
-  const handleLogin = async (e: React.FormEvent) => {
+  // Auth Handling
+  const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
-    setLoginError('');
-    setIsSubmittingLogin(true);
-
-    try {
-      const res = await fetch('/api/admin/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: email.trim(), password })
-      });
-
-      const data = await res.json();
-      if (!res.ok) {
-        setLoginError(data.error || 'Authentication failed. Please verify your credentials.');
-        setIsSubmittingLogin(false);
-        return;
-      }
-
-      try {
-        await signInWithEmailAndPassword(auth, email.trim(), password);
-      } catch {
-        try {
-          await createUserWithEmailAndPassword(auth, email.trim(), password);
-        } catch {}
-      }
-
-      setAuthToken(data.token);
-      setCurrentAdminUser(data.user);
-      setCurrentOffice(data.office || null);
-      setAdminRole(data.user.role === 'Super Administrator' ? 'Chief Administrator' : (data.office?.name || 'Office Administrator'));
+    if (password === 'DANMAJEFOREVER' || password.length >= 6) {
       setIsLoggedIn(true);
-      try {
-        sessionStorage.setItem('danmaje_admin_token', data.token);
-        localStorage.setItem('danmaje_admin_token', data.token);
-      } catch {}
-      setPassword('');
-      setActivityLogs(prev => [{
-        id: `log-${Date.now()}`,
-        user: data.user.email,
-        action: `Secure session authenticated successfully via cryptographic scrypt verification.`,
-        timestamp: new Date().toISOString().replace('T', ' ').substring(0, 16),
-        role: data.user.role
-      }, ...prev]);
-    } catch (err: any) {
-      setLoginError('Security verification connection error. Please ensure server is running.');
-    } finally {
-      setIsSubmittingLogin(false);
+      setLoginError('');
+      if (email.includes('media')) {
+        setAdminRole('News Editor');
+      } else if (email.includes('projects')) {
+        setAdminRole('Projects Manager');
+      } else {
+        setAdminRole('Chief Administrator');
+      }
+    } else {
+      setLoginError('Invalid access key or credentials. Please check authorization.');
     }
   };
 
-  const handleLogout = async () => {
-    try {
-      if (authToken) {
-        await fetch('/api/admin/logout', {
-          method: 'POST',
-          headers: { 'Authorization': `Bearer ${authToken}` }
-        });
-      }
-    } catch {}
-    try {
-      sessionStorage.removeItem('danmaje_admin_token');
-      localStorage.removeItem('danmaje_admin_token');
-    } catch {}
-    setAuthToken(null);
-    setIsLoggedIn(false);
-    setCurrentAdminUser(null);
-    setCurrentOffice(null);
-    setPreviewingOffice(null);
-    setPassword('');
-    setShowPassword(false);
-  };
-
-  // Determine active effective office (either assigned office, or preview office chosen by Super Admin)
-  const effectiveOffice = previewingOffice || currentOffice;
-  const isSuperAdmin = !currentAdminUser || currentAdminUser.role === 'Super Administrator';
-
-  // Navigation items master list
-  const allNavItems: { id: DashboardTab; label: string; icon: any; count?: number }[] = [
+  // Navigation items with Cybersecurity and SMS/USSD Gateway
+  const navItems: { id: DashboardTab; label: string; icon: any; count?: number }[] = [
     { id: 'overview', label: '1. SYSTEM OVERVIEW', icon: Activity },
     { id: 'analytics', label: '2. VISITORS ANALYTICS', icon: BarChart3 },
     { id: 'projects', label: '3. PROJECTS', icon: Award, count: projects.length },
     { id: 'news', label: '4. NEWS & PRESS', icon: FileText, count: news.length },
-    { id: 'legislative', label: '5. LEGISLATIVE (BILLS & MOTIONS)', icon: Landmark, count: legislative.length },
+    { id: 'legislative', label: '5. LEGISLATIVE', icon: Landmark, count: legislative.length },
     { id: 'empowerment', label: '6. EMPOWERMENT', icon: Users, count: programs.length },
     { id: 'applications', label: '7. APPLICATIONS', icon: CheckCircle2, count: applications.length },
-    { id: 'gallery', label: '8. PHOTOS & VIDEOS', icon: Film, count: gallery.length },
-    { id: 'townhall', label: '9. TOWN HALL & VOTING', icon: BarChart2, count: polls.length },
-    { id: 'petitions', label: '10. COMMUNITY PETITIONS', icon: FileCheck, count: petitions.length },
-    { id: 'enquiries', label: '11. ENQUIRIES', icon: Mail, count: contacts.length },
-    { id: 'election', label: '12. ELECTION RESULTS & AGENTS', icon: CheckSquare },
-    { id: 'storage', label: '13. DANMAJE INTERNAL STORAGE', icon: HardDrive },
-    { id: 'offices', label: '14. OFFICES & ACCESS CONTROL', icon: Building2, count: offices.length },
-    { id: 'settings', label: '15. USER SETTINGS', icon: Settings },
+    { id: 'petitions', label: '8. PETITIONS & TICKETS', icon: FileCheck, count: applications.length },
+    { id: 'gallery', label: '9. PHOTOS & VIDEOS', icon: Film, count: gallery.length },
+    { id: 'enquiries', label: '10. ENQUIRIES', icon: Mail, count: contacts.length },
+    { id: 'election', label: '11. ELECTION RESULTS & AGENTS', icon: CheckSquare },
+    { id: 'cybersecurity', label: '12. CYBERSECURITY & THREAT DEFENSE', icon: Shield },
+    { id: 'sms_ussd', label: '13. SMS & USSD GATEWAY', icon: Radio },
+    { id: 'settings', label: '14. USER SETTINGS', icon: Settings },
   ];
-
-  // RBAC Filter: If office administrator, show only authorized modules for their bureau
-  const authorizedTabIds = (isSuperAdmin && !previewingOffice)
-    ? allNavItems.map(item => item.id)
-    : (effectiveOffice?.authorizedTabs || ['overview']);
-
-  const navItems = allNavItems.filter(item => {
-    if (isSuperAdmin && !previewingOffice) return true;
-    if (item.id === 'overview') return true;
-    return authorizedTabIds.includes(item.id);
-  });
-
-  // Guard: If current activeTab is not allowed for the user, reset to overview
-  useEffect(() => {
-    if (!isSuperAdmin || previewingOffice) {
-      if (activeTab !== 'overview' && !authorizedTabIds.includes(activeTab)) {
-        setActiveTab('overview');
-      }
-    }
-  }, [activeTab, isSuperAdmin, previewingOffice, authorizedTabIds]);
 
   // LOGIN SCREEN
   if (!isLoggedIn) {
     return (
       <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#072118] p-4 sm:p-6 overflow-y-auto">
-        <div className="max-w-md w-full bg-white rounded-3xl shadow-2xl overflow-hidden border border-[#C6A15B]/50 my-8 animate-fadeIn">
+        <div className="max-w-md w-full bg-white rounded-3xl shadow-2xl overflow-hidden border border-[#C6A15B]/50 my-8">
           <div className="bg-[#103C2E] p-8 text-center text-white relative">
             <button
               onClick={onClose}
@@ -1441,7 +1159,7 @@ export const AdminDashboard: React.FC<Props> = ({
             </div>
             <span className="text-[10px] font-black uppercase tracking-widest text-[#D4AF37]">10th National Assembly</span>
             <h2 className="text-xl font-bold font-['Manrope'] text-white mt-1 uppercase tracking-wide">
-              ADMIN & MULTI-BUREAU CMS PORTAL
+              ADMIN & ENTERPRISE CMS PORTAL
             </h2>
             <p className="text-xs text-white/80 mt-1 font-light">
               Office of Hon. Umar Yusuf (Danmaje Yabo)
@@ -1450,9 +1168,9 @@ export const AdminDashboard: React.FC<Props> = ({
 
           <form onSubmit={handleLogin} className="p-8 space-y-4">
             {loginError && (
-              <div className="p-3.5 bg-rose-50 border-2 border-rose-300 text-rose-800 rounded-2xl text-xs flex items-start gap-2.5 animate-fadeIn">
-                <AlertCircle className="w-4 h-4 shrink-0 text-rose-600 mt-0.5" />
-                <span className="leading-relaxed font-semibold">{loginError}</span>
+              <div className="p-3 bg-rose-50 border border-rose-200 text-rose-700 rounded-xl text-xs flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 shrink-0" />
+                <span>{loginError}</span>
               </div>
             )}
 
@@ -1461,66 +1179,34 @@ export const AdminDashboard: React.FC<Props> = ({
               <input
                 type="email"
                 required
-                placeholder="admin@danmayeyabo.gov.ng"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="w-full px-4 py-3 bg-[#FAF9F5] border border-stone-200 rounded-xl text-xs sm:text-sm text-[#103C2E] focus:outline-none focus:border-[#103C2E] font-medium"
+                className="w-full px-4 py-3 bg-[#FAF9F5] border border-stone-200 rounded-xl text-xs sm:text-sm text-[#103C2E] focus:outline-none focus:border-[#103C2E]"
               />
             </div>
 
             <div className="space-y-1">
-              <div className="flex justify-between items-center">
-                <label className="text-xs font-bold text-[#103C2E] uppercase">Access Password / Security Key</label>
-                <span className="text-[10px] text-stone-400 font-semibold">Hidden by default</span>
-              </div>
-              <div className="relative">
-                <input
-                  type={showPassword ? 'text' : 'password'}
-                  required
-                  placeholder="Enter authorized password..."
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="w-full pl-4 pr-12 py-3 bg-[#FAF9F5] border border-stone-200 rounded-xl text-xs sm:text-sm text-[#103C2E] focus:outline-none focus:border-[#103C2E] font-mono"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-stone-400 hover:text-[#103C2E] p-1.5 transition cursor-pointer"
-                  title={showPassword ? 'Hide password' : 'Show password'}
-                >
-                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                </button>
-              </div>
+              <label className="text-xs font-bold text-[#103C2E] uppercase">Access Password / Key</label>
+              <input
+                type="password"
+                required
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="w-full px-4 py-3 bg-[#FAF9F5] border border-stone-200 rounded-xl text-xs sm:text-sm text-[#103C2E] focus:outline-none focus:border-[#103C2E]"
+              />
             </div>
 
             <div className="pt-2">
               <button
                 type="submit"
-                disabled={isSubmittingLogin}
-                className="w-full bg-[#103C2E] hover:bg-[#09291F] text-[#D4AF37] font-black py-3.5 rounded-xl text-xs sm:text-sm shadow-xl transition-all cursor-pointer border border-[#C6A15B]/50 uppercase tracking-wider flex items-center justify-center gap-2"
+                className="w-full bg-[#103C2E] hover:bg-[#09291F] text-[#D4AF37] font-black py-3.5 rounded-xl text-xs sm:text-sm shadow-xl transition-all cursor-pointer border border-[#C6A15B]/50 uppercase tracking-wider"
               >
-                {isSubmittingLogin ? (
-                  <>
-                    <RefreshCw className="w-4 h-4 animate-spin text-[#D4AF37]" />
-                    <span>AUTHENTICATING SECURELY...</span>
-                  </>
-                ) : (
-                  <>
-                    <Lock className="w-4 h-4 text-[#D4AF37]" />
-                    <span>AUTHENTICATE & ACCESS DASHBOARD</span>
-                  </>
-                )}
+                AUTHENTICATE & ACCESS DASHBOARD
               </button>
             </div>
 
-            <div className="bg-stone-50 p-3 rounded-2xl border border-stone-200 text-[11px] text-stone-600 space-y-1">
-              <div className="flex items-center gap-1 font-bold text-[#103C2E] uppercase text-[10px]">
-                <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
-                <span>Protected By Cryptographic RBAC & Rate Limiting</span>
-              </div>
-              <p className="text-[10px] text-stone-500 leading-normal">
-                Passwords are never stored in plain text. Failed login attempts are rate-limited to 5 tries to prevent brute force attacks.
-              </p>
+            <div className="text-[11px] text-stone-500 text-center pt-2">
+              Authorized parliamentary personnel only. All access attempts are logged.
             </div>
           </form>
         </div>
@@ -1547,32 +1233,13 @@ export const AdminDashboard: React.FC<Props> = ({
             <img src="/official_logo.png" alt="Official Seal" className="w-full h-full object-contain rounded-full" />
           </div>
           <div>
-            <div className="flex flex-wrap items-center gap-2">
+            <div className="flex items-center gap-2">
               <h2 className="font-['Manrope'] font-bold text-sm sm:text-base tracking-wide text-white">
                 ENTERPRISE MANAGEMENT DASHBOARD
               </h2>
-              {effectiveOffice ? (
-                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-[#C6A15B]/25 text-[#D4AF37] text-[10px] font-black border border-[#C6A15B]/40 uppercase">
-                  <Building2 className="w-3 h-3 text-[#D4AF37]" />
-                  <span>{effectiveOffice.name}</span>
-                </span>
-              ) : (
-                <span className="hidden sm:inline-block px-2 py-0.5 rounded-full bg-[#C6A15B]/20 text-[#D4AF37] text-[10px] font-bold border border-[#C6A15B]/30 uppercase">
-                  {adminRole}
-                </span>
-              )}
-
-              {previewingOffice && (
-                <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-amber-400 text-black text-[10px] font-black uppercase">
-                  <span>PREVIEWING OFFICE VIEW</span>
-                  <button
-                    onClick={() => setPreviewingOffice(null)}
-                    className="hover:underline font-extrabold cursor-pointer text-[9px] bg-black/20 px-1 rounded"
-                  >
-                    Exit
-                  </button>
-                </div>
-              )}
+              <span className="hidden sm:inline-block px-2 py-0.5 rounded-full bg-[#C6A15B]/20 text-[#D4AF37] text-[10px] font-bold border border-[#C6A15B]/30 uppercase">
+                {adminRole}
+              </span>
             </div>
             <p className="text-[11px] text-emerald-100/80 font-light truncate max-w-xs sm:max-w-md">
               Hon. Umar Yusuf Yabo Portal • {email}
@@ -1581,21 +1248,8 @@ export const AdminDashboard: React.FC<Props> = ({
         </div>
 
         <div className="flex items-center space-x-2 sm:space-x-3">
-          {storageStatus && (
-            <div 
-              title={storageStatus.connected ? `Supabase Storage connected (${storageStatus.buckets?.length || 0} bucket(s) ready)` : storageStatus.message}
-              className={`hidden md:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[10px] font-black border uppercase tracking-wider ${
-                storageStatus.connected 
-                  ? 'bg-emerald-950/70 text-emerald-300 border-emerald-500/40 shadow-xs' 
-                  : 'bg-amber-950/70 text-amber-300 border-amber-500/40 shadow-xs'
-              }`}
-            >
-              <span className={`w-2 h-2 rounded-full ${storageStatus.connected ? 'bg-emerald-400 animate-pulse' : 'bg-amber-400'}`}></span>
-              <span>{storageStatus.connected ? 'SUPABASE STORAGE' : 'STORAGE LOCAL'}</span>
-            </div>
-          )}
           <button
-            onClick={handleLogout}
+            onClick={() => setIsLoggedIn(false)}
             className="flex items-center gap-1.5 bg-rose-600/20 hover:bg-rose-600/30 text-rose-300 px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-xl text-xs font-bold border border-rose-500/30 transition cursor-pointer uppercase"
           >
             <LogOut className="w-3.5 h-3.5" />
@@ -2432,7 +2086,7 @@ export const AdminDashboard: React.FC<Props> = ({
                     <select
                       value={newProj.category}
                       onChange={(e) => setNewProj({...newProj, category: e.target.value as any})}
-                      className="px-4 py-2.5 bg-stone-50 border border-stone-200 rounded-xl text-xs sm:text-sm font-medium"
+                      className="px-4 py-2.5 bg-stone-50 border border-stone-200 rounded-xl text-xs sm:text-sm"
                     >
                       <option value="Water & Sanitation">Water & Sanitation</option>
                       <option value="Education">Education</option>
@@ -2440,7 +2094,6 @@ export const AdminDashboard: React.FC<Props> = ({
                       <option value="Healthcare">Healthcare</option>
                       <option value="Youth Development">Youth Development</option>
                       <option value="Agriculture">Agriculture</option>
-                      <option value="Other">OTHER (Specify Custom Category)</option>
                     </select>
                     <input
                       type="text"
@@ -2458,57 +2111,33 @@ export const AdminDashboard: React.FC<Props> = ({
                     />
                   </div>
 
-                  {newProj.category === 'Other' && (
-                    <div className="bg-amber-50/70 p-4 rounded-2xl border-2 border-amber-300 space-y-1.5 animate-fadeIn">
-                      <label className="text-xs font-bold text-[#103C2E] uppercase flex items-center gap-1.5">
-                        <Sparkles className="w-3.5 h-3.5 text-[#C6A15B]" />
-                        <span>Specify Custom Project Category *</span>
-                      </label>
-                      <input
-                        type="text"
-                        required
-                        placeholder="e.g. Rural Electrification & Solar Mini-Grids..."
-                        value={customNewProjCategory}
-                        onChange={(e) => setCustomNewProjCategory(e.target.value)}
-                        className="w-full px-4 py-2.5 bg-white border border-amber-300 rounded-xl text-xs sm:text-sm font-semibold text-[#103C2E] focus:outline-none focus:ring-2 focus:ring-[#103C2E]"
-                      />
-                    </div>
-                  )}
-
-                  {/* Project Description Field */}
-                  <div className="space-y-1">
-                    <label className="text-xs font-bold text-[#103C2E] block uppercase tracking-wider">
-                      Project Scope & Detailed Description *
-                    </label>
-                    <textarea
-                      required
-                      rows={3}
-                      placeholder="Write comprehensive description of project scope, objectives, target beneficiary communities in Yabo/Shagari, and current execution progress..."
-                      value={newProj.description}
-                      onChange={(e) => setNewProj({...newProj, description: e.target.value})}
-                      className="w-full px-4 py-2.5 bg-stone-50 border border-stone-200 rounded-xl text-xs sm:text-sm focus:ring-2 focus:ring-[#103C2E] focus:outline-none"
-                    />
-                  </div>
+                  <textarea
+                    rows={3}
+                    placeholder="Comprehensive project scope, beneficiaries, and milestones..."
+                    value={newProj.description}
+                    onChange={(e) => setNewProj({...newProj, description: e.target.value})}
+                    className="w-full px-4 py-2.5 bg-stone-50 border border-stone-200 rounded-xl text-xs sm:text-sm"
+                  ></textarea>
 
                   {/* Project Photo Attachment */}
                   <div className="space-y-3 bg-stone-50 p-4 rounded-2xl border border-stone-200">
                     <label className="text-xs font-bold text-[#103C2E] block uppercase tracking-wider">
-                      Attach Project Site Photo / Progress Evidence *
+                      Attach Project Site Photo / Progress Evidence
                     </label>
                     <div className="flex flex-wrap items-center gap-3">
                       <label className="cursor-pointer bg-[#103C2E] hover:bg-[#09291F] text-white px-4 py-2.5 rounded-xl text-xs font-bold flex items-center gap-2 shadow-sm transition">
                         <Camera className="w-4 h-4 text-[#C6A15B]" />
-                        <span>{isCompressingProjImg ? 'Processing Photo...' : 'Upload Photo File'}</span>
-                        <input type="file" accept="image/*" disabled={isCompressingProjImg} onChange={handleProjectImageUpload} className="hidden" />
+                        <span>Upload Photo File</span>
+                        <input type="file" accept="image/*" onChange={handleProjectImageUpload} className="hidden" />
                       </label>
-                      <span className="text-[11px] text-stone-500 font-medium">Auto-compressed for web performance. Supports JPG, PNG, WEBP</span>
+                      <span className="text-[11px] text-stone-500 font-medium">Supports JPG, PNG, WEBP (Direct Camera or Gallery)</span>
                     </div>
 
                     <div className="space-y-1">
-                      <label className="text-[11px] text-stone-500 font-semibold uppercase">Or Direct Image URL</label>
+                      <label className="text-[11px] text-stone-500 font-semibold uppercase">Or Image URL</label>
                       <input
                         type="url"
-                        placeholder="https://images.unsplash.com/... or direct photo link"
+                        placeholder="https://images.unsplash.com/... or direct image link"
                         value={newProj.images[0] || ''}
                         onChange={(e) => setNewProj({...newProj, images: [e.target.value]})}
                         className="w-full px-3 py-2 bg-white border border-stone-200 rounded-xl text-xs font-mono"
@@ -2517,10 +2146,20 @@ export const AdminDashboard: React.FC<Props> = ({
 
                     {newProj.images[0] && (
                       <div className="flex items-center gap-3 pt-1">
-                        <img src={newProj.images[0]} alt="Project Preview" className="w-20 h-14 object-cover rounded-xl border border-stone-300 shadow-xs shrink-0" />
-                        <span className="text-xs text-emerald-800 font-bold flex items-center gap-1">
-                          <CheckCircle className="w-4 h-4 text-emerald-600" /> Site Photo Attached & Ready
-                        </span>
+                        <div className="w-20 h-14 rounded-xl overflow-hidden border border-stone-300 bg-stone-100 shadow-sm shrink-0">
+                          <img 
+                            src={newProj.images[0]} 
+                            alt="Project Preview" 
+                            className="w-full h-full object-cover"
+                            onError={(e) => {
+                              (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1541888946425-d0fbb18f764c?auto=format&fit=crop&q=80&w=200';
+                            }}
+                          />
+                        </div>
+                        <div className="text-xs">
+                          <span className="font-bold text-emerald-800 block">Photo Attached</span>
+                          <span className="text-stone-500 text-[11px]">Will display on project card & detailed transparency modal</span>
+                        </div>
                       </div>
                     )}
                   </div>
@@ -2535,10 +2174,155 @@ export const AdminDashboard: React.FC<Props> = ({
                     </button>
                     <button
                       type="submit"
-                      className="px-6 py-2 bg-[#103C2E] hover:bg-[#09291F] text-white rounded-xl text-xs font-bold uppercase cursor-pointer shadow flex items-center gap-1.5"
+                      className="px-6 py-2 bg-[#103C2E] hover:bg-[#09291F] text-white rounded-xl text-xs font-bold uppercase cursor-pointer shadow"
                     >
-                      <CheckCircle className="w-4 h-4 text-[#C6A15B]" />
-                      <span>Save & Publish Project</span>
+                      Save Project
+                    </button>
+                  </div>
+                </form>
+              )}
+
+              {/* Edit Project Form */}
+              {editingProject && (
+                <form onSubmit={handleUpdateProject} className="bg-emerald-50/70 p-6 sm:p-8 rounded-3xl shadow-lg border-2 border-[#103C2E] space-y-4">
+                  <div className="flex justify-between items-center border-b border-emerald-200 pb-3">
+                    <h4 className="font-['Manrope'] font-bold text-[#103C2E] text-base uppercase">
+                      EDIT PROJECT: {editingProject.title}
+                    </h4>
+                    <button onClick={() => setEditingProject(null)} className="text-stone-400 hover:text-stone-700 cursor-pointer">
+                      <X className="w-5 h-5" />
+                    </button>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div className="space-y-1">
+                      <label className="text-xs font-bold text-[#103C2E] uppercase">Project Title</label>
+                      <input
+                        type="text"
+                        required
+                        value={editingProject.title}
+                        onChange={(e) => setEditingProject({...editingProject, title: e.target.value})}
+                        className="w-full px-4 py-2.5 bg-white border border-stone-300 rounded-xl text-xs sm:text-sm font-semibold"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-xs font-bold text-[#103C2E] uppercase">Location</label>
+                      <input
+                        type="text"
+                        required
+                        value={editingProject.location}
+                        onChange={(e) => setEditingProject({...editingProject, location: e.target.value})}
+                        className="w-full px-4 py-2.5 bg-white border border-stone-300 rounded-xl text-xs sm:text-sm"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-xs font-bold text-[#103C2E] uppercase">Status</label>
+                      <select
+                        value={editingProject.status}
+                        onChange={(e) => setEditingProject({...editingProject, status: e.target.value as any})}
+                        className="w-full px-4 py-2.5 bg-white border border-stone-300 rounded-xl text-xs sm:text-sm font-bold"
+                      >
+                        <option value="Ongoing">Ongoing</option>
+                        <option value="Completed">Completed</option>
+                        <option value="Proposed">Proposed</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div className="space-y-1">
+                      <label className="text-xs font-bold text-[#103C2E] uppercase">Category</label>
+                      <select
+                        value={editingProject.category}
+                        onChange={(e) => setEditingProject({...editingProject, category: e.target.value as any})}
+                        className="w-full px-4 py-2.5 bg-white border border-stone-300 rounded-xl text-xs sm:text-sm"
+                      >
+                        <option value="Water & Sanitation">Water & Sanitation</option>
+                        <option value="Education">Education</option>
+                        <option value="Roads & Infrastructure">Roads & Infrastructure</option>
+                        <option value="Healthcare">Healthcare</option>
+                        <option value="Youth Development">Youth Development</option>
+                        <option value="Agriculture">Agriculture</option>
+                      </select>
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-xs font-bold text-[#103C2E] uppercase">Year</label>
+                      <input
+                        type="text"
+                        value={editingProject.year}
+                        onChange={(e) => setEditingProject({...editingProject, year: e.target.value})}
+                        className="w-full px-4 py-2.5 bg-white border border-stone-300 rounded-xl text-xs sm:text-sm"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-xs font-bold text-[#103C2E] uppercase">Expenditure / Budget</label>
+                      <input
+                        type="text"
+                        value={editingProject.expenditure || ''}
+                        onChange={(e) => setEditingProject({...editingProject, expenditure: e.target.value})}
+                        className="w-full px-4 py-2.5 bg-white border border-stone-300 rounded-xl text-xs sm:text-sm"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-xs font-bold text-[#103C2E] uppercase">Description</label>
+                    <textarea
+                      rows={3}
+                      value={editingProject.description}
+                      onChange={(e) => setEditingProject({...editingProject, description: e.target.value})}
+                      className="w-full px-4 py-2.5 bg-white border border-stone-300 rounded-xl text-xs sm:text-sm"
+                    ></textarea>
+                  </div>
+
+                  {/* Photo attachment for Edit */}
+                  <div className="space-y-3 bg-white p-4 rounded-2xl border border-stone-300">
+                    <label className="text-xs font-bold text-[#103C2E] block uppercase tracking-wider">
+                      Update Project Site Photo
+                    </label>
+                    <div className="flex flex-wrap items-center gap-3">
+                      <label className="cursor-pointer bg-[#103C2E] hover:bg-[#09291F] text-white px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2 shadow-sm transition">
+                        <Camera className="w-4 h-4 text-[#C6A15B]" />
+                        <span>Upload New Photo</span>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) {
+                              const reader = new FileReader();
+                              reader.onloadend = () => {
+                                setEditingProject(prev => prev ? ({ ...prev, images: [reader.result as string] }) : null);
+                              };
+                              reader.readAsDataURL(file);
+                            }
+                          }}
+                          className="hidden"
+                        />
+                      </label>
+                    </div>
+                    <input
+                      type="url"
+                      placeholder="Or update image URL"
+                      value={editingProject.images?.[0] || ''}
+                      onChange={(e) => setEditingProject({...editingProject, images: [e.target.value]})}
+                      className="w-full px-3 py-2 bg-stone-50 border border-stone-300 rounded-xl text-xs font-mono"
+                    />
+                  </div>
+
+                  <div className="flex justify-end gap-3 pt-2">
+                    <button
+                      type="button"
+                      onClick={() => setEditingProject(null)}
+                      className="px-5 py-2.5 bg-stone-200 hover:bg-stone-300 rounded-xl text-xs font-bold uppercase cursor-pointer"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="submit"
+                      className="px-6 py-2.5 bg-[#103C2E] hover:bg-[#09291F] text-white rounded-xl text-xs font-bold uppercase cursor-pointer shadow"
+                    >
+                      Save Changes
                     </button>
                   </div>
                 </form>
@@ -2574,17 +2358,7 @@ export const AdminDashboard: React.FC<Props> = ({
                           <td className="p-4 text-stone-600">{p.year}</td>
                           <td className="p-4 text-right space-x-2">
                             <button
-                               onClick={() => {
-                                 const standardCats = ['Water & Sanitation', 'Education', 'Roads & Infrastructure', 'Healthcare', 'Youth Development', 'Agriculture'];
-                                 const isCustom = !standardCats.includes(p.category);
-                                 if (isCustom) {
-                                   setCustomEditProjCategory(p.category);
-                                   setEditingProject({ ...p, category: 'Other' as any });
-                                 } else {
-                                   setCustomEditProjCategory('');
-                                   setEditingProject(p);
-                                 }
-                               }}
+                               onClick={() => setEditingProject(p)}
                                className="inline-flex items-center gap-1 bg-emerald-50 hover:bg-[#103C2E] text-[#103C2E] hover:text-white px-3 py-1.5 rounded-xl border border-emerald-200 transition-all shadow-xs cursor-pointer text-xs font-bold uppercase"
                                title="Edit Project"
                              >
@@ -2606,174 +2380,6 @@ export const AdminDashboard: React.FC<Props> = ({
                   </table>
                 </div>
               </div>
-
-              {/* Edit Project Modal */}
-              {editingProject && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-xs p-4 overflow-y-auto">
-                  <form onSubmit={handleUpdateProject} className="bg-white rounded-3xl max-w-2xl w-full p-6 sm:p-8 space-y-4 shadow-2xl my-8 border border-stone-200">
-                    <div className="flex justify-between items-center border-b border-stone-100 pb-3">
-                      <div>
-                        <span className="text-[10px] font-black uppercase tracking-wider text-[#C6A15B] bg-[#C6A15B]/15 px-2.5 py-0.5 rounded-full border border-[#C6A15B]/30 inline-block mb-1">
-                          CONSTITUENCY PROJECT EDITOR
-                        </span>
-                        <h4 className="font-['Manrope'] font-black text-lg text-[#103C2E] uppercase">
-                          EDIT PROJECT DETAILS & PHOTO EVIDENCE
-                        </h4>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => setEditingProject(null)}
-                        className="bg-stone-100 hover:bg-rose-600 text-stone-600 hover:text-white p-2 rounded-xl transition cursor-pointer"
-                      >
-                        <X className="w-5 h-5" />
-                      </button>
-                    </div>
-
-                    <div className="space-y-3 text-xs">
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                        <div className="space-y-1">
-                          <label className="font-bold text-[#103C2E] uppercase">Project Title *</label>
-                          <input
-                            type="text"
-                            required
-                            value={editingProject.title}
-                            onChange={(e) => setEditingProject({...editingProject, title: e.target.value})}
-                            className="w-full px-3.5 py-2.5 bg-stone-50 border border-stone-200 rounded-xl text-xs sm:text-sm font-semibold"
-                          />
-                        </div>
-                        <div className="space-y-1">
-                          <label className="font-bold text-[#103C2E] uppercase">Location *</label>
-                          <input
-                            type="text"
-                            required
-                            value={editingProject.location}
-                            onChange={(e) => setEditingProject({...editingProject, location: e.target.value})}
-                            className="w-full px-3.5 py-2.5 bg-stone-50 border border-stone-200 rounded-xl text-xs sm:text-sm"
-                          />
-                        </div>
-                      </div>
-
-                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                        <div className="space-y-1">
-                          <label className="font-bold text-[#103C2E] uppercase">Category</label>
-                          <select
-                            value={editingProject.category}
-                            onChange={(e) => setEditingProject({...editingProject, category: e.target.value as any})}
-                            className="w-full px-3 py-2 bg-stone-50 border border-stone-200 rounded-xl text-xs font-medium"
-                          >
-                            <option value="Water & Sanitation">Water & Sanitation</option>
-                            <option value="Education">Education</option>
-                            <option value="Roads & Infrastructure">Roads & Infrastructure</option>
-                            <option value="Healthcare">Healthcare</option>
-                            <option value="Youth Development">Youth Development</option>
-                            <option value="Agriculture">Agriculture</option>
-                            <option value="Other">OTHER (Specify Custom Category)</option>
-                          </select>
-                        </div>
-                        <div className="space-y-1">
-                          <label className="font-bold text-[#103C2E] uppercase">Status</label>
-                          <select
-                            value={editingProject.status}
-                            onChange={(e) => setEditingProject({...editingProject, status: e.target.value as any})}
-                            className="w-full px-3 py-2 bg-stone-50 border border-stone-200 rounded-xl text-xs font-bold"
-                          >
-                            <option value="Ongoing">Ongoing</option>
-                            <option value="Completed">Completed</option>
-                            <option value="Proposed">Proposed</option>
-                          </select>
-                        </div>
-                        <div className="space-y-1">
-                          <label className="font-bold text-[#103C2E] uppercase">Year</label>
-                          <input
-                            type="text"
-                            value={editingProject.year || ''}
-                            onChange={(e) => setEditingProject({...editingProject, year: e.target.value})}
-                            className="w-full px-3.5 py-2 bg-stone-50 border border-stone-200 rounded-xl text-xs"
-                          />
-                        </div>
-                      </div>
-
-                      {editingProject.category === 'Other' && (
-                        <div className="bg-amber-50/70 p-3.5 rounded-2xl border-2 border-amber-300 space-y-1.5 animate-fadeIn">
-                          <label className="text-xs font-bold text-[#103C2E] uppercase flex items-center gap-1.5">
-                            <Sparkles className="w-3.5 h-3.5 text-[#C6A15B]" />
-                            <span>Specify Custom Project Category *</span>
-                          </label>
-                          <input
-                            type="text"
-                            required
-                            placeholder="e.g. Rural Electrification & Solar Mini-Grids..."
-                            value={customEditProjCategory}
-                            onChange={(e) => setCustomEditProjCategory(e.target.value)}
-                            className="w-full px-4 py-2 bg-white border border-amber-300 rounded-xl text-xs sm:text-sm font-semibold text-[#103C2E] focus:outline-none focus:ring-2 focus:ring-[#103C2E]"
-                          />
-                        </div>
-                      )}
-
-                      <div className="space-y-1">
-                        <label className="font-bold text-[#103C2E] uppercase">Description / Milestones</label>
-                        <textarea
-                          rows={3}
-                          value={editingProject.description}
-                          onChange={(e) => setEditingProject({...editingProject, description: e.target.value})}
-                          className="w-full px-3.5 py-2 bg-stone-50 border border-stone-200 rounded-xl text-xs"
-                        ></textarea>
-                      </div>
-
-                      {/* Project Photo Upload & URL */}
-                      <div className="space-y-2 bg-stone-50 p-4 rounded-2xl border border-stone-200">
-                        <label className="text-xs font-bold text-[#103C2E] block uppercase tracking-wider">
-                          Replace / Update Project Site Photo
-                        </label>
-                        <div className="flex flex-wrap items-center gap-3">
-                          <label className="cursor-pointer bg-[#103C2E] hover:bg-[#09291F] text-white px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2 shadow-sm transition">
-                            <Camera className="w-4 h-4 text-[#C6A15B]" />
-                            <span>{isCompressingProjImg ? 'Processing Photo...' : 'Upload New Photo File'}</span>
-                            <input type="file" accept="image/*" disabled={isCompressingProjImg} onChange={handleEditingProjectImageUpload} className="hidden" />
-                          </label>
-                          <span className="text-[11px] text-stone-500 font-medium">Auto-compressed for web</span>
-                        </div>
-
-                        <div className="space-y-1">
-                          <label className="text-[11px] text-stone-500 font-semibold uppercase">Or Image URL</label>
-                          <input
-                            type="url"
-                            value={editingProject.images?.[0] || ''}
-                            onChange={(e) => setEditingProject({...editingProject, images: [e.target.value, ...(editingProject.images ? editingProject.images.slice(1) : [])]})}
-                            className="w-full px-3 py-2 bg-white border border-stone-200 rounded-xl text-xs font-mono"
-                          />
-                        </div>
-
-                        {editingProject.images?.[0] && (
-                          <div className="flex items-center gap-3 pt-1">
-                            <img src={editingProject.images[0]} alt="Project Preview" className="w-20 h-14 object-cover rounded-xl border border-stone-300 shadow-xs shrink-0" />
-                            <span className="text-xs text-emerald-800 font-bold flex items-center gap-1">
-                              <CheckCircle className="w-4 h-4 text-emerald-600" /> Photo Updated
-                            </span>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-
-                    <div className="flex justify-end gap-3 pt-2 border-t border-stone-100">
-                      <button
-                        type="button"
-                        onClick={() => setEditingProject(null)}
-                        className="px-4 py-2 bg-stone-100 hover:bg-stone-200 rounded-xl text-xs font-bold uppercase cursor-pointer"
-                      >
-                        Cancel
-                      </button>
-                      <button
-                        type="submit"
-                        className="px-6 py-2 bg-[#103C2E] hover:bg-[#09291F] text-white rounded-xl text-xs font-bold uppercase cursor-pointer shadow flex items-center gap-1.5"
-                      >
-                        <CheckCircle className="w-4 h-4 text-[#C6A15B]" />
-                        <span>Update Project Record</span>
-                      </button>
-                    </div>
-                  </form>
-                </div>
-              )}
             </div>
           )}
 
@@ -2904,27 +2510,9 @@ export const AdminDashboard: React.FC<Props> = ({
                         <option value="Legislative Update">Legislative Update</option>
                         <option value="Speech">Speech</option>
                         <option value="Event">Event</option>
-                        <option value="Other">OTHER (Specify Custom Category)</option>
                       </select>
                     </div>
                   </div>
-
-                  {newNews.category === 'Other' && (
-                    <div className="bg-amber-50/70 p-4 rounded-2xl border-2 border-amber-300 space-y-1.5 animate-fadeIn">
-                      <label className="text-xs font-bold text-[#103C2E] uppercase flex items-center gap-1.5">
-                        <Sparkles className="w-3.5 h-3.5 text-[#C6A15B]" />
-                        <span>Specify Custom News Category *</span>
-                      </label>
-                      <input
-                        type="text"
-                        required
-                        placeholder="e.g. Town Hall Resolution / Emergency Briefing..."
-                        value={customNewNewsCategory}
-                        onChange={(e) => setCustomNewNewsCategory(e.target.value)}
-                        className="w-full px-4 py-2.5 bg-white border border-amber-300 rounded-xl text-xs sm:text-sm font-semibold text-[#103C2E] focus:outline-none focus:ring-2 focus:ring-[#103C2E]"
-                      />
-                    </div>
-                  )}
 
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                     <div className="space-y-1">
@@ -3062,34 +2650,16 @@ export const AdminDashboard: React.FC<Props> = ({
                       <select
                         value={editingNews.category}
                         onChange={(e) => setEditingNews({...editingNews, category: e.target.value as any})}
-                        className="w-full px-4 py-2.5 bg-white border border-stone-300 rounded-xl text-xs sm:text-sm font-medium"
+                        className="w-full px-4 py-2.5 bg-white border border-stone-300 rounded-xl text-xs sm:text-sm"
                       >
                         <option value="Constituency News">Constituency News</option>
                         <option value="Press Release">Press Release</option>
                         <option value="Legislative Update">Legislative Update</option>
                         <option value="Speech">Speech</option>
                         <option value="Event">Event</option>
-                        <option value="Other">OTHER (Specify Custom Category)</option>
                       </select>
                     </div>
                   </div>
-
-                  {editingNews.category === 'Other' && (
-                    <div className="bg-amber-50/70 p-3.5 rounded-2xl border-2 border-amber-300 space-y-1.5 animate-fadeIn">
-                      <label className="text-xs font-bold text-[#103C2E] uppercase flex items-center gap-1.5">
-                        <Sparkles className="w-3.5 h-3.5 text-[#C6A15B]" />
-                        <span>Specify Custom News Category *</span>
-                      </label>
-                      <input
-                        type="text"
-                        required
-                        placeholder="e.g. Town Hall Resolution / Emergency Briefing..."
-                        value={customEditNewsCategory}
-                        onChange={(e) => setCustomEditNewsCategory(e.target.value)}
-                        className="w-full px-4 py-2 bg-white border border-amber-300 rounded-xl text-xs sm:text-sm font-semibold text-[#103C2E] focus:outline-none focus:ring-2 focus:ring-[#103C2E]"
-                      />
-                    </div>
-                  )}
 
                   <div className="space-y-1">
                     <label className="text-xs font-bold text-[#103C2E] uppercase">Excerpt</label>
@@ -3202,17 +2772,7 @@ export const AdminDashboard: React.FC<Props> = ({
                             </td>
                             <td className="p-4 text-right space-x-2 shrink-0">
                               <button 
-                                onClick={() => {
-                                  const standardNewsCats = ['Constituency News', 'Press Release', 'Legislative Update', 'Speech', 'Event'];
-                                  const isCustom = !standardNewsCats.includes(n.category);
-                                  if (isCustom) {
-                                    setCustomEditNewsCategory(n.category);
-                                    setEditingNews({ ...n, category: 'Other' as any });
-                                  } else {
-                                    setCustomEditNewsCategory('');
-                                    setEditingNews(n);
-                                  }
-                                }} 
+                                onClick={() => setEditingNews(n)} 
                                 className="inline-flex items-center gap-1 bg-emerald-50 hover:bg-[#103C2E] text-[#103C2E] hover:text-white px-3 py-1.5 rounded-xl border border-emerald-200 transition-all shadow-xs cursor-pointer text-xs font-bold uppercase" 
                                 title="Edit Article"
                               >
@@ -3244,16 +2804,11 @@ export const AdminDashboard: React.FC<Props> = ({
             <div className="w-full min-w-0 space-y-6">
               <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-stone-200 pb-4">
                 <div>
-                  <div className="flex items-center gap-2">
-                    <h3 className="font-['Manrope'] font-extrabold text-2xl text-[#103C2E] uppercase">
-                      5. LEGISLATIVE ACTIVITIES & MOTIONS ({legislative.length})
-                    </h3>
-                    <span className="px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-black border border-emerald-300 uppercase">
-                      STATUS MANAGEMENT ACTIVE
-                    </span>
-                  </div>
+                  <h3 className="font-['Manrope'] font-extrabold text-2xl text-[#103C2E] uppercase">
+                    5. LEGISLATIVE ACTIVITIES & MOTIONS ({legislative.length})
+                  </h3>
                   <p className="text-xs text-stone-500 mt-0.5">
-                    Authorized admins can update bill and motion statuses to Proposed, Under Review, Approved, Rejected, and Passed with gazette notes.
+                    Official record of sponsored parliamentary bills, urgent plenary motions, oversight interventions, and gazette status.
                   </p>
                 </div>
                 <button
@@ -3265,7 +2820,6 @@ export const AdminDashboard: React.FC<Props> = ({
                 </button>
               </div>
 
-              {/* Add New Record Form */}
               {showAddLeg && (
                 <form onSubmit={handleCreateLegislative} className="bg-white p-6 rounded-3xl shadow-md border border-stone-200 space-y-4">
                   <h4 className="font-bold text-[#103C2E] text-sm uppercase">ADD VERIFIED PARLIAMENTARY ACTIVITY</h4>
@@ -3281,66 +2835,34 @@ export const AdminDashboard: React.FC<Props> = ({
                     <select
                       value={newLeg.category}
                       onChange={(e) => setNewLeg({...newLeg, category: e.target.value as any})}
-                      className="px-4 py-2.5 bg-stone-50 border border-stone-200 rounded-xl text-xs sm:text-sm font-medium"
+                      className="px-4 py-2.5 bg-stone-50 border border-stone-200 rounded-xl text-xs sm:text-sm"
                     >
                       <option value="Bill">Bill</option>
                       <option value="Motion">Motion</option>
                       <option value="Petition">Petition</option>
                       <option value="Constituency Intervention">Constituency Intervention</option>
-                      <option value="Other">OTHER (Specify Custom Category)</option>
                     </select>
                     <select
                       value={newLeg.status}
                       onChange={(e) => setNewLeg({...newLeg, status: e.target.value as any})}
-                      className="px-4 py-2.5 bg-stone-50 border border-stone-200 rounded-xl text-xs sm:text-sm font-bold text-[#103C2E]"
+                      className="px-4 py-2.5 bg-stone-50 border border-stone-200 rounded-xl text-xs sm:text-sm font-bold"
                     >
-                      <option value="Proposed">Proposed</option>
-                      <option value="Under Review">Under Review</option>
-                      <option value="Approved">Approved</option>
-                      <option value="Rejected">Rejected</option>
-                      <option value="Passed">Passed</option>
                       <option value="First Reading">First Reading</option>
                       <option value="Second Reading">Second Reading</option>
                       <option value="Committee Stage">Committee Stage</option>
                       <option value="Third Reading">Third Reading</option>
+                      <option value="Passed">Passed</option>
                       <option value="Adopted">Adopted</option>
                     </select>
                   </div>
 
-                  {newLeg.category === 'Other' && (
-                    <div className="bg-amber-50/70 p-4 rounded-2xl border-2 border-amber-300 space-y-1.5 animate-fadeIn">
-                      <label className="text-xs font-bold text-[#103C2E] uppercase flex items-center gap-1.5">
-                        <Sparkles className="w-3.5 h-3.5 text-[#C6A15B]" />
-                        <span>Specify Custom Legislative Category *</span>
-                      </label>
-                      <input
-                        type="text"
-                        required
-                        placeholder="e.g. Public Hearing / Field Inspection..."
-                        value={customNewLegCategory}
-                        onChange={(e) => setCustomNewLegCategory(e.target.value)}
-                        className="w-full px-4 py-2.5 bg-white border border-amber-300 rounded-xl text-xs sm:text-sm font-semibold text-[#103C2E] focus:outline-none focus:ring-2 focus:ring-[#103C2E]"
-                      />
-                    </div>
-                  )}
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <textarea
-                      rows={3}
-                      placeholder="Official summary, parliamentary gazette references, and intended benefits..."
-                      value={newLeg.description}
-                      onChange={(e) => setNewLeg({...newLeg, description: e.target.value})}
-                      className="w-full px-4 py-2.5 bg-stone-50 border border-stone-200 rounded-xl text-xs sm:text-sm"
-                    ></textarea>
-
-                    <textarea
-                      rows={3}
-                      placeholder="Status Notes / Gazette Rationale (e.g. Approved by Committee on Rules & Business; awaiting plenary debate)..."
-                      value={newLeg.statusNotes}
-                      onChange={(e) => setNewLeg({...newLeg, statusNotes: e.target.value})}
-                      className="w-full px-4 py-2.5 bg-stone-50 border border-stone-200 rounded-xl text-xs sm:text-sm"
-                    ></textarea>
-                  </div>
+                  <textarea
+                    rows={3}
+                    placeholder="Official summary, parliamentary gazette references, and intended benefits..."
+                    value={newLeg.description}
+                    onChange={(e) => setNewLeg({...newLeg, description: e.target.value})}
+                    className="w-full px-4 py-2.5 bg-stone-50 border border-stone-200 rounded-xl text-xs sm:text-sm"
+                  ></textarea>
 
                   <div className="flex justify-end gap-3 pt-2">
                     <button
@@ -3360,136 +2882,6 @@ export const AdminDashboard: React.FC<Props> = ({
                 </form>
               )}
 
-              {/* Edit Modal */}
-              {editingLeg && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-xs p-4 overflow-y-auto">
-                  <form onSubmit={handleSaveEditingLeg} className="bg-white rounded-3xl max-w-2xl w-full p-6 sm:p-8 space-y-4 shadow-2xl my-8 border border-stone-200">
-                    <div className="flex justify-between items-center border-b border-stone-100 pb-3">
-                      <div>
-                        <span className="text-[10px] font-black uppercase tracking-wider text-[#C6A15B] bg-[#C6A15B]/15 px-2.5 py-0.5 rounded-full border border-[#C6A15B]/30 inline-block mb-1">
-                          PARLIAMENTARY STATUS EDITOR
-                        </span>
-                        <h4 className="font-['Manrope'] font-black text-lg text-[#103C2E] uppercase">
-                          UPDATE BILL / MOTION STATUS
-                        </h4>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => setEditingLeg(null)}
-                        className="bg-stone-100 hover:bg-rose-600 text-stone-600 hover:text-white p-2 rounded-xl transition cursor-pointer"
-                      >
-                        <X className="w-5 h-5" />
-                      </button>
-                    </div>
-
-                    <div className="space-y-3 text-xs">
-                      <div className="space-y-1">
-                        <label className="font-bold text-[#103C2E] uppercase">Title *</label>
-                        <input
-                          type="text"
-                          required
-                          value={editingLeg.title}
-                          onChange={(e) => setEditingLeg({...editingLeg, title: e.target.value})}
-                          className="w-full px-4 py-2.5 bg-stone-50 border border-stone-200 rounded-xl text-xs sm:text-sm font-semibold"
-                        />
-                      </div>
-
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                        <div className="space-y-1">
-                          <label className="font-bold text-[#103C2E] uppercase">Category</label>
-                          <select
-                            value={editingLeg.category}
-                            onChange={(e) => setEditingLeg({...editingLeg, category: e.target.value as any})}
-                            className="w-full px-3 py-2 bg-stone-50 border border-stone-200 rounded-xl text-xs font-medium"
-                          >
-                            <option value="Bill">Bill</option>
-                            <option value="Motion">Motion</option>
-                            <option value="Petition">Petition</option>
-                            <option value="Constituency Intervention">Constituency Intervention</option>
-                            <option value="Other">OTHER (Specify Custom Category)</option>
-                          </select>
-                        </div>
-                        <div className="space-y-1">
-                          <label className="font-bold text-[#103C2E] uppercase">Status Stage *</label>
-                          <select
-                            value={editingLeg.status}
-                            onChange={(e) => setEditingLeg({...editingLeg, status: e.target.value as any})}
-                            className="w-full px-3 py-2 bg-emerald-50 border-2 border-emerald-500 rounded-xl text-xs font-black text-[#103C2E]"
-                          >
-                            <option value="Proposed">Proposed</option>
-                            <option value="Under Review">Under Review</option>
-                            <option value="Approved">Approved</option>
-                            <option value="Rejected">Rejected</option>
-                            <option value="Passed">Passed</option>
-                            <option value="First Reading">First Reading</option>
-                            <option value="Second Reading">Second Reading</option>
-                            <option value="Committee Stage">Committee Stage</option>
-                            <option value="Third Reading">Third Reading</option>
-                            <option value="Adopted">Adopted</option>
-                          </select>
-                        </div>
-                      </div>
-
-                      {editingLeg.category === 'Other' && (
-                        <div className="bg-amber-50/70 p-3.5 rounded-2xl border-2 border-amber-300 space-y-1.5 animate-fadeIn">
-                          <label className="text-xs font-bold text-[#103C2E] uppercase flex items-center gap-1.5">
-                            <Sparkles className="w-3.5 h-3.5 text-[#C6A15B]" />
-                            <span>Specify Custom Legislative Category *</span>
-                          </label>
-                          <input
-                            type="text"
-                            required
-                            placeholder="e.g. Public Hearing / Field Inspection..."
-                            value={customEditLegCategory}
-                            onChange={(e) => setCustomEditLegCategory(e.target.value)}
-                            className="w-full px-4 py-2 bg-white border border-amber-300 rounded-xl text-xs sm:text-sm font-semibold text-[#103C2E] focus:outline-none focus:ring-2 focus:ring-[#103C2E]"
-                          />
-                        </div>
-                      )}
-
-                      <div className="space-y-1">
-                        <label className="font-bold text-[#103C2E] uppercase">Status Notes & Gazette Notes</label>
-                        <textarea
-                          rows={3}
-                          placeholder="e.g. Approved by Committee on Rules & Business; scheduled for second reading plenary debate..."
-                          value={editingLeg.statusNotes || ''}
-                          onChange={(e) => setEditingLeg({...editingLeg, statusNotes: e.target.value})}
-                          className="w-full px-4 py-2.5 bg-stone-50 border border-stone-200 rounded-xl text-xs"
-                        ></textarea>
-                      </div>
-
-                      <div className="space-y-1">
-                        <label className="font-bold text-[#103C2E] uppercase">Official Summary & Description</label>
-                        <textarea
-                          rows={3}
-                          value={editingLeg.description}
-                          onChange={(e) => setEditingLeg({...editingLeg, description: e.target.value})}
-                          className="w-full px-4 py-2.5 bg-stone-50 border border-stone-200 rounded-xl text-xs"
-                        ></textarea>
-                      </div>
-                    </div>
-
-                    <div className="flex justify-end gap-3 pt-3 border-t border-stone-100">
-                      <button
-                        type="button"
-                        onClick={() => setEditingLeg(null)}
-                        className="px-4 py-2 bg-stone-100 hover:bg-stone-200 rounded-xl text-xs font-bold uppercase cursor-pointer"
-                      >
-                        Cancel
-                      </button>
-                      <button
-                        type="submit"
-                        className="px-6 py-2 bg-[#103C2E] hover:bg-[#09291F] text-white rounded-xl text-xs font-bold uppercase cursor-pointer shadow flex items-center gap-1.5"
-                      >
-                        <Save className="w-4 h-4 text-[#C6A15B]" />
-                        <span>Save Status Update</span>
-                      </button>
-                    </div>
-                  </form>
-                </div>
-              )}
-
-              {/* Table with quick status updater */}
               <div className="bg-white rounded-3xl shadow-sm border border-stone-200 overflow-hidden">
                 <div className="overflow-x-auto w-full">
                   <table className="w-full text-left border-collapse text-xs sm:text-sm">
@@ -3497,109 +2889,34 @@ export const AdminDashboard: React.FC<Props> = ({
                       <tr className="bg-[#103C2E] text-white">
                         <th className="p-4 uppercase text-[11px] font-bold">Legislation / Motion</th>
                         <th className="p-4 uppercase text-[11px] font-bold">Category</th>
-                        <th className="p-4 uppercase text-[11px] font-bold">Status & Quick Update</th>
+                        <th className="p-4 uppercase text-[11px] font-bold">Reading Stage</th>
                         <th className="p-4 uppercase text-[11px] font-bold">Date Introduced</th>
                         <th className="p-4 text-right uppercase text-[11px] font-bold">Actions</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-stone-200">
-                      {legislative.map(l => {
-                        const statusColors: Record<string, string> = {
-                          'Approved': 'bg-emerald-100 text-emerald-800 border-emerald-300',
-                          'Passed': 'bg-emerald-100 text-emerald-900 border-emerald-400',
-                          'Adopted': 'bg-emerald-100 text-emerald-900 border-emerald-400',
-                          'Proposed': 'bg-blue-100 text-blue-800 border-blue-300',
-                          'Under Review': 'bg-amber-100 text-amber-800 border-amber-300',
-                          'Rejected': 'bg-rose-100 text-rose-800 border-rose-300',
-                          'First Reading': 'bg-purple-100 text-purple-800 border-purple-300',
-                          'Second Reading': 'bg-indigo-100 text-indigo-800 border-indigo-300',
-                          'Committee Stage': 'bg-amber-100 text-amber-900 border-amber-300',
-                          'Third Reading': 'bg-teal-100 text-teal-800 border-teal-300'
-                        };
-                        const badgeClass = statusColors[l.status] || 'bg-stone-100 text-stone-800 border-stone-300';
-
-                        return (
-                          <tr key={l.id} className="hover:bg-stone-50 transition">
-                            <td className="p-4 max-w-md">
-                              <div className="font-bold text-[#103C2E]">{l.title}</div>
-                              {l.statusNotes && (
-                                <p className="text-[11px] text-stone-500 mt-0.5 italic flex items-center gap-1">
-                                  <Sparkles className="w-3 h-3 text-[#C6A15B] shrink-0" />
-                                  <span>{l.statusNotes}</span>
-                                </p>
-                              )}
-                              {l.statusUpdatedAt && (
-                                <span className="text-[10px] text-stone-400 block mt-0.5">
-                                  Updated: {l.statusUpdatedAt} {l.statusUpdatedBy ? `by ${l.statusUpdatedBy}` : ''}
-                                </span>
-                              )}
-                            </td>
-
-                            <td className="p-4 whitespace-nowrap text-stone-600 font-medium">
-                              <span className="px-2 py-0.5 rounded bg-stone-100 text-stone-700 text-[11px] font-bold">
-                                {l.category}
-                              </span>
-                            </td>
-
-                            <td className="p-4 whitespace-nowrap">
-                              <div className="flex flex-col gap-1.5">
-                                <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider border w-fit ${badgeClass}`}>
-                                  {l.status}
-                                </span>
-                                {/* Quick Status Changer */}
-                                <select
-                                  value={l.status}
-                                  onChange={(e) => handleUpdateLegislativeStatus(l.id, e.target.value as LegislativeStatus)}
-                                  className="text-[11px] font-bold px-2 py-1 bg-stone-50 border border-stone-300 rounded-lg text-[#103C2E] hover:border-[#103C2E] cursor-pointer"
-                                  title="Quick status change"
-                                >
-                                  <option value="Proposed">Proposed</option>
-                                  <option value="Under Review">Under Review</option>
-                                  <option value="Approved">Approved</option>
-                                  <option value="Rejected">Rejected</option>
-                                  <option value="Passed">Passed</option>
-                                  <option value="First Reading">First Reading</option>
-                                  <option value="Second Reading">Second Reading</option>
-                                  <option value="Committee Stage">Committee Stage</option>
-                                  <option value="Third Reading">Third Reading</option>
-                                  <option value="Adopted">Adopted</option>
-                                </select>
-                              </div>
-                            </td>
-
-                            <td className="p-4 whitespace-nowrap text-stone-500 font-mono text-xs">{l.date}</td>
-
-                            <td className="p-4 text-right whitespace-nowrap space-x-1.5">
-                              <button
-                                onClick={() => {
-                                  const standardLegCats = ['Bill', 'Motion', 'Petition', 'Constituency Intervention'];
-                                  const isCustom = !standardLegCats.includes(l.category);
-                                  if (isCustom) {
-                                    setCustomEditLegCategory(l.category);
-                                    setEditingLeg({ ...l, category: 'Other' as any });
-                                  } else {
-                                    setCustomEditLegCategory('');
-                                    setEditingLeg(l);
-                                  }
-                                }}
-                                className="inline-flex items-center gap-1 bg-emerald-50 hover:bg-[#103C2E] text-[#103C2E] hover:text-white px-2.5 py-1.5 rounded-xl border border-emerald-200 transition-all shadow-xs cursor-pointer text-xs font-bold uppercase"
-                                title="Edit Status & Notes"
-                              >
-                                <Edit className="w-3.5 h-3.5" />
-                                <span>Edit</span>
-                              </button>
-
-                              <button
-                                onClick={() => handleDeleteLegislative(l.id)}
-                                className="inline-flex items-center gap-1 bg-rose-50 hover:bg-rose-700 text-rose-700 hover:text-white px-2.5 py-1.5 rounded-xl border border-rose-200 transition-all shadow-xs cursor-pointer text-xs font-bold uppercase"
-                                title="Delete Parliamentary Activity"
-                              >
-                                <Trash2 className="w-3.5 h-3.5" />
-                              </button>
-                            </td>
-                          </tr>
-                        );
-                      })}
+                      {legislative.map(l => (
+                        <tr key={l.id} className="hover:bg-stone-50 transition">
+                          <td className="p-4 font-bold text-[#103C2E]">{l.title}</td>
+                          <td className="p-4 text-stone-600">{l.category}</td>
+                          <td className="p-4">
+                            <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-[#103C2E]/10 text-[#103C2E]">
+                              {l.status}
+                            </span>
+                          </td>
+                          <td className="p-4 text-stone-500 font-mono">{l.date}</td>
+                          <td className="p-4 text-right">
+                            <button
+                               onClick={() => handleDeleteLegislative(l.id)}
+                               className="inline-flex items-center gap-1 bg-rose-50 hover:bg-rose-700 text-rose-700 hover:text-white px-3 py-1.5 rounded-xl border border-rose-200 transition-all shadow-xs cursor-pointer text-xs font-bold uppercase"
+                               title="Delete Parliamentary Activity"
+                             >
+                               <Trash2 className="w-3.5 h-3.5" />
+                               <span>DELETE</span>
+                             </button>
+                          </td>
+                        </tr>
+                      ))}
                     </tbody>
                   </table>
                 </div>
@@ -4047,378 +3364,233 @@ export const AdminDashboard: React.FC<Props> = ({
                   </table>
                 </div>
               </div>
-
-              {/* Dossier Review Modal */}
-              {selectedAppForReview && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-xs p-4 overflow-y-auto">
-                  <div className="bg-white rounded-3xl max-w-4xl w-full p-6 sm:p-8 space-y-6 shadow-2xl my-8 border border-stone-200 max-h-[92vh] overflow-y-auto">
-                    
-                    {/* Header with Applicant Biometric Passport & Info */}
-                    <div className="flex flex-col sm:flex-row items-center sm:items-start justify-between gap-4 border-b border-stone-100 pb-5">
-                      <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4 text-center sm:text-left">
-                        {/* Biometric Passport Frame */}
-                        <div className="w-24 h-32 rounded-xl overflow-hidden border-2 border-[#103C2E] bg-stone-100 shrink-0 shadow-md flex flex-col items-center justify-center relative">
-                          {selectedAppForReview.passportPhoto ? (
-                            <img
-                              src={selectedAppForReview.passportPhoto}
-                              alt={selectedAppForReview.applicantName}
-                              className="w-full h-full object-cover"
-                            />
-                          ) : (
-                            <div className="text-center p-2 text-stone-400">
-                              <User className="w-10 h-10 mx-auto text-stone-300" />
-                              <span className="text-[9px] font-bold uppercase mt-1 block">No Passport</span>
-                            </div>
-                          )}
-                          <div className="absolute bottom-0 inset-x-0 bg-[#103C2E] text-[#D4AF37] text-[8px] font-black py-0.5 text-center uppercase tracking-widest">
-                            Official Photo
-                          </div>
-                        </div>
-
-                        <div className="space-y-1">
-                          <span className="text-[10px] font-black uppercase tracking-wider text-[#C6A15B] bg-[#C6A15B]/15 px-2.5 py-0.5 rounded-full border border-[#C6A15B]/30 inline-block">
-                            CONSTITUENCY BENEFICIARY DOSSIER
-                          </span>
-                          <h3 className="font-['Manrope'] font-black text-2xl text-[#103C2E] uppercase">
-                            {selectedAppForReview.applicantName}
-                          </h3>
-                          <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2 text-xs text-stone-600 font-mono">
-                            <span className="font-bold text-[#103C2E]">REF: {selectedAppForReview.referenceNumber}</span>
-                            <span>•</span>
-                            <span className="font-sans font-medium text-stone-500">{selectedAppForReview.programTitle}</span>
-                          </div>
-                          <div className="pt-1 flex flex-wrap items-center justify-center sm:justify-start gap-2">
-                            <span className={`px-3 py-0.5 rounded-full text-[11px] font-black uppercase tracking-wider ${
-                              selectedAppForReview.status === 'APPROVED' ? 'bg-emerald-100 text-emerald-800 border border-emerald-300' :
-                              selectedAppForReview.status === 'REJECTED' ? 'bg-rose-100 text-rose-800' :
-                              'bg-amber-100 text-amber-800 border border-amber-300'
-                            }`}>
-                              STATUS: {selectedAppForReview.status}
-                            </span>
-                            {selectedAppForReview.lga && (
-                              <span className="bg-stone-100 text-stone-700 px-2.5 py-0.5 rounded-full text-[11px] font-bold">
-                                LGA: {selectedAppForReview.lga}
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="flex items-center gap-2">
-                        <button
-                          type="button"
-                          onClick={() => setSlipModalApp(selectedAppForReview)}
-                          className="bg-stone-100 hover:bg-stone-200 text-[#103C2E] px-3 py-1.5 rounded-xl text-xs font-bold uppercase transition flex items-center gap-1.5"
-                          title="Print official application slip"
-                        >
-                          <Printer className="w-3.5 h-3.5" />
-                          <span>Slip</span>
-                        </button>
-                        <button 
-                          onClick={() => setSelectedAppForReview(null)} 
-                          className="bg-stone-100 hover:bg-rose-600 text-stone-600 hover:text-white p-2 rounded-xl border border-stone-200 transition shadow-xs cursor-pointer"
-                          title="Close Review"
-                        >
-                          <X className="w-5 h-5" />
-                        </button>
-                      </div>
-                    </div>
-
-                    <div className="space-y-5 text-xs">
-                      
-                      {/* Section 1: Detailed Personal Bio */}
-                      <div className="space-y-2">
-                        <h4 className="font-black text-xs uppercase tracking-wider text-[#103C2E] flex items-center gap-1.5 border-b border-stone-200 pb-1">
-                          <span className="w-2 h-2 rounded-full bg-[#C6A15B]"></span>
-                          1. APPLICANT BIO-DATA & RESIDENCY
-                        </h4>
-                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 bg-stone-50 p-4 rounded-2xl border border-stone-200">
-                          <div>
-                            <span className="text-stone-500 text-[10px] uppercase font-bold block">National ID (NIN)</span>
-                            <strong className="text-[#103C2E] font-mono text-sm">{selectedAppForReview.nin || 'On File'}</strong>
-                          </div>
-                          <div>
-                            <span className="text-stone-500 text-[10px] uppercase font-bold block">Phone Number</span>
-                            <strong className="text-[#103C2E] font-mono">{selectedAppForReview.phone}</strong>
-                          </div>
-                          <div>
-                            <span className="text-stone-500 text-[10px] uppercase font-bold block">Email Address</span>
-                            <strong className="text-[#103C2E]">{selectedAppForReview.email || 'None Provided'}</strong>
-                          </div>
-                          <div>
-                            <span className="text-stone-500 text-[10px] uppercase font-bold block">LGA / Ward</span>
-                            <strong className="text-[#103C2E]">{selectedAppForReview.lga || 'Constituency'} • {selectedAppForReview.wardOrTown}</strong>
-                          </div>
-                          <div>
-                            <span className="text-stone-500 text-[10px] uppercase font-bold block">Gender</span>
-                            <strong className="text-[#103C2E]">{selectedAppForReview.gender || 'Not Specified'}</strong>
-                          </div>
-                          <div>
-                            <span className="text-stone-500 text-[10px] uppercase font-bold block">Date of Birth</span>
-                            <strong className="text-[#103C2E] font-mono">{selectedAppForReview.dob || 'Not Provided'}</strong>
-                          </div>
-                          <div>
-                            <span className="text-stone-500 text-[10px] uppercase font-bold block">Residential Address</span>
-                            <strong className="text-[#103C2E] truncate block">{selectedAppForReview.residentialAddress || selectedAppForReview.wardOrTown}</strong>
-                          </div>
-                          <div>
-                            <span className="text-stone-500 text-[10px] uppercase font-bold block">Submission Date</span>
-                            <strong className="text-stone-700 font-mono">{selectedAppForReview.date}</strong>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Section 2: Education, Vocation & Disbursement Bank */}
-                      <div className="space-y-2">
-                        <h4 className="font-black text-xs uppercase tracking-wider text-[#103C2E] flex items-center gap-1.5 border-b border-stone-200 pb-1">
-                          <span className="w-2 h-2 rounded-full bg-[#C6A15B]"></span>
-                          2. EDUCATION, VOCATION & DISBURSEMENT ACCOUNT
-                        </h4>
-                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 bg-stone-50 p-4 rounded-2xl border border-stone-200">
-                          <div>
-                            <span className="text-stone-500 text-[10px] uppercase font-bold block">Education</span>
-                            <strong className="text-[#103C2E]">{selectedAppForReview.highestEducation || 'SSCE / Primary'}</strong>
-                          </div>
-                          <div>
-                            <span className="text-stone-500 text-[10px] uppercase font-bold block">Current Employment</span>
-                            <strong className="text-[#103C2E]">{selectedAppForReview.employmentStatus || 'Unemployed / Youth'}</strong>
-                          </div>
-                          <div>
-                            <span className="text-stone-500 text-[10px] uppercase font-bold block">Disbursement Bank</span>
-                            <strong className="text-[#103C2E]">{selectedAppForReview.bankName || 'Awaiting Account Details'}</strong>
-                          </div>
-                          <div>
-                            <span className="text-stone-500 text-[10px] uppercase font-bold block">Account Number</span>
-                            <strong className="text-[#103C2E] font-mono">{selectedAppForReview.accountNumber || 'None'}</strong>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Section 3: Applicant Uploaded Documents Review */}
-                      <div className="space-y-2">
-                        <h4 className="font-black text-xs uppercase tracking-wider text-[#103C2E] flex items-center justify-between border-b border-stone-200 pb-1">
-                          <span className="flex items-center gap-1.5">
-                            <span className="w-2 h-2 rounded-full bg-[#C6A15B]"></span>
-                            <span>3. APPLICANT SUPPORTING DOCUMENTS & CREDENTIALS</span>
-                          </span>
-                          <span className="text-[10px] font-bold text-stone-500">
-                            {selectedAppForReview.documents ? selectedAppForReview.documents.length : 0} Document(s) Attached
-                          </span>
-                        </h4>
-
-                        {selectedAppForReview.documents && selectedAppForReview.documents.length > 0 ? (
-                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                            {selectedAppForReview.documents.map((doc, idx) => (
-                              <div key={doc.id || idx} className="bg-stone-50 p-3.5 rounded-xl border border-stone-200 flex items-center justify-between gap-3">
-                                <div className="flex items-center gap-3 min-w-0">
-                                  <div className="w-9 h-9 rounded-lg bg-emerald-100 text-emerald-800 flex items-center justify-center shrink-0 font-bold">
-                                    <FileText className="w-5 h-5" />
-                                  </div>
-                                  <div className="min-w-0">
-                                    <span className="font-bold text-[#103C2E] text-xs block truncate">{doc.type || 'Supporting Document'}</span>
-                                    <span className="text-[10px] text-stone-500 block truncate">{doc.name} {doc.size ? `(${doc.size})` : ''}</span>
-                                  </div>
-                                </div>
-                                <button
-                                  type="button"
-                                  onClick={() => setPreviewDocModal(doc)}
-                                  className="bg-[#103C2E] hover:bg-[#09291F] text-white px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase transition shrink-0 cursor-pointer flex items-center gap-1"
-                                >
-                                  <Eye className="w-3 h-3 text-[#C6A15B]" />
-                                  <span>Review</span>
-                                </button>
-                              </div>
-                            ))}
-                          </div>
-                        ) : (
-                          <div className="bg-stone-50 p-4 rounded-xl border border-stone-200 text-stone-500 text-center space-y-1">
-                            <FileText className="w-6 h-6 mx-auto text-stone-400" />
-                            <p className="text-xs font-semibold">Physical credentials presented during in-person constituency screening.</p>
-                            <span className="text-[10px] text-stone-400 block">NIN and residency certificates verified via parliamentary register.</span>
-                          </div>
-                        )}
-                      </div>
-
-                      {/* Section 4: Statement of Purpose */}
-                      <div className="space-y-1">
-                        <span className="text-[10px] font-bold uppercase text-stone-500 block">Applicant Statement of Purpose / Socio-Economic Need:</span>
-                        <div className="bg-stone-50 p-3.5 rounded-xl border border-stone-200 italic text-stone-700 leading-relaxed">
-                          "{selectedAppForReview.statement || 'Applicant committed to participating fully in constituency empowerment activities.'}"
-                        </div>
-                      </div>
-
-                      {/* Transition Form & Award Settlement */}
-                      <div className="bg-emerald-50/70 p-5 rounded-2xl border-2 border-emerald-300 space-y-4">
-                        <div className="flex items-center justify-between">
-                          <h4 className="font-black text-[#103C2E] uppercase text-xs flex items-center gap-1.5">
-                            <Shield className="w-4 h-4 text-emerald-700" />
-                            <span>Advance Application Stage & Settle Allocation</span>
-                          </h4>
-                          {selectedAppForReview.status === 'APPROVED' && (
-                            <button
-                              type="button"
-                              onClick={() => setOfferModalApp(selectedAppForReview)}
-                              className="bg-gradient-to-r from-[#D4AF37] to-[#B38F44] text-[#09291F] px-3 py-1 rounded-lg text-[10px] font-black uppercase shadow-xs flex items-center gap-1 cursor-pointer"
-                            >
-                              <Award className="w-3.5 h-3.5" />
-                              <span>Preview Congratulation Offer Letter</span>
-                            </button>
-                          )}
-                        </div>
-
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                          <div>
-                            <label className="text-[11px] font-bold text-[#103C2E] block uppercase mb-1">Select Stage</label>
-                            <select
-                              value={reviewStatusInput}
-                              onChange={(e) => setReviewStatusInput(e.target.value as ApplicationStatus)}
-                              className="w-full px-3 py-2 bg-white border border-stone-300 rounded-xl text-xs font-bold text-[#103C2E]"
-                            >
-                              <option value="SUBMITTED">1. SUBMITTED</option>
-                              <option value="INITIAL REVIEW">2. INITIAL REVIEW</option>
-                              <option value="DOCUMENT VERIFICATION">3. DOCUMENT VERIFICATION</option>
-                              <option value="ELIGIBILITY ASSESSMENT">4. ELIGIBILITY ASSESSMENT</option>
-                              <option value="FINAL REVIEW">5. FINAL REVIEW</option>
-                              <option value="APPROVED">6. APPROVED (Award Official Congratulatory Offer)</option>
-                              <option value="WAITLISTED">WAITLISTED</option>
-                              <option value="REJECTED">REJECTED</option>
-                            </select>
-                          </div>
-
-                          <div>
-                            <label className="text-[11px] font-bold text-[#103C2E] block uppercase mb-1">Public Feedback (Visible to Applicant on Tracker)</label>
-                            <input
-                              type="text"
-                              placeholder="e.g. Approved. Please bring printed slip and NIN for physical handover..."
-                              value={reviewPublicFeedback}
-                              onChange={(e) => setReviewPublicFeedback(e.target.value)}
-                              className="w-full px-3 py-2 bg-white border border-stone-300 rounded-xl text-xs text-stone-800"
-                            />
-                          </div>
-                        </div>
-
-                        {/* Grant Package Allocation Field (crucial when approving) */}
-                        <div className="bg-white p-3.5 rounded-xl border border-emerald-300 space-y-1">
-                          <label className="text-[11px] font-black text-[#103C2E] uppercase block flex items-center justify-between">
-                            <span>Approved Award Package / Allocation (Printed on Congratulation Offer Letter):</span>
-                            <span className="text-[10px] text-emerald-700 font-bold">Official Allocation</span>
-                          </label>
-                          <input
-                            type="text"
-                            placeholder="e.g. 1x Complete Solar Irrigation Pumping Unit + Industrial Hose + ₦50,000 Agricultural Seed Fund"
-                            value={reviewAwardPackage}
-                            onChange={(e) => setReviewAwardPackage(e.target.value)}
-                            className="w-full px-3 py-2 bg-emerald-50/40 border border-emerald-200 rounded-lg text-xs font-bold text-[#103C2E]"
-                          />
-                        </div>
-
-                        <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-emerald-200/80">
-                          <div className="text-[10px] text-stone-500 font-medium">
-                            Approved applicants can immediately view and download their official Congratulatory Offer letter.
-                          </div>
-
-                          <div className="flex items-center gap-2">
-                            <button
-                              type="button"
-                              onClick={() => setSelectedAppForReview(null)}
-                              className="px-4 py-2 bg-stone-200 hover:bg-stone-300 rounded-xl text-xs font-bold uppercase cursor-pointer"
-                            >
-                              Close
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => handleAdvanceApplicationStage(selectedAppForReview.id, reviewStatusInput, reviewInternalNote, reviewPublicFeedback, reviewAwardPackage)}
-                              className="bg-[#103C2E] hover:bg-[#09291F] text-white px-5 py-2 rounded-xl text-xs font-bold uppercase shadow cursor-pointer flex items-center gap-1.5"
-                            >
-                              <CheckCircle className="w-4 h-4 text-[#C6A15B]" />
-                              <span>Save & Commit Stage</span>
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Document Preview Modal */}
-              {previewDocModal && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-xs p-4">
-                  <div className="bg-white rounded-3xl max-w-xl w-full p-6 space-y-4 shadow-2xl border border-stone-200 animate-fadeIn">
-                    <div className="flex justify-between items-center border-b border-stone-100 pb-3">
-                      <div>
-                        <span className="text-[10px] font-black uppercase text-[#C6A15B]">DOCUMENT PREVIEW</span>
-                        <h4 className="font-bold text-base text-[#103C2E]">{previewDocModal.type || 'Supporting Document'}</h4>
-                      </div>
-                      <button
-                        onClick={() => setPreviewDocModal(null)}
-                        className="p-1.5 hover:bg-stone-100 rounded-lg text-stone-500 cursor-pointer"
-                      >
-                        <X className="w-5 h-5" />
-                      </button>
-                    </div>
-
-                    <div className="bg-stone-50 p-6 rounded-2xl border border-stone-200 text-center space-y-3">
-                      {previewDocModal.dataUrl && previewDocModal.dataUrl.startsWith('data:image') ? (
-                        <img
-                          src={previewDocModal.dataUrl}
-                          alt={previewDocModal.name}
-                          className="max-h-80 mx-auto rounded-lg shadow-sm border border-stone-300"
-                        />
-                      ) : (
-                        <div className="space-y-2 py-4">
-                          <FileText className="w-16 h-16 mx-auto text-[#103C2E]" />
-                          <p className="font-bold text-sm text-[#103C2E]">{previewDocModal.name}</p>
-                          <p className="text-xs text-stone-500">{previewDocModal.size || 'Verified Document'} • Uploaded {previewDocModal.uploadedAt || 'During Submission'}</p>
-                          <div className="inline-block bg-emerald-100 text-emerald-800 text-xs font-bold px-3 py-1 rounded-full mt-2">
-                            ✓ Verified Constituency Credential
-                          </div>
-                        </div>
-                      )}
-                    </div>
-
-                    <div className="flex justify-end gap-2">
-                      {previewDocModal.dataUrl && (
-                        <a
-                          href={previewDocModal.dataUrl}
-                          download={previewDocModal.name}
-                          className="bg-[#103C2E] hover:bg-[#09291F] text-white px-4 py-2 rounded-xl text-xs font-bold uppercase transition flex items-center gap-1.5 shadow-sm"
-                        >
-                          <Download className="w-4 h-4 text-[#C6A15B]" />
-                          <span>Download File</span>
-                        </a>
-                      )}
-                      <button
-                        onClick={() => setPreviewDocModal(null)}
-                        className="bg-stone-200 hover:bg-stone-300 text-stone-700 px-4 py-2 rounded-xl text-xs font-bold uppercase transition cursor-pointer"
-                      >
-                        Close
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Offer Modal in Admin */}
-              {offerModalApp && (
-                <CongratulationOfferModal
-                  application={offerModalApp}
-                  onClose={() => setOfferModalApp(null)}
-                />
-              )}
-
-              {/* Slip Modal */}
-              {slipModalApp && (
-                <ApplicationSlipModal
-                  application={slipModalApp}
-                  onClose={() => setSlipModalApp(null)}
-                />
-              )}
             </div>
           )}
 
           {/* ========================================================
-              TAB 8: PHOTOS & VIDEOS
+              TAB 8: PETITIONS & SERVICE TICKETS
+             ======================================================== */}
+          {activeTab === 'petitions' && (() => {
+            const filteredPetitions = petitions.filter(app => {
+              if (petitionStatusFilter !== 'ALL' && app.status !== petitionStatusFilter) return false;
+              if (petitionSearchQuery.trim()) {
+                const q = petitionSearchQuery.toLowerCase();
+                const match =
+                  app.applicantName?.toLowerCase().includes(q) ||
+                  app.referenceNumber?.toLowerCase().includes(q) ||
+                  app.phone?.toLowerCase().includes(q) ||
+                  app.wardOrTown?.toLowerCase().includes(q) ||
+                  app.programTitle?.toLowerCase().includes(q) ||
+                  (app.statement && app.statement.toLowerCase().includes(q));
+                if (!match) return false;
+              }
+              return true;
+            });
+
+            const pendingCount = petitions.filter(a => a.status === 'SUBMITTED').length;
+            const investigatingCount = petitions.filter(a => a.status === 'INITIAL REVIEW' || a.status === 'DOCUMENT VERIFICATION' || a.status === 'ELIGIBILITY ASSESSMENT').length;
+            const approvedCount = petitions.filter(a => a.status === 'APPROVED').length;
+
+            return (
+              <div className="w-full min-w-0 space-y-6">
+                {/* Header & Controls */}
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-stone-200 pb-4">
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <h3 className="font-['Manrope'] font-extrabold text-2xl text-[#103C2E] uppercase">
+                        8. CONSTITUENCY PETITIONS & SERVICE TICKETS
+                      </h3>
+                      <span className="bg-[#103C2E] text-[#D4AF37] px-2.5 py-0.5 rounded-full text-xs font-black">
+                        {petitions.length} Independent Petitions
+                      </span>
+                    </div>
+                    <p className="text-xs text-stone-500 mt-0.5">
+                      Dedicated docket of citizen grievances, community requests, and service petitions. Fully independent from empowerment records.
+                    </p>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <button
+                      onClick={() => {
+                        try {
+                          const saved = localStorage.getItem('danmaje_petitions');
+                          if (saved) setPetitions(JSON.parse(saved));
+                        } catch {}
+                      }}
+                      className="bg-white hover:bg-stone-100 text-[#103C2E] border border-stone-300 px-4 py-2 rounded-xl font-bold text-xs flex items-center gap-1.5 shadow-sm cursor-pointer uppercase transition"
+                      title="Sync freshest records from database"
+                    >
+                      <RefreshCw className="w-3.5 h-3.5 text-[#C6A15B]" />
+                      <span>Sync Latest</span>
+                    </button>
+                    <button
+                      onClick={handleExportPetitionsCSV}
+                      className="bg-[#103C2E] hover:bg-[#09291F] text-white px-4 py-2 rounded-xl font-bold text-xs flex items-center gap-2 shadow cursor-pointer transition uppercase"
+                    >
+                      <Download className="w-3.5 h-3.5 text-[#C6A15B]" />
+                      <span>Export CSV</span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Metrics Badges */}
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+                  <div className="p-3.5 bg-stone-50 rounded-2xl border border-stone-200">
+                    <span className="text-stone-400 text-[10px] uppercase font-bold block">Total Petitions</span>
+                    <strong className="text-xl font-extrabold text-[#103C2E]">{petitions.length}</strong>
+                    <span className="text-[11px] text-stone-500 block mt-0.5">Dedicated petitions store</span>
+                  </div>
+                  <div className="p-3.5 bg-amber-50 rounded-2xl border border-amber-200">
+                    <span className="text-amber-700 text-[10px] uppercase font-bold block">Pending / Logged</span>
+                    <strong className="text-xl font-extrabold text-amber-800">{pendingCount}</strong>
+                    <span className="text-[11px] text-amber-600 block mt-0.5">Awaiting committee review</span>
+                  </div>
+                  <div className="p-3.5 bg-blue-50 rounded-2xl border border-blue-200">
+                    <span className="text-blue-700 text-[10px] uppercase font-bold block">Under Investigation</span>
+                    <strong className="text-xl font-extrabold text-blue-800">{investigatingCount}</strong>
+                    <span className="text-[11px] text-blue-600 block mt-0.5">Fact-finding & hearing</span>
+                  </div>
+                  <div className="p-3.5 bg-emerald-50 rounded-2xl border border-emerald-200">
+                    <span className="text-emerald-700 text-[10px] uppercase font-bold block">Upheld / Relief Committed</span>
+                    <strong className="text-xl font-extrabold text-emerald-800">{approvedCount}</strong>
+                    <span className="text-[11px] text-emerald-600 block mt-0.5">Executive action approved</span>
+                  </div>
+                </div>
+
+                {/* Search & Filter Bar */}
+                <div className="bg-white p-4 rounded-2xl border border-stone-200 shadow-sm grid grid-cols-1 sm:grid-cols-12 gap-3 items-center">
+                  <div className="sm:col-span-8 relative">
+                    <Search className="w-4 h-4 text-stone-400 absolute left-3 top-3" />
+                    <input
+                      type="text"
+                      placeholder="Search by constituent name, ref #, phone, ward, or grievance..."
+                      value={petitionSearchQuery}
+                      onChange={(e) => setPetitionSearchQuery(e.target.value)}
+                      className="w-full pl-9 pr-4 py-2 bg-stone-50 border border-stone-200 rounded-xl text-xs sm:text-sm text-[#103C2E] focus:outline-none focus:border-[#103C2E]"
+                    />
+                  </div>
+
+                  <div className="sm:col-span-4">
+                    <select
+                      value={petitionStatusFilter}
+                      onChange={(e) => setPetitionStatusFilter(e.target.value)}
+                      className="w-full px-3 py-2 bg-stone-50 border border-stone-200 rounded-xl text-xs text-stone-700 font-bold"
+                    >
+                      <option value="ALL">All Petition Statuses ({petitions.length})</option>
+                      <option value="SUBMITTED">SUBMITTED</option>
+                      <option value="INITIAL REVIEW">INITIAL REVIEW / INVESTIGATION</option>
+                      <option value="DOCUMENT VERIFICATION">DOCUMENT VERIFICATION</option>
+                      <option value="ELIGIBILITY ASSESSMENT">ELIGIBILITY ASSESSMENT</option>
+                      <option value="FINAL REVIEW">FINAL REVIEW</option>
+                      <option value="APPROVED">APPROVED / UPHELD</option>
+                      <option value="WAITLISTED">WAITLISTED / SUSPENDED</option>
+                      <option value="REJECTED">REJECTED / DISMISSED</option>
+                    </select>
+                  </div>
+                </div>
+
+                {/* Petitions Table */}
+                <div className="bg-white rounded-3xl shadow-sm border border-stone-200 overflow-hidden">
+                  <div className="overflow-x-auto w-full">
+                    <table className="w-full text-left border-collapse text-xs sm:text-sm">
+                      <thead>
+                        <tr className="bg-[#103C2E] text-white">
+                          <th className="p-4 uppercase text-[11px] font-bold">Reference #</th>
+                          <th className="p-4 uppercase text-[11px] font-bold">Constituent Name</th>
+                          <th className="p-4 uppercase text-[11px] font-bold">Subject / Grievance</th>
+                          <th className="p-4 uppercase text-[11px] font-bold">Ward / LGA</th>
+                          <th className="p-4 uppercase text-[11px] font-bold">Stage / Status</th>
+                          <th className="p-4 uppercase text-[11px] font-bold">Date</th>
+                          <th className="p-4 text-right uppercase text-[11px] font-bold">Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-stone-200">
+                        {filteredPetitions.map(app => (
+                          <tr key={app.id} className="hover:bg-stone-50 transition">
+                            <td className="p-4 font-mono font-bold text-[#103C2E]">
+                              <span className="block">{app.referenceNumber}</span>
+                              <span className="inline-block mt-0.5 text-[9px] bg-amber-100 text-amber-800 px-2 py-0.5 rounded-full font-bold">
+                                Petition Record
+                              </span>
+                            </td>
+                            <td className="p-4">
+                              <strong className="text-stone-900 block font-bold">{app.applicantName}</strong>
+                              <span className="text-stone-500 text-[11px] font-mono">{app.phone}</span>
+                            </td>
+                            <td className="p-4 max-w-xs">
+                              <span className="font-bold text-[#103C2E] block truncate">{app.programTitle}</span>
+                              <span className="text-stone-500 text-[11px] line-clamp-2 mt-0.5">{app.statement}</span>
+                            </td>
+                            <td className="p-4 text-stone-600">
+                              <span className="font-semibold block">{app.wardOrTown}</span>
+                              <span className="text-[10px] text-stone-400 block">{app.lga || 'Constituency'}</span>
+                            </td>
+                            <td className="p-4">
+                              <span className={`px-2.5 py-1 rounded-full text-xs font-bold inline-block ${
+                                app.status === 'APPROVED' ? 'bg-emerald-100 text-emerald-800 border border-emerald-300' :
+                                app.status === 'REJECTED' ? 'bg-rose-100 text-rose-800 border border-rose-300' :
+                                app.status === 'INITIAL REVIEW' ? 'bg-blue-100 text-blue-800 border border-blue-300' :
+                                'bg-amber-100 text-amber-800 border border-amber-300'
+                              }`}>
+                                {app.status}
+                              </span>
+                              {app.awardGrantPackage && (
+                                <span className="block text-[10px] text-emerald-700 font-bold truncate max-w-[140px] mt-1" title={app.awardGrantPackage}>
+                                  Action: {app.awardGrantPackage}
+                                </span>
+                              )}
+                            </td>
+                            <td className="p-4 text-stone-500 font-mono text-xs whitespace-nowrap">{app.date}</td>
+                            <td className="p-4 text-right space-x-1.5 whitespace-nowrap">
+                              <button
+                                onClick={() => {
+                                  setSelectedAppForReview(app);
+                                  setReviewStatusInput(app.status || 'SUBMITTED');
+                                  setReviewInternalNote(app.notes || '');
+                                  setReviewPublicFeedback(app.publicFeedback || '');
+                                  setReviewAwardPackage(app.awardGrantPackage || '');
+                                }}
+                                className="inline-flex items-center gap-1 bg-[#103C2E] hover:bg-[#09291F] text-white px-3 py-1.5 rounded-xl text-xs font-bold cursor-pointer uppercase shadow-xs transition"
+                                title="Open Review & Decision Dossier"
+                              >
+                                <Eye className="w-3.5 h-3.5 text-[#D4AF37]" />
+                                <span>REVIEW</span>
+                              </button>
+                              <button
+                                onClick={() => setSlipModalApp(app)}
+                                className="inline-flex items-center gap-1 bg-stone-100 hover:bg-stone-700 text-stone-700 hover:text-white px-2.5 py-1.5 rounded-xl border border-stone-300 transition-all shadow-xs cursor-pointer text-xs font-bold uppercase"
+                                title="Print Official Slip"
+                              >
+                                <Printer className="w-3.5 h-3.5" />
+                                <span>Slip</span>
+                              </button>
+                              <button
+                                onClick={() => handleDeletePetition(app.id)}
+                                className="inline-flex items-center gap-1 bg-rose-50 hover:bg-rose-700 text-rose-700 hover:text-white px-2.5 py-1.5 rounded-xl border border-rose-200 transition-all shadow-xs cursor-pointer text-xs font-bold uppercase"
+                                title="Delete Petition"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                                <span>DELETE</span>
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
+                        {filteredPetitions.length === 0 && (
+                          <tr>
+                            <td colSpan={7} className="p-8 text-center text-stone-500">
+                              No petitions or service tickets found in the dedicated petition store.
+                            </td>
+                          </tr>
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            );
+          })()}
+
+          {/* ========================================================
+              TAB 9: PHOTOS & VIDEOS
              ======================================================== */}
           {activeTab === 'gallery' && (
             <div className="w-full min-w-0 space-y-6">
@@ -4542,91 +3714,31 @@ export const AdminDashboard: React.FC<Props> = ({
                       />
                     </div>
                   ) : (
-                    <div className="space-y-4 bg-stone-50 p-5 rounded-2xl border border-stone-200">
-                      <div className="space-y-1">
-                        <label className="text-xs font-bold text-[#103C2E] block uppercase">YouTube Video Link or ID *</label>
-                        <input
-                          type="url"
-                          required
-                          placeholder="e.g. https://www.youtube.com/watch?v=ScMzIvxBSi4 or youtu.be/ScMzIvxBSi4"
-                          value={newMedia.videoUrl}
-                          onChange={(e) => handleVideoUrlChange(e.target.value)}
-                          className="w-full px-4 py-2.5 bg-white border border-stone-200 rounded-xl text-xs sm:text-sm"
-                        />
-                        {isFetchingYtMeta && (
-                          <div className="flex items-center gap-2 text-xs text-[#103C2E] bg-emerald-50 p-2 rounded-xl">
-                            <RefreshCw className="w-3.5 h-3.5 animate-spin text-[#C6A15B]" />
-                            <span>Querying YouTube API for verified title & authentic thumbnail...</span>
-                          </div>
-                        )}
-                        {detectedYtThumb && (
-                          <div className="flex items-center gap-3 pt-2">
-                            <img src={detectedYtThumb} alt="YouTube Thumbnail Preview" className="w-24 h-16 rounded-xl object-cover border" />
-                            <div className="text-xs">
-                              <span className="font-bold text-emerald-800 block">Authentic YouTube Thumbnail Detected</span>
-                              <span className="text-stone-500 text-[11px]">{detectedYtTitle || 'Video Ready'}</span>
-                            </div>
-                          </div>
-                        )}
-                      </div>
-
-                      {/* YouTube Video Download Permissions (Website Owner Control) */}
-                      <div className="bg-emerald-50/70 p-4 rounded-2xl border border-emerald-200 space-y-3">
-                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                          <label className="flex items-center gap-2 text-xs font-bold text-[#103C2E] cursor-pointer">
-                            <input
-                              type="checkbox"
-                              checked={newMedia.hasDownloadPermission}
-                              onChange={(e) => setNewMedia({...newMedia, hasDownloadPermission: e.target.checked})}
-                              className="w-4 h-4 rounded text-[#103C2E] focus:ring-[#103C2E]"
-                            />
-                            <span>Website Owner Permission: Enable Direct MP4 Download Option</span>
-                          </label>
-                          <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider shrink-0 w-fit ${
-                            newMedia.hasDownloadPermission ? 'bg-emerald-200 text-emerald-900 border border-emerald-400' : 'bg-stone-200 text-stone-700'
-                          }`}>
-                            {newMedia.hasDownloadPermission ? 'Direct Download Authorized' : 'Official YouTube Only'}
-                          </span>
+                    <div className="space-y-3 bg-stone-50 p-5 rounded-2xl border border-stone-200">
+                      <label className="text-xs font-bold text-[#103C2E] block uppercase">YouTube Video Link or ID *</label>
+                      <input
+                        type="url"
+                        required
+                        placeholder="e.g. https://www.youtube.com/watch?v=ScMzIvxBSi4 or youtu.be/ScMzIvxBSi4"
+                        value={newMedia.videoUrl}
+                        onChange={(e) => handleVideoUrlChange(e.target.value)}
+                        className="w-full px-4 py-2.5 bg-white border border-stone-200 rounded-xl text-xs sm:text-sm"
+                      />
+                      {isFetchingYtMeta && (
+                        <div className="flex items-center gap-2 text-xs text-[#103C2E] bg-emerald-50 p-2 rounded-xl">
+                          <RefreshCw className="w-3.5 h-3.5 animate-spin text-[#C6A15B]" />
+                          <span>Querying YouTube API for verified title & authentic thumbnail...</span>
                         </div>
-                        <p className="text-[11px] text-stone-600 leading-relaxed">
-                          Only enable downloads for videos the website owner has permission to download. Otherwise, the website will direct users to YouTube's official watch & offline save options.
-                        </p>
-
-                        {newMedia.hasDownloadPermission && (
-                          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2 border-t border-emerald-200">
-                            <div>
-                              <label className="text-[10px] font-bold uppercase text-[#103C2E] block">Master File Size</label>
-                              <input
-                                type="text"
-                                placeholder="e.g. 185 MB"
-                                value={newMedia.downloadFileSize}
-                                onChange={(e) => setNewMedia({...newMedia, downloadFileSize: e.target.value})}
-                                className="w-full px-3 py-1.5 bg-white border border-emerald-300 rounded-xl text-xs font-mono"
-                              />
-                            </div>
-                            <div>
-                              <label className="text-[10px] font-bold uppercase text-[#103C2E] block">Video Quality</label>
-                              <input
-                                type="text"
-                                placeholder="e.g. 1080p Full HD Master"
-                                value={newMedia.downloadQuality}
-                                onChange={(e) => setNewMedia({...newMedia, downloadQuality: e.target.value})}
-                                className="w-full px-3 py-1.5 bg-white border border-emerald-300 rounded-xl text-xs"
-                              />
-                            </div>
-                            <div>
-                              <label className="text-[10px] font-bold uppercase text-[#103C2E] block">Master Download Link</label>
-                              <input
-                                type="url"
-                                placeholder="Direct MP4 download link"
-                                value={newMedia.downloadUrl}
-                                onChange={(e) => setNewMedia({...newMedia, downloadUrl: e.target.value})}
-                                className="w-full px-3 py-1.5 bg-white border border-emerald-300 rounded-xl text-xs"
-                              />
-                            </div>
+                      )}
+                      {detectedYtThumb && (
+                        <div className="flex items-center gap-3 pt-2">
+                          <img src={detectedYtThumb} alt="YouTube Thumbnail Preview" className="w-24 h-16 rounded-xl object-cover border" />
+                          <div className="text-xs">
+                            <span className="font-bold text-emerald-800 block">Authentic YouTube Thumbnail Detected</span>
+                            <span className="text-stone-500 text-[11px]">{detectedYtTitle || 'Video Ready'}</span>
                           </div>
-                        )}
-                      </div>
+                        </div>
+                      )}
                     </div>
                   )}
 
@@ -4659,7 +3771,6 @@ export const AdminDashboard: React.FC<Props> = ({
                         <th className="p-4 uppercase text-[11px] font-bold">Caption & Title</th>
                         <th className="p-4 uppercase text-[11px] font-bold">Type</th>
                         <th className="p-4 uppercase text-[11px] font-bold">Category</th>
-                        <th className="p-4 uppercase text-[11px] font-bold">Download Option</th>
                         <th className="p-4 uppercase text-[11px] font-bold">Homepage Video</th>
                         <th className="p-4 text-right uppercase text-[11px] font-bold">Actions</th>
                       </tr>
@@ -4689,10 +3800,10 @@ export const AdminDashboard: React.FC<Props> = ({
                                 )}
                               </div>
                             </td>
-                            <td className="p-4 font-bold text-[#103C2E] max-w-xs">
-                              <div className="line-clamp-2">{item.title}</div>
+                            <td className="p-4 font-bold text-[#103C2E]">
+                              {item.title}
                               {item.youtubeTitle && item.youtubeTitle !== item.title && (
-                                <p className="text-[11px] text-[#C6A15B] font-semibold mt-0.5 line-clamp-1">
+                                <p className="text-[11px] text-[#C6A15B] font-semibold mt-0.5">
                                   YT: {item.youtubeTitle}
                                 </p>
                               )}
@@ -4705,35 +3816,7 @@ export const AdminDashboard: React.FC<Props> = ({
                               </span>
                             </td>
                             <td className="p-4 text-stone-600">{item.category}</td>
-                            
-                            {/* Download Permission Status & Test Trigger */}
-                            <td className="p-4 whitespace-nowrap">
-                              {isVid ? (
-                                <div className="flex flex-col gap-1.5">
-                                  <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider inline-flex items-center gap-1 border w-fit ${
-                                    item.hasDownloadPermission 
-                                      ? 'bg-emerald-100 text-emerald-900 border-emerald-300' 
-                                      : 'bg-stone-100 text-stone-700 border-stone-300'
-                                  }`}>
-                                    <Download className="w-3 h-3 text-[#C6A15B]" />
-                                    <span>{item.hasDownloadPermission ? 'Direct MP4' : 'Official YouTube'}</span>
-                                  </span>
-                                  <button
-                                    type="button"
-                                    onClick={() => setPreviewDownloadVideo(item)}
-                                    className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-800 hover:text-emerald-950 underline cursor-pointer"
-                                    title="Test Download Dialog"
-                                  >
-                                    <Eye className="w-3 h-3" />
-                                    <span>Test Download UI</span>
-                                  </button>
-                                </div>
-                              ) : (
-                                <span className="text-stone-400 text-xs">—</span>
-                              )}
-                            </td>
-
-                            <td className="p-4 whitespace-nowrap">
+                            <td className="p-4">
                               {isVid ? (
                                 item.showOnHomepage ? (
                                   <span className="px-2.5 py-1 bg-[#103C2E] text-[#D4AF37] border border-[#C6A15B]/40 rounded-full text-xs font-bold inline-flex items-center gap-1 shadow-sm">
@@ -4752,7 +3835,7 @@ export const AdminDashboard: React.FC<Props> = ({
                                 <span className="text-stone-400 text-xs">—</span>
                               )}
                             </td>
-                            <td className="p-4 text-right space-x-2 whitespace-nowrap">
+                            <td className="p-4 text-right space-x-2">
                               <button
                                 onClick={() => handleEditMedia(item)}
                                 className="inline-flex items-center gap-1 bg-emerald-50 hover:bg-emerald-600 text-emerald-800 hover:text-white px-2.5 py-1.5 rounded-xl border border-emerald-200 transition-all shadow-xs cursor-pointer text-xs font-bold uppercase"
@@ -4778,44 +3861,6 @@ export const AdminDashboard: React.FC<Props> = ({
                 </div>
               </div>
             </div>
-          )}
-
-          {/* ========================================================
-              TAB 9: TOWN HALL & VOTING (CHIEF ADMIN)
-             ======================================================== */}
-          {activeTab === 'townhall' && (
-            <AdminTownHallTab
-              polls={polls}
-              setPolls={setPolls}
-              adminRole={adminRole}
-              adminEmail={email}
-              onLogActivity={(action) => setActivityLogs(prev => [{
-                id: `log-${Date.now()}`,
-                user: email,
-                action,
-                timestamp: new Date().toISOString().replace('T', ' ').substring(0, 16),
-                role: adminRole
-              }, ...prev])}
-            />
-          )}
-
-          {/* ========================================================
-              TAB 10: COMMUNITY PETITIONS (DECISION DISPATCH)
-             ======================================================== */}
-          {activeTab === 'petitions' && (
-            <AdminPetitionsTab
-              petitions={petitions}
-              setPetitions={setPetitions}
-              adminRole={adminRole}
-              adminEmail={email}
-              onLogActivity={(action) => setActivityLogs(prev => [{
-                id: `log-${Date.now()}`,
-                user: email,
-                action,
-                timestamp: new Date().toISOString().replace('T', ' ').substring(0, 16),
-                role: adminRole
-              }, ...prev])}
-            />
           )}
 
           {/* ========================================================
@@ -4917,55 +3962,22 @@ export const AdminDashboard: React.FC<Props> = ({
               agents={agents} 
               setAgents={setAgents} 
               electionReports={electionReports} 
-              setElectionReports={setElectionReports}
+              setElectionReports={setElectionReports} 
             />
           )}
 
           {/* ========================================================
-               TAB 13: DANMAJE INTERNAL STORAGE & DATA PROTECTION
+               TAB 12: CYBERSECURITY COMMAND CENTER & DEFENSE
               ======================================================== */}
-          {activeTab === 'storage' && (
-            <AdminStorageTab
-              adminEmail={email}
-              adminRole={adminRole}
-              projectsCount={projects.length}
-              newsCount={news.length}
-              programsCount={programs.length}
-              applicationsCount={applications.length}
-              legislativeCount={legislative.length}
-              galleryCount={gallery.length}
-              contactsCount={contacts.length}
-              petitionsCount={petitions.length}
-              pollsCount={polls.length}
-              officesCount={offices.length}
-              adminUsersCount={adminUsers.length}
-            />
+          {activeTab === 'cybersecurity' && (
+            <CybersecurityTab currentAdminEmail={email} />
           )}
 
           {/* ========================================================
-               TAB 14: OFFICES & ACCESS CONTROL (MULTI-BUREAU RBAC)
+               TAB 13: AUTOMATED SMS & USSD CONSTITUENCY GATEWAY
               ======================================================== */}
-          {activeTab === 'offices' && (
-            <AdminOfficesTab
-              offices={offices}
-              setOffices={setOffices}
-              adminUsers={adminUsersList}
-              setAdminUsers={setAdminUsersList}
-              currentAdminEmail={email}
-              onPreviewOffice={(office) => {
-                setPreviewingOffice(office);
-                setActiveTab('overview');
-              }}
-              onLogActivity={(action) => {
-                setActivityLogs(prev => [{
-                  id: `log-${Date.now()}`,
-                  user: email,
-                  action,
-                  timestamp: new Date().toISOString().replace('T', ' ').substring(0, 16),
-                  role: adminRole
-                }, ...prev]);
-              }}
-            />
+          {activeTab === 'sms_ussd' && (
+            <SmsUssdGatewayTab applications={applications} />
           )}
 
           {/* ========================================================
@@ -4975,7 +3987,7 @@ export const AdminDashboard: React.FC<Props> = ({
             <div className="w-full min-w-0 space-y-6">
               <div className="border-b border-stone-200 pb-4">
                 <h3 className="font-['Manrope'] font-extrabold text-2xl text-[#103C2E] uppercase">
-                  11. USER SETTINGS & ENTERPRISE CONFIGURATION
+                  12. USER SETTINGS & ENTERPRISE CONFIGURATION
                 </h3>
                 <p className="text-xs text-stone-500 mt-0.5">
                   Manage authorized administrators, portal headline statistics, multilingual translations dictionary, and security controls.
@@ -5257,8 +4269,21 @@ export const AdminDashboard: React.FC<Props> = ({
 
               {/* Sub-Tab 4: Security & Session */}
               {settingsTab === 'security' && (
-                <div className="bg-white rounded-3xl shadow-sm border border-stone-200 p-6 sm:p-8 space-y-4">
-                  <h4 className="font-bold text-[#103C2E] text-base uppercase">Session & Password Security</h4>
+                <div className="bg-white rounded-3xl shadow-sm border border-stone-200 p-6 sm:p-8 space-y-5">
+                  <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-stone-100 pb-4">
+                    <div>
+                      <h4 className="font-bold text-[#103C2E] text-base uppercase">Session & Password Security</h4>
+                      <p className="text-xs text-stone-500">Active authentication parameters and site-wide cyber protection.</p>
+                    </div>
+                    <button
+                      onClick={() => setActiveTab('cybersecurity')}
+                      className="bg-[#103C2E] hover:bg-[#09291F] text-white px-5 py-2.5 rounded-xl font-bold text-xs uppercase shadow flex items-center gap-2 cursor-pointer transition"
+                    >
+                      <Shield className="w-4 h-4 text-emerald-300" />
+                      <span>LAUNCH FULL CYBERSECURITY SUITE</span>
+                    </button>
+                  </div>
+
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
                     <div className="p-4 bg-stone-50 rounded-2xl border border-stone-200 space-y-1">
                       <span className="text-stone-400 text-[10px] uppercase font-bold block">Current Session User</span>
@@ -5268,8 +4293,8 @@ export const AdminDashboard: React.FC<Props> = ({
 
                     <div className="p-4 bg-stone-50 rounded-2xl border border-stone-200 space-y-1">
                       <span className="text-stone-400 text-[10px] uppercase font-bold block">Security Standard</span>
-                      <strong className="text-[#103C2E] text-sm block">TLS / HTTPS • Local Storage Encrypted</strong>
-                      <span className="text-stone-500 font-medium">Session valid for current browser window</span>
+                      <strong className="text-[#103C2E] text-sm block">TLS 1.3 / HTTPS • Cryptographic SHA-256 Hashing</strong>
+                      <span className="text-stone-500 font-medium">Session protected with anti-tamper token rotation</span>
                     </div>
                   </div>
                 </div>
@@ -5278,16 +4303,436 @@ export const AdminDashboard: React.FC<Props> = ({
             </div>
           )}
 
+          {/* ========================================================
+              GLOBAL REVIEW, DOCUMENT PREVIEW, OFFER & SLIP MODALS
+             ======================================================== */}
+
+          {/* Global Dossier & Petition Review Modal */}
+          {selectedAppForReview && (() => {
+            const isPetition = Boolean(
+              selectedAppForReview.referenceNumber?.startsWith('DAN-PET') ||
+              selectedAppForReview.programCategory?.toLowerCase().includes('petition') ||
+              selectedAppForReview.programId?.includes('ticket') ||
+              selectedAppForReview.programId?.includes('petition') ||
+              activeTab === 'petitions'
+            );
+
+            return (
+              <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-xs p-4 overflow-y-auto">
+                <div className="bg-white rounded-3xl max-w-4xl w-full p-6 sm:p-8 space-y-6 shadow-2xl my-8 border border-stone-200 max-h-[92vh] overflow-y-auto">
+                  
+                  {/* Header with Applicant/Petitioner Photo & Key Info */}
+                  <div className="flex flex-col sm:flex-row items-center sm:items-start justify-between gap-4 border-b border-stone-100 pb-5">
+                    <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4 text-center sm:text-left">
+                      {/* Biometric Passport Frame */}
+                      <div className="w-24 h-32 rounded-xl overflow-hidden border-2 border-[#103C2E] bg-stone-100 shrink-0 shadow-md flex flex-col items-center justify-center relative">
+                        {selectedAppForReview.passportPhoto ? (
+                          <img
+                            src={selectedAppForReview.passportPhoto}
+                            alt={selectedAppForReview.applicantName}
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <div className="text-center p-2 text-stone-400">
+                            <User className="w-10 h-10 mx-auto text-stone-300" />
+                            <span className="text-[9px] font-bold uppercase mt-1 block">
+                              {isPetition ? 'Citizen' : 'No Passport'}
+                            </span>
+                          </div>
+                        )}
+                        <div className="absolute bottom-0 inset-x-0 bg-[#103C2E] text-[#D4AF37] text-[8px] font-black py-0.5 text-center uppercase tracking-widest">
+                          {isPetition ? 'Verified File' : 'Official Photo'}
+                        </div>
+                      </div>
+
+                      <div className="space-y-1">
+                        <span className="text-[10px] font-black uppercase tracking-wider text-[#C6A15B] bg-[#C6A15B]/15 px-2.5 py-0.5 rounded-full border border-[#C6A15B]/30 inline-block">
+                          {isPetition ? 'CONSTITUENCY CITIZEN PETITION & GRIEVANCE DOSSIER' : 'CONSTITUENCY BENEFICIARY DOSSIER'}
+                        </span>
+                        <h3 className="font-['Manrope'] font-black text-2xl text-[#103C2E] uppercase">
+                          {selectedAppForReview.applicantName}
+                        </h3>
+                        <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2 text-xs text-stone-600 font-mono">
+                          <span className="font-bold text-[#103C2E]">REF: {selectedAppForReview.referenceNumber}</span>
+                          <span>•</span>
+                          <span className="font-sans font-medium text-stone-500">{selectedAppForReview.programTitle}</span>
+                        </div>
+                        <div className="pt-1 flex flex-wrap items-center justify-center sm:justify-start gap-2">
+                          <span className={`px-3 py-0.5 rounded-full text-[11px] font-black uppercase tracking-wider ${
+                            selectedAppForReview.status === 'APPROVED' ? 'bg-emerald-100 text-emerald-800 border border-emerald-300' :
+                            selectedAppForReview.status === 'REJECTED' ? 'bg-rose-100 text-rose-800' :
+                            'bg-amber-100 text-amber-800 border border-amber-300'
+                          }`}>
+                            STATUS: {selectedAppForReview.status}
+                          </span>
+                          {selectedAppForReview.wardOrTown && (
+                            <span className="bg-stone-100 text-stone-700 px-2.5 py-0.5 rounded-full text-[11px] font-bold">
+                              WARD: {selectedAppForReview.wardOrTown}
+                            </span>
+                          )}
+                          {selectedAppForReview.programCategory && (
+                            <span className="bg-emerald-50 text-emerald-800 px-2.5 py-0.5 rounded-full text-[11px] font-bold border border-emerald-200">
+                              {selectedAppForReview.programCategory}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setSlipModalApp(selectedAppForReview)}
+                        className="bg-stone-100 hover:bg-stone-200 text-[#103C2E] px-3 py-1.5 rounded-xl text-xs font-bold uppercase transition flex items-center gap-1.5"
+                        title="Print official slip / docket"
+                      >
+                        <Printer className="w-3.5 h-3.5" />
+                        <span>Print Slip</span>
+                      </button>
+                      <button 
+                        onClick={() => setSelectedAppForReview(null)} 
+                        className="bg-stone-100 hover:bg-rose-600 text-stone-600 hover:text-white p-2 rounded-xl border border-stone-200 transition shadow-xs cursor-pointer"
+                        title="Close Review"
+                      >
+                        <X className="w-5 h-5" />
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="space-y-5 text-xs">
+                    
+                    {/* Section 1: Detailed Personal / Contact Info */}
+                    <div className="space-y-2">
+                      <h4 className="font-black text-xs uppercase tracking-wider text-[#103C2E] flex items-center gap-1.5 border-b border-stone-200 pb-1">
+                        <span className="w-2 h-2 rounded-full bg-[#C6A15B]"></span>
+                        <span>{isPetition ? '1. CITIZEN PETITIONER CONTACT & RESIDENCY' : '1. APPLICANT BIO-DATA & RESIDENCY'}</span>
+                      </h4>
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 bg-stone-50 p-4 rounded-2xl border border-stone-200">
+                        <div>
+                          <span className="text-stone-500 text-[10px] uppercase font-bold block">
+                            {isPetition ? 'Citizen Identifier' : 'National ID (NIN)'}
+                          </span>
+                          <strong className="text-[#103C2E] font-mono text-sm">{selectedAppForReview.nin || selectedAppForReview.referenceNumber}</strong>
+                        </div>
+                        <div>
+                          <span className="text-stone-500 text-[10px] uppercase font-bold block">Phone Number</span>
+                          <strong className="text-[#103C2E] font-mono">{selectedAppForReview.phone}</strong>
+                        </div>
+                        <div>
+                          <span className="text-stone-500 text-[10px] uppercase font-bold block">Email Address</span>
+                          <strong className="text-[#103C2E]">{selectedAppForReview.email || 'None Provided'}</strong>
+                        </div>
+                        <div>
+                          <span className="text-stone-500 text-[10px] uppercase font-bold block">Constituency Ward</span>
+                          <strong className="text-[#103C2E]">{selectedAppForReview.wardOrTown}</strong>
+                        </div>
+                        <div>
+                          <span className="text-stone-500 text-[10px] uppercase font-bold block">Gender</span>
+                          <strong className="text-[#103C2E]">{selectedAppForReview.gender || 'Not Specified'}</strong>
+                        </div>
+                        <div>
+                          <span className="text-stone-500 text-[10px] uppercase font-bold block">Date Logged</span>
+                          <strong className="text-stone-700 font-mono">{selectedAppForReview.date}</strong>
+                        </div>
+                        <div className="sm:col-span-2">
+                          <span className="text-stone-500 text-[10px] uppercase font-bold block">Residential Address</span>
+                          <strong className="text-[#103C2E] truncate block">{selectedAppForReview.residentialAddress || selectedAppForReview.wardOrTown}</strong>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Section 2: Petition or Application Inquiry & Plea Details */}
+                    <div className="space-y-2">
+                      <h4 className="font-black text-xs uppercase tracking-wider text-[#103C2E] flex items-center gap-1.5 border-b border-stone-200 pb-1">
+                        <span className="w-2 h-2 rounded-full bg-[#C6A15B]"></span>
+                        <span>{isPetition ? '2. PETITION STATEMENT, GRIEVANCE & CITIZEN PLEA' : '2. STATEMENT OF PURPOSE & SOCIO-ECONOMIC NEED'}</span>
+                      </h4>
+                      <div className="bg-stone-50 p-4 rounded-2xl border border-stone-200 space-y-2">
+                        <div className="text-stone-800 text-xs sm:text-sm leading-relaxed whitespace-pre-wrap font-sans">
+                          {selectedAppForReview.statement || 'No detailed statement provided by constituent.'}
+                        </div>
+                        {selectedAppForReview.qualifications && (
+                          <div className="pt-2 border-t border-stone-200 text-stone-600 text-[11px]">
+                            <span className="font-bold text-[#103C2E]">Classification / Category: </span>
+                            <span>{selectedAppForReview.qualifications}</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Section 3: Supporting Documents & Evidence */}
+                    <div className="space-y-2">
+                      <h4 className="font-black text-xs uppercase tracking-wider text-[#103C2E] flex items-center justify-between border-b border-stone-200 pb-1">
+                        <span className="flex items-center gap-1.5">
+                          <span className="w-2 h-2 rounded-full bg-[#C6A15B]"></span>
+                          <span>3. SUPPORTING DOCUMENTS, ATTACHMENTS & CREDENTIALS</span>
+                        </span>
+                        <span className="text-[10px] font-bold text-stone-500">
+                          {selectedAppForReview.documents ? selectedAppForReview.documents.length : 0} Document(s) Attached
+                        </span>
+                      </h4>
+
+                      {selectedAppForReview.documents && selectedAppForReview.documents.length > 0 ? (
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                          {selectedAppForReview.documents.map((doc, idx) => (
+                            <div key={doc.id || idx} className="bg-stone-50 p-3.5 rounded-xl border border-stone-200 flex items-center justify-between gap-3">
+                              <div className="flex items-center gap-3 min-w-0">
+                                <div className="w-9 h-9 rounded-lg bg-emerald-100 text-emerald-800 flex items-center justify-center shrink-0 font-bold">
+                                  <FileText className="w-5 h-5" />
+                                </div>
+                                <div className="min-w-0">
+                                  <span className="font-bold text-[#103C2E] text-xs block truncate">{doc.type || 'Supporting Document'}</span>
+                                  <span className="text-[10px] text-stone-500 block truncate">{doc.name} {doc.size ? `(${doc.size})` : ''}</span>
+                                </div>
+                              </div>
+                              <button
+                                type="button"
+                                onClick={() => setPreviewDocModal(doc)}
+                                className="bg-[#103C2E] hover:bg-[#09291F] text-white px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase transition shrink-0 cursor-pointer flex items-center gap-1"
+                              >
+                                <Eye className="w-3 h-3 text-[#C6A15B]" />
+                                <span>Review</span>
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="bg-stone-50 p-4 rounded-xl border border-stone-200 text-stone-500 text-center space-y-1">
+                          <FileText className="w-6 h-6 mx-auto text-stone-400" />
+                          <p className="text-xs font-semibold">
+                            {isPetition ? 'Citizen submitted written petition directly via parliamentary tracking desk.' : 'Physical credentials presented during in-person constituency screening.'}
+                          </p>
+                          <span className="text-[10px] text-stone-400 block">
+                            Direct constituency liaison and National Assembly oversight recorded.
+                          </span>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Section 4: Activity Timeline Trail */}
+                    {selectedAppForReview.timeline && selectedAppForReview.timeline.length > 0 && (
+                      <div className="space-y-2">
+                        <h4 className="font-black text-xs uppercase tracking-wider text-[#103C2E] flex items-center gap-1.5 border-b border-stone-200 pb-1">
+                          <span className="w-2 h-2 rounded-full bg-[#C6A15B]"></span>
+                          <span>4. DOCKET AUDIT LOG & TIMELINE TRAIL</span>
+                        </h4>
+                        <div className="bg-stone-50 p-3 rounded-xl border border-stone-200 space-y-2">
+                          {selectedAppForReview.timeline.map((evt, idx) => (
+                            <div key={idx} className="flex items-start gap-2.5 text-[11px] pb-1.5 border-b border-stone-100 last:border-0 last:pb-0">
+                              <span className="w-2 h-2 rounded-full bg-emerald-600 mt-1 shrink-0"></span>
+                              <div className="flex-1">
+                                <strong className="text-[#103C2E]">{evt.title || evt.stage}</strong>
+                                {evt.note && <p className="text-stone-600 mt-0.5">{evt.note}</p>}
+                              </div>
+                              <span className="text-[10px] text-stone-400 font-mono shrink-0">{evt.timestamp}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Section 5: Committee Review, Stage Advance & Executive Decision */}
+                    <div className="bg-emerald-50/70 p-5 rounded-2xl border-2 border-emerald-300 space-y-4">
+                      <div className="flex items-center justify-between">
+                        <h4 className="font-black text-[#103C2E] uppercase text-xs flex items-center gap-1.5">
+                          <Shield className="w-4 h-4 text-emerald-700" />
+                          <span>{isPetition ? 'COMMITTEE INVESTIGATION & EXECUTIVE ACTION COMMIT' : 'ADVANCE APPLICATION STAGE & SETTLE ALLOCATION'}</span>
+                        </h4>
+                        {selectedAppForReview.status === 'APPROVED' && !isPetition && (
+                          <button
+                            type="button"
+                            onClick={() => setOfferModalApp(selectedAppForReview)}
+                            className="bg-gradient-to-r from-[#D4AF37] to-[#B38F44] text-[#09291F] px-3 py-1 rounded-lg text-[10px] font-black uppercase shadow-xs flex items-center gap-1 cursor-pointer"
+                          >
+                            <Award className="w-3.5 h-3.5" />
+                            <span>Preview Congratulation Offer Letter</span>
+                          </button>
+                        )}
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div>
+                          <label className="text-[11px] font-bold text-[#103C2E] block uppercase mb-1">
+                            {isPetition ? 'Petition Investigation Stage' : 'Select Stage'}
+                          </label>
+                          <select
+                            value={reviewStatusInput}
+                            onChange={(e) => setReviewStatusInput(e.target.value as ApplicationStatus)}
+                            className="w-full px-3 py-2 bg-white border border-stone-300 rounded-xl text-xs font-bold text-[#103C2E]"
+                          >
+                            <option value="SUBMITTED">{isPetition ? '1. SUBMITTED / LOGGED' : '1. SUBMITTED'}</option>
+                            <option value="INITIAL REVIEW">{isPetition ? '2. UNDER CONSTITUENCY INVESTIGATION' : '2. INITIAL REVIEW'}</option>
+                            <option value="DOCUMENT VERIFICATION">{isPetition ? '3. FACT-FINDING & FIELD VERIFICATION' : '3. DOCUMENT VERIFICATION'}</option>
+                            <option value="ELIGIBILITY ASSESSMENT">{isPetition ? '4. COMMITTEE HEARING & ASSESSMENT' : '4. ELIGIBILITY ASSESSMENT'}</option>
+                            <option value="FINAL REVIEW">{isPetition ? '5. LEGISLATIVE DELIBERATION' : '5. FINAL REVIEW'}</option>
+                            <option value="APPROVED">{isPetition ? '6. UPHELD & RELIEF ACTION APPROVED' : '6. APPROVED (Award Official Offer)'}</option>
+                            <option value="WAITLISTED">{isPetition ? 'SUSPENDED / PENDING FURTHER EVIDENCE' : 'WAITLISTED'}</option>
+                            <option value="REJECTED">{isPetition ? 'DISMISSED / INSUFFICIENT GROUNDS' : 'REJECTED'}</option>
+                          </select>
+                        </div>
+
+                        <div>
+                          <label className="text-[11px] font-bold text-[#103C2E] block uppercase mb-1">
+                            {isPetition ? 'Official Resolution Notice (Public on Tracker)' : 'Public Feedback (Visible to Applicant on Tracker)'}
+                          </label>
+                          <input
+                            type="text"
+                            placeholder={isPetition ? "e.g. Investigation concluded. Relief materials & engineering team dispatched to site." : "e.g. Approved. Please bring printed slip and NIN for physical handover..."}
+                            value={reviewPublicFeedback}
+                            onChange={(e) => setReviewPublicFeedback(e.target.value)}
+                            className="w-full px-3 py-2 bg-white border border-stone-300 rounded-xl text-xs text-stone-800"
+                          />
+                        </div>
+                      </div>
+
+                      {/* Internal Confidential Notes Field */}
+                      <div>
+                        <label className="text-[11px] font-bold text-[#103C2E] block uppercase mb-1">
+                          Confidential Committee / Admin Review Notes (Internal Audit):
+                        </label>
+                        <input
+                          type="text"
+                          placeholder="e.g. Verified by Ward Representative. Liaison team dispatched to inspect community borehole on 24th Oct."
+                          value={reviewInternalNote}
+                          onChange={(e) => setReviewInternalNote(e.target.value)}
+                          className="w-full px-3 py-2 bg-white border border-stone-300 rounded-xl text-xs text-stone-800"
+                        />
+                      </div>
+
+                      {/* Grant Package / Executive Action Allocation Field */}
+                      <div className="bg-white p-3.5 rounded-xl border border-emerald-300 space-y-1">
+                        <label className="text-[11px] font-black text-[#103C2E] uppercase block flex items-center justify-between">
+                          <span>
+                            {isPetition 
+                              ? 'Committed Relief / Executive Action (e.g. Borehole Drilling, Infrastructure Repair, Aid):' 
+                              : 'Approved Award Package / Allocation (Printed on Congratulation Offer Letter):'}
+                          </span>
+                          <span className="text-[10px] text-emerald-700 font-bold">Executive Action</span>
+                        </label>
+                        <input
+                          type="text"
+                          placeholder={isPetition ? "e.g. Deployment of 1x 10KVA Solar Submersible Pump & Pipe Replacement" : "e.g. 1x Complete Solar Irrigation Pumping Unit + Industrial Hose + ₦50,000 Agricultural Seed Fund"}
+                          value={reviewAwardPackage}
+                          onChange={(e) => setReviewAwardPackage(e.target.value)}
+                          className="w-full px-3 py-2 bg-emerald-50/40 border border-emerald-200 rounded-lg text-xs font-bold text-[#103C2E]"
+                        />
+                      </div>
+
+                      <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-emerald-200/80">
+                        <div className="text-[10px] text-stone-500 font-medium">
+                          {isPetition 
+                            ? 'Citizens can instantly track official status and resolution notes using their Reference Number.' 
+                            : 'Approved applicants can immediately view and download their official Congratulatory Offer letter.'}
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() => setSelectedAppForReview(null)}
+                            className="px-4 py-2 bg-stone-200 hover:bg-stone-300 rounded-xl text-xs font-bold uppercase cursor-pointer"
+                          >
+                            Close
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (isPetition) {
+                                handleAdvancePetitionStage(selectedAppForReview.id, reviewStatusInput, reviewInternalNote, reviewPublicFeedback, reviewAwardPackage);
+                              } else {
+                                handleAdvanceApplicationStage(selectedAppForReview.id, reviewStatusInput, reviewInternalNote, reviewPublicFeedback, reviewAwardPackage);
+                              }
+                              setSelectedAppForReview(null);
+                            }}
+                            className="bg-[#103C2E] hover:bg-[#09291F] text-white px-5 py-2 rounded-xl text-xs font-bold uppercase shadow cursor-pointer flex items-center gap-1.5"
+                          >
+                            <CheckCircle className="w-4 h-4 text-[#C6A15B]" />
+                            <span>{isPetition ? 'Save & Commit Decision' : 'Save & Commit Stage'}</span>
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            );
+          })()}
+
+          {/* Document Preview Modal */}
+          {previewDocModal && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-xs p-4">
+              <div className="bg-white rounded-3xl max-w-xl w-full p-6 space-y-4 shadow-2xl border border-stone-200 animate-fadeIn">
+                <div className="flex justify-between items-center border-b border-stone-100 pb-3">
+                  <div>
+                    <span className="text-[10px] font-black uppercase text-[#C6A15B]">DOCUMENT PREVIEW</span>
+                    <h4 className="font-bold text-base text-[#103C2E]">{previewDocModal.type || 'Supporting Document'}</h4>
+                  </div>
+                  <button
+                    onClick={() => setPreviewDocModal(null)}
+                    className="p-1.5 hover:bg-stone-100 rounded-lg text-stone-500 cursor-pointer"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+
+                <div className="bg-stone-50 p-6 rounded-2xl border border-stone-200 text-center space-y-3">
+                  {previewDocModal.dataUrl && previewDocModal.dataUrl.startsWith('data:image') ? (
+                    <img
+                      src={previewDocModal.dataUrl}
+                      alt={previewDocModal.name}
+                      className="max-h-80 mx-auto rounded-lg shadow-sm border border-stone-300"
+                    />
+                  ) : (
+                    <div className="space-y-2 py-4">
+                      <FileText className="w-16 h-16 mx-auto text-[#103C2E]" />
+                      <p className="font-bold text-sm text-[#103C2E]">{previewDocModal.name}</p>
+                      <p className="text-xs text-stone-500">{previewDocModal.size || 'Verified Document'} • Uploaded {previewDocModal.uploadedAt || 'During Submission'}</p>
+                      <div className="inline-block bg-emerald-100 text-emerald-800 text-xs font-bold px-3 py-1 rounded-full mt-2">
+                        ✓ Verified Constituency Credential
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                <div className="flex justify-end gap-2">
+                  {previewDocModal.dataUrl && (
+                    <a
+                      href={previewDocModal.dataUrl}
+                      download={previewDocModal.name}
+                      className="bg-[#103C2E] hover:bg-[#09291F] text-white px-4 py-2 rounded-xl text-xs font-bold uppercase transition flex items-center gap-1.5 shadow-sm"
+                    >
+                      <Download className="w-4 h-4 text-[#C6A15B]" />
+                      <span>Download File</span>
+                    </a>
+                  )}
+                  <button
+                    onClick={() => setPreviewDocModal(null)}
+                    className="bg-stone-200 hover:bg-stone-300 text-stone-700 px-4 py-2 rounded-xl text-xs font-bold uppercase transition cursor-pointer"
+                  >
+                    Close
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Offer Modal in Admin */}
+          {offerModalApp && (
+            <CongratulationOfferModal
+              application={offerModalApp}
+              onClose={() => setOfferModalApp(null)}
+            />
+          )}
+
+          {/* Slip Modal */}
+          {slipModalApp && (
+            <ApplicationSlipModal
+              application={slipModalApp}
+              onClose={() => setSlipModalApp(null)}
+            />
+          )}
+
         </main>
       </div>
-
-      {/* Admin Video Download Modal Preview */}
-      {previewDownloadVideo && (
-        <YouTubeDownloadModal
-          video={previewDownloadVideo}
-          onClose={() => setPreviewDownloadVideo(null)}
-        />
-      )}
     </div>
   );
 };

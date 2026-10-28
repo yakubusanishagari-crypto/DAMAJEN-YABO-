@@ -80,28 +80,12 @@ export function getYouTubeThumbnailUrl(
 }
 
 /**
- * Returns an enhanced embeddable YouTube privacy-enhanced iframe URL.
- * Uses youtube-nocookie.com with modest branding, inline playback, and origin enforcement.
+ * Returns an embeddable YouTube privacy-enhanced iframe URL.
  */
-export function getYouTubeEmbedUrl(
-  urlOrId?: string | null, 
-  autoplay = false, 
-  options?: { mute?: boolean; loop?: boolean }
-): string {
+export function getYouTubeEmbedUrl(urlOrId?: string | null, autoplay = false): string {
   const id = extractYouTubeId(urlOrId);
   if (!id) return '';
-  const muteParam = options?.mute ? '&mute=1' : '';
-  const loopParam = options?.loop ? `&loop=1&playlist=${id}` : '';
-  const originParam = typeof window !== 'undefined' && window.location ? `&origin=${encodeURIComponent(window.location.origin)}` : '';
-  return `https://www.youtube-nocookie.com/embed/${id}?autoplay=${autoplay ? 1 : 0}&rel=0&modestbranding=1&playsinline=1&enablejsapi=1&iv_load_policy=3${muteParam}${loopParam}${originParam}`;
-}
-
-/**
- * Checks whether the website owner has granted explicit permission for direct video download
- */
-export function canDownloadDirectly(item?: GalleryItem | null): boolean {
-  if (!item) return false;
-  return Boolean(item.hasDownloadPermission && (item.downloadUrl || item.videoUrl));
+  return `https://www.youtube-nocookie.com/embed/${id}?autoplay=${autoplay ? 1 : 0}&rel=0&modestbranding=1&playsinline=1&enablejsapi=1`;
 }
 
 /**

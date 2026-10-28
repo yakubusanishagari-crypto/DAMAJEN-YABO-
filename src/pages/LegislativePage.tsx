@@ -24,8 +24,8 @@ export const LegislativePage: React.FC<Props> = ({
   const [selectedStatus, setSelectedStatus] = useState<string>('All');
   const [activeGazette, setActiveGazette] = useState<LegislativeRecord | null>(null);
 
-  const categories = ['All', 'Bill', 'Motion', 'Committee', 'Parliamentary Question', 'Petition'];
-  const statuses = ['All', 'Proposed', 'Under Review', 'Approved', 'Rejected', 'Passed'];
+  const categories = ['All', 'Bill', 'Motion', 'Committee', 'Parliamentary Question'];
+  const statuses = ['All', 'Passed', 'Pending', 'Introduced'];
 
   const filteredRecords = legislative.filter(l => {
     const matchesSearch = l.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -42,34 +42,18 @@ export const LegislativePage: React.FC<Props> = ({
       if (cat === 'Motion') return 'Motsin Gaggawa';
       if (cat === 'Committee') return 'Aikin Kwamiti';
       if (cat === 'Parliamentary Question') return 'Tambayar Majalisa';
-      if (cat === 'Petition') return 'Korafe-korafen Al\'umma';
     }
     if (currentLang === 'ar') {
       if (cat === 'Bill') return 'مشروع قانون';
       if (cat === 'Motion') return 'ملتمس برلماني';
       if (cat === 'Committee') return 'عمل اللجان';
       if (cat === 'Parliamentary Question') return 'سؤال برلماني';
-      if (cat === 'Petition') return 'عرائض المواطنين';
     }
     return cat;
   };
 
   const getStatusLabel = (stat: string) => {
-    if (stat === 'Proposed') {
-      return currentLang === 'ha' ? 'Wanda aka Shirya' : currentLang === 'ar' ? 'مقترح' : 'Proposed';
-    }
-    if (stat === 'Under Review') {
-      return currentLang === 'ha' ? 'Ana Bita / Nazari' : currentLang === 'ar' ? 'قيد المراجعة والتدقيق' : 'Under Review';
-    }
-    if (stat === 'Approved') {
-      return currentLang === 'ha' ? 'An Amince' : currentLang === 'ar' ? 'تمت الموافقة' : 'Approved';
-    }
-    if (stat === 'Rejected') {
-      return currentLang === 'ha' ? 'An Yi Watsi da Shi' : currentLang === 'ar' ? 'مرفوض' : 'Rejected';
-    }
-    if (stat === 'Passed') {
-      return currentLang === 'ha' ? 'Ya Zama Doka / Ya Wuce' : currentLang === 'ar' ? 'تم إقراره رسمياً' : 'Passed';
-    }
+    if (stat === 'Passed') return t('billStagePassed', currentLang, translations);
     if (stat === 'Pending') return t('billStagePending', currentLang, translations);
     if (stat === 'Introduced') return t('billStageIntroduced', currentLang, translations);
     return stat;
@@ -80,10 +64,9 @@ export const LegislativePage: React.FC<Props> = ({
   return (
     <div className={`max-w-7xl mx-auto px-4 sm:px-8 py-12 space-y-12 ${isRtl ? 'rtl text-right' : ''}`}>
       {/* Header Banner */}
-      <div className="bg-gradient-to-br from-[#09291F] via-[#103C2E] to-[#0A261E] text-white rounded-3xl p-8 sm:p-14 shadow-xl space-y-4 relative overflow-hidden border border-[#C6A15B]/30">
-        <div className="absolute right-0 top-0 w-96 h-96 bg-[#C6A15B]/10 rounded-full blur-3xl pointer-events-none"></div>
+      <div className="bg-gradient-to-br from-[#09291F] via-[#103C2E] to-[#0A261E] text-white rounded-3xl p-8 sm:p-14 shadow-xl space-y-4 relative overflow-hidden border border-emerald-500/30">
         <div className="relative z-10 max-w-3xl space-y-3">
-          <div className="inline-flex items-center gap-2.5 px-3 py-1.5 rounded-full bg-[#C6A15B]/20 border border-[#C6A15B]/40 text-xs font-bold uppercase tracking-wider text-[#D4AF37]">
+          <div className="inline-flex items-center gap-2.5 px-3 py-1.5 rounded-full bg-emerald-900/60 border border-emerald-500/40 text-xs font-bold uppercase tracking-wider text-emerald-200">
             <img src="/official_logo.png" alt="Official Seal" className="w-5 h-5 rounded-full object-contain shrink-0" />
             <span>{t('legPageBadge', currentLang, translations)}</span>
           </div>
@@ -156,14 +139,10 @@ export const LegislativePage: React.FC<Props> = ({
                     {getCategoryLabel(record.category)}
                   </span>
                   <span aria-hidden="true" className="text-stone-300">·</span>
-                  <span className={`px-3 py-1 rounded-full text-xs font-bold border shadow-xs ${
-                    record.status === 'Passed' ? 'bg-emerald-100 text-emerald-900 border-emerald-300' :
-                    record.status === 'Approved' ? 'bg-teal-100 text-teal-900 border-teal-300' :
-                    record.status === 'Under Review' ? 'bg-amber-100 text-amber-900 border-amber-300 animate-pulse' :
-                    record.status === 'Proposed' ? 'bg-sky-100 text-sky-900 border-sky-300' :
-                    record.status === 'Rejected' ? 'bg-rose-100 text-rose-900 border-rose-300' :
-                    record.status === 'Pending' ? 'bg-amber-100 text-amber-800 border-amber-300' :
-                    'bg-stone-100 text-stone-700 border-stone-300'
+                  <span className={`px-2.5 py-1 rounded-md text-xs font-bold ${
+                    record.status === 'Passed' ? 'bg-emerald-100 text-emerald-800' :
+                    record.status === 'Pending' ? 'bg-amber-100 text-amber-800' :
+                    record.status === 'Introduced' ? 'bg-blue-100 text-blue-800' : 'bg-stone-100 text-stone-700'
                   }`}>
                     {getStatusLabel(record.status)}
                   </span>
@@ -198,85 +177,55 @@ export const LegislativePage: React.FC<Props> = ({
                 )}
               </div>
 
-              {record.statusNotes && (
-                <div className="bg-stone-50 border border-stone-200/80 rounded-xl p-3.5 text-xs text-stone-700 flex items-start gap-2.5">
-                  <Shield className="w-4 h-4 text-[#C6A15B] shrink-0 mt-0.5" />
-                  <div className="space-y-0.5 flex-1">
-                    <div className="flex items-center justify-between">
-                      <span className="font-bold text-[#103C2E]">Official Gazette Status Dispatch:</span>
-                      {record.statusUpdatedAt && (
-                        <span className="text-[11px] text-stone-400 font-mono">Updated: {record.statusUpdatedAt}</span>
-                      )}
-                    </div>
-                    <p className="leading-relaxed font-light">{record.statusNotes}</p>
-                  </div>
-                </div>
-              )}
-
               {/* Parliamentary Stage Timeline */}
               <div className="pt-3 border-t border-stone-100">
                 <span className="text-[11px] font-bold uppercase tracking-wider text-stone-500 block mb-2">
                   {currentLang === 'ha' ? 'Matakan Tafiyar Doka a Majalisa' : currentLang === 'ar' ? 'المراحل البرلمانية للمشروع' : 'Parliamentary Progress Timeline'}
                 </span>
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
-                  {/* Stage 1: Proposed / 1st Reading */}
                   <div className="bg-emerald-50 text-emerald-900 border border-emerald-200 rounded-lg p-2.5 flex items-center gap-2">
                     <CheckCircle className="w-4 h-4 text-emerald-600 shrink-0" />
                     <div>
-                      <p className="font-bold">{currentLang === 'ha' ? '1. Gabatarwa' : currentLang === 'ar' ? '1. مقترح وقراءة أولى' : '1. Proposed'}</p>
-                      <p className="text-[10px] text-emerald-700">{currentLang === 'ha' ? 'Shigarwa a Zaure' : currentLang === 'ar' ? 'العرض الرسمي' : 'Plenary Introduction'}</p>
+                      <p className="font-bold">{currentLang === 'ha' ? 'Karatu na 1' : currentLang === 'ar' ? 'القراءة الأولى' : '1st Reading'}</p>
+                      <p className="text-[10px] text-emerald-700">{currentLang === 'ha' ? 'Gabatarwa a Zaure' : currentLang === 'ar' ? 'العرض الرسمي' : 'Formal Presentation'}</p>
                     </div>
                   </div>
 
-                  {/* Stage 2: Under Review / Committee */}
                   <div className={`p-2.5 rounded-lg flex items-center gap-2 border ${
-                    record.status === 'Passed' || record.status === 'Approved'
+                    record.status === 'Passed' || record.status === 'Pending' 
                       ? 'bg-emerald-50 text-emerald-900 border-emerald-200' 
-                      : record.status === 'Under Review' || record.status === 'Pending'
-                      ? 'bg-amber-50 text-amber-900 border-amber-300 ring-1 ring-amber-300 animate-pulse'
                       : 'bg-stone-50 text-stone-400 border-stone-200'
                   }`}>
-                    <Clock className={`w-4 h-4 shrink-0 ${
-                      record.status === 'Passed' || record.status === 'Approved' ? 'text-emerald-600' : 
-                      record.status === 'Under Review' || record.status === 'Pending' ? 'text-amber-600' : 'text-stone-300'
-                    }`} />
+                    <CheckCircle className={`w-4 h-4 shrink-0 ${record.status === 'Passed' || record.status === 'Pending' ? 'text-emerald-600' : 'text-stone-300'}`} />
                     <div>
-                      <p className="font-bold">{currentLang === 'ha' ? '2. Bita & Kwamiti' : currentLang === 'ar' ? '2. المراجعة واللجان' : '2. Under Review'}</p>
-                      <p className="text-[10px]">{currentLang === 'ha' ? 'Nazarin Masana' : currentLang === 'ar' ? 'جلسات الفحص' : 'Committee Scrutiny'}</p>
+                      <p className="font-bold">{currentLang === 'ha' ? 'Karatu na 2' : currentLang === 'ar' ? 'القراءة الثانية' : '2nd Reading'}</p>
+                      <p className="text-[10px]">{currentLang === 'ha' ? 'Muhawarar Zaure' : currentLang === 'ar' ? 'مناقشة عامة' : 'Floor Debate'}</p>
                     </div>
                   </div>
 
-                  {/* Stage 3: Approved / Floor Adoption */}
+                  <div className={`p-2.5 rounded-lg flex items-center gap-2 border ${
+                    record.status === 'Passed'
+                      ? 'bg-emerald-50 text-emerald-900 border-emerald-200' 
+                      : record.status === 'Pending'
+                      ? 'bg-amber-50 text-amber-900 border-amber-200 animate-pulse'
+                      : 'bg-stone-50 text-stone-400 border-stone-200'
+                  }`}>
+                    <Clock className={`w-4 h-4 shrink-0 ${record.status === 'Passed' ? 'text-emerald-600' : record.status === 'Pending' ? 'text-amber-600' : 'text-stone-300'}`} />
+                    <div>
+                      <p className="font-bold">{currentLang === 'ha' ? 'Matakin Kwamiti' : currentLang === 'ar' ? 'مرحلة اللجان' : 'Committee Stage'}</p>
+                      <p className="text-[10px]">{currentLang === 'ha' ? 'Jin Ra\'ayin Jama\'a' : currentLang === 'ar' ? 'جلسات استماع' : 'Public Hearing'}</p>
+                    </div>
+                  </div>
+
                   <div className={`p-2.5 rounded-lg flex items-center gap-2 border ${
                     record.status === 'Passed'
                       ? 'bg-emerald-50 text-emerald-900 border-emerald-200'
-                      : record.status === 'Approved'
-                      ? 'bg-teal-50 text-teal-900 border-teal-300 ring-1 ring-teal-300'
-                      : record.status === 'Rejected'
-                      ? 'bg-rose-50 text-rose-900 border-rose-200'
-                      : 'bg-stone-50 text-stone-400 border-stone-200'
-                  }`}>
-                    <CheckCircle className={`w-4 h-4 shrink-0 ${
-                      record.status === 'Passed' ? 'text-emerald-600' :
-                      record.status === 'Approved' ? 'text-teal-600' :
-                      record.status === 'Rejected' ? 'text-rose-500' : 'text-stone-300'
-                    }`} />
-                    <div>
-                      <p className="font-bold">{record.status === 'Rejected' ? '3. Rejected' : (currentLang === 'ha' ? '3. Amincewa' : currentLang === 'ar' ? '3. الموافقة' : '3. Approved')}</p>
-                      <p className="text-[10px]">{record.status === 'Rejected' ? 'Plenary Stood Down' : (currentLang === 'ha' ? 'Karatun Karshe' : currentLang === 'ar' ? 'الموافقة العامة' : 'Plenary Approval')}</p>
-                    </div>
-                  </div>
-
-                  {/* Stage 4: Passed / Enacted */}
-                  <div className={`p-2.5 rounded-lg flex items-center gap-2 border ${
-                    record.status === 'Passed'
-                      ? 'bg-emerald-50 text-emerald-900 border-emerald-200 ring-1 ring-emerald-300'
                       : 'bg-stone-50 text-stone-400 border-stone-200'
                   }`}>
                     <CheckCircle className={`w-4 h-4 shrink-0 ${record.status === 'Passed' ? 'text-emerald-600' : 'text-stone-300'}`} />
                     <div>
-                      <p className="font-bold">{currentLang === 'ha' ? '4. Passed' : currentLang === 'ar' ? '4. إقرار نهائي' : '4. Passed / Enacted'}</p>
-                      <p className="text-[10px]">{currentLang === 'ha' ? 'Zama Cikakkiyar Doka' : currentLang === 'ar' ? 'المصادقة والتنفيذ' : 'Final Enactment'}</p>
+                      <p className="font-bold">{currentLang === 'ha' ? 'Karatu na 3 & Sa Hannu' : currentLang === 'ar' ? 'القراءة الثالثة والمصادقة' : '3rd Reading & Assent'}</p>
+                      <p className="text-[10px]">{currentLang === 'ha' ? 'Zama Cikakkiyar Doka' : currentLang === 'ar' ? 'الإقرار النهائي' : 'Final Enactment'}</p>
                     </div>
                   </div>
                 </div>

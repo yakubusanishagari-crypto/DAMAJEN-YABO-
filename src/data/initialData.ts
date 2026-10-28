@@ -1,15 +1,4 @@
-import { 
-  Project, 
-  LegislativeRecord, 
-  EmpowermentProgram, 
-  NewsArticle, 
-  GalleryItem, 
-  ContactSubmission,
-  TownHallPoll,
-  CommunityPetition,
-  ConstituencyOffice,
-  AdminUser
-} from '../types';
+import { Project, LegislativeRecord, EmpowermentProgram, NewsArticle, GalleryItem, ContactSubmission } from '../types';
 
 export const INITIAL_PROJECTS: Project[] = [
   {
@@ -115,10 +104,7 @@ export const INITIAL_LEGISLATIVE: LegislativeRecord[] = [
     id: 'leg-1',
     title: 'A Bill for an Act to Establish the Federal College of Agricultural Technology, Yabo',
     category: 'Bill',
-    status: 'Under Review',
-    statusNotes: 'Referred to House Committee on Agricultural Colleges and Research for clause-by-clause stakeholder review.',
-    statusUpdatedAt: '2026-03-14',
-    statusUpdatedBy: 'Chief Administrator',
+    status: 'Pending',
     date: '2025-05-18',
     description: 'Sponsored legislation aimed at boosting agricultural research, advanced farming techniques, and middle-level manpower training for youth in Sokoto State and Northwestern Nigeria.',
     documentUrl: '#',
@@ -130,9 +116,6 @@ export const INITIAL_LEGISLATIVE: LegislativeRecord[] = [
     title: 'Motion on the Urgent Need for Ecological Intervention on Erosion Sites in Yabo and Shagari LGAs',
     category: 'Motion',
     status: 'Passed',
-    statusNotes: 'Adopted unanimously at Plenary session; ecological agency mobilized to commencement.',
-    statusUpdatedAt: '2025-03-22',
-    statusUpdatedBy: 'Chief Administrator',
     date: '2025-03-22',
     description: 'Successfully moved a motion drawing federal attention to severe gully erosion threatening farmlands and residential settlements across Yabo and Shagari, leading to a mandate for ecological funds deployment.',
     documentUrl: '#',
@@ -142,10 +125,7 @@ export const INITIAL_LEGISLATIVE: LegislativeRecord[] = [
     id: 'leg-3',
     title: 'A Bill to Amend the Universal Basic Education Act to Enhance Nomadic and Rural School Funding',
     category: 'Bill',
-    status: 'Approved',
-    statusNotes: 'Approved by plenary session for third reading and final transmission.',
-    statusUpdatedAt: '2025-11-20',
-    statusUpdatedBy: 'Chief Administrator',
+    status: 'Introduced',
     date: '2025-07-14',
     description: 'Legislative proposal to secure dedicated matching grants for nomadic pastoralist education and mobile classroom facilities in remote agrarian settlements.',
     documentUrl: '#',
@@ -156,39 +136,10 @@ export const INITIAL_LEGISLATIVE: LegislativeRecord[] = [
     title: 'Motion on Expanding Rural Electrification and Grid Reliability in Agrarian Communities',
     category: 'Motion',
     status: 'Passed',
-    statusNotes: 'Passed and transmitted to Federal Ministry of Power and REA.',
-    statusUpdatedAt: '2024-11-30',
-    statusUpdatedBy: 'Chief Administrator',
     date: '2024-11-30',
     description: 'Addressed power outages affecting micro-industries and irrigation pumps in Yabo/Shagari, securing approval for step-down transformer installations.',
     documentUrl: '#',
     source: 'House Hansard Records'
-  },
-  {
-    id: 'leg-5',
-    title: 'A Bill for an Act to Provide Strategic Grain Silos and Modern Post-Harvest Infrastructure in Sokoto South-West',
-    category: 'Bill',
-    status: 'Proposed',
-    statusNotes: 'Formulated in consultation with farmer associations across Yabo and Shagari; awaiting formal presentation.',
-    statusUpdatedAt: '2026-06-15',
-    statusUpdatedBy: 'Chief Administrator',
-    date: '2026-06-15',
-    description: 'Proposed legislative intervention to eliminate post-harvest crop rot and stabilize farmer income through federally supported grain storage terminals.',
-    documentUrl: '#',
-    source: 'House Legislative Drafting Service'
-  },
-  {
-    id: 'leg-6',
-    title: 'Motion Requesting Reclassification of Sokoto-Jega Federal Road Toll Free Zone',
-    category: 'Motion',
-    status: 'Rejected',
-    statusNotes: 'Debated at plenary; stepped down as incompatible with national toll policy; substituted with direct road rehabilitation motion.',
-    statusUpdatedAt: '2025-09-18',
-    statusUpdatedBy: 'Chief Administrator',
-    date: '2025-09-18',
-    description: 'Motion seeking toll-free designation along agrarian commercial transit lines; rejected in plenary and redirected to direct road reconstruction funding.',
-    documentUrl: '#',
-    source: 'National Assembly Votes & Proceedings'
   }
 ];
 
@@ -305,10 +256,7 @@ export const INITIAL_GALLERY: GalleryItem[] = [
     videoUrl: 'https://www.youtube.com/watch?v=ScMzIvxBSi4',
     showOnHomepage: true,
     date: '2025-07-19',
-    description: 'Hon. Umar Yusuf Danmaje leading the debate during plenary session at the Green Chamber, advocating for agricultural education and research for Sokoto State.',
-    hasDownloadPermission: false,
-    officialChannelUrl: 'https://www.youtube.com/watch?v=ScMzIvxBSi4',
-    permissionNote: 'Broadcast under National Assembly Parliamentary Television license. In accordance with YouTube terms of service, direct MP4 downloading is restricted; constituents may stream or use official YouTube offline options.'
+    description: 'Hon. Umar Yusuf Danmaje leading the debate during plenary session at the Green Chamber, advocating for agricultural education and research for Sokoto State.'
   },
   {
     id: 'gal-vid-2',
@@ -320,29 +268,7 @@ export const INITIAL_GALLERY: GalleryItem[] = [
     videoUrl: 'https://www.youtube.com/watch?v=M7lc1UVf-VE',
     showOnHomepage: false,
     date: '2025-08-20',
-    description: 'Field report showing the completed motorized solar-powered water schemes serving rural communities in Yabo and Shagari.',
-    hasDownloadPermission: true,
-    downloadUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4',
-    downloadFileSize: '28.4 MB',
-    downloadQuality: '1080p Full HD MP4',
-    permissionNote: 'Official Constituency Media Unit Master Footage — Website owner grants full public authorization for educational, broadcast, and community download.'
-  },
-  {
-    id: 'gal-vid-3',
-    title: 'Constituency Empowerment & Agricultural Input Flag-off Documentary',
-    youtubeTitle: 'Constituency Empowerment & Agricultural Input Flag-off Documentary',
-    type: 'video',
-    category: 'Empowerment',
-    imageUrl: 'https://img.youtube.com/vi/aqz-KE-bpKQ/hqdefault.jpg',
-    videoUrl: 'https://www.youtube.com/watch?v=aqz-KE-bpKQ',
-    showOnHomepage: false,
-    date: '2025-05-04',
-    description: 'Special broadcast documenting the flag-off ceremony of subsidized fertilizer and solar pump distribution to over 2,000 smallholder farmers.',
-    hasDownloadPermission: true,
-    downloadUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4',
-    downloadFileSize: '35.6 MB',
-    downloadQuality: '720p HD MP4',
-    permissionNote: 'Official Constituency Media Unit Production — Authorized for Public Download.'
+    description: 'Field report showing the completed motorized solar-powered water schemes serving rural communities in Yabo and Shagari.'
   },
   {
     id: 'gal-1',
@@ -411,341 +337,5 @@ export const INITIAL_CONTACTS: ContactSubmission[] = [
     message: 'How can our women cooperative register for the upcoming micro-enterprise grant programme?',
     date: '2025-10-05',
     status: 'In Progress'
-  }
-];
-
-// ==========================================
-// INITIAL TOWN HALL POLLS (Civic Decision-Making)
-// ==========================================
-export const INITIAL_POLLS: TownHallPoll[] = [
-  {
-    id: 'poll-1',
-    title: 'Constituency Capital Project Priorities for Q1 2027 Budget Allocation',
-    question: 'Which sector should receive the highest capital project allocation in the upcoming legislative intervention cycle?',
-    description: 'Hon. Umar Yusuf (Danmaje Yabo) invites all constituents of Yabo and Shagari Federal Constituency to voice their priorities to guide budget defense and capital intervention bill appropriations.',
-    category: 'Budget & Projects',
-    targetWard: 'All 22 Wards (Constituency-Wide)',
-    status: 'Active',
-    startDate: '2026-10-01',
-    endDate: '2026-11-30',
-    createdBy: 'Chief Administrator',
-    createdAt: '2026-10-01T08:00:00Z',
-    isFeatured: true,
-    totalVotes: 842,
-    options: [
-      { id: 'opt-1a', text: 'Solar-Powered Irrigation Boreholes & Fadama Farming Support', votes: 384 },
-      { id: 'opt-1b', text: 'Rural Feeder Road Grading & Culvert Construction', votes: 248 },
-      { id: 'opt-1c', text: 'Primary Healthcare Center Equipment & Maternity Wards', votes: 142 },
-      { id: 'opt-1d', text: 'Youth ICT Hubs & Digital Skills Apprenticeship', votes: 68 }
-    ],
-    voters: [
-      { id: 'v-1', pollId: 'poll-1', voterId: 'usr-881', voterName: 'Aliyu Dan-Yabo', ward: 'Yabo Central Ward', selectedOptionId: 'opt-1a', timestamp: '2026-10-14 10:20' },
-      { id: 'v-2', pollId: 'poll-1', voterId: 'usr-882', voterName: 'Maryam Shagari', ward: 'Shagari South Ward', selectedOptionId: 'opt-1a', timestamp: '2026-10-15 14:15' },
-      { id: 'v-3', pollId: 'poll-1', voterId: 'usr-883', voterName: 'Bello Garba Kuchi', ward: 'Kuchi Ward', selectedOptionId: 'opt-1b', timestamp: '2026-10-16 09:40' }
-    ]
-  },
-  {
-    id: 'poll-2',
-    title: 'Constituency Tertiary Scholarship & Bursary Allocation Criteria',
-    question: 'How should the upcoming ₦25 Million Constituency Education Grant be disbursed among our students?',
-    description: 'We seek community consensus on the most equitable formula for supporting our sons and daughters studying across accredited universities, polytechnics, and colleges of education.',
-    category: 'Youth & Education',
-    targetWard: 'All 22 Wards (Constituency-Wide)',
-    status: 'Active',
-    startDate: '2026-10-10',
-    endDate: '2026-12-05',
-    createdBy: 'Chief Administrator',
-    createdAt: '2026-10-10T09:30:00Z',
-    isFeatured: true,
-    totalVotes: 519,
-    options: [
-      { id: 'opt-2a', text: 'Equal Ward Quota (Equal funding per each of the 22 wards)', votes: 265 },
-      { id: 'opt-2b', text: 'Academic Merit & High GPA Tiered Scholarships', votes: 160 },
-      { id: 'opt-2c', text: 'Indigent & Vulnerable Student Needs-Based Assistance', votes: 94 }
-    ],
-    voters: [
-      { id: 'v-4', pollId: 'poll-2', voterId: 'usr-884', voterName: 'Shehu Danladi', ward: 'Torankawa Ward', selectedOptionId: 'opt-2a', timestamp: '2026-10-17 11:00' }
-    ]
-  },
-  {
-    id: 'poll-3',
-    title: 'Placement of High-Mast Solar Security Lighting Across Agrarian Markets',
-    question: 'Where should the phase-two high-mast solar illumination installations be concentrated?',
-    description: 'Concluded public consultation on solar lighting installations across rural commercial junctions.',
-    category: 'Community Welfare',
-    targetWard: 'Yabo & Shagari Commercial Wards',
-    status: 'Closed',
-    startDate: '2026-08-01',
-    endDate: '2026-09-15',
-    createdBy: 'Chief Administrator',
-    createdAt: '2026-08-01T08:00:00Z',
-    isFeatured: false,
-    totalVotes: 630,
-    options: [
-      { id: 'opt-3a', text: 'Central Weekly Markets (Yabo & Shagari Town Centers)', votes: 350 },
-      { id: 'opt-3b', text: 'Transit Inter-LGA Bus Terminals & Motor Parks', votes: 180 },
-      { id: 'opt-3c', text: 'Surrounding Primary Healthcare Centers & Clinics', votes: 100 }
-    ]
-  }
-];
-
-// ==========================================
-// INITIAL COMMUNITY PETITIONS
-// ==========================================
-export const INITIAL_PETITIONS: CommunityPetition[] = [
-  {
-    id: 'pet-1',
-    referenceNumber: 'PET-YS-2026-0041',
-    title: 'Petition for Rehabilitation of Bakale–Kuchi Rural Access Road and Water Culverts',
-    category: 'Infrastructure & Roads',
-    petitionerName: 'Alhaji Musa Bakale',
-    petitionerEmail: 'musa.bakale@gmail.com',
-    petitionerPhone: '+234 803 555 1234',
-    ward: 'Kuchi Ward',
-    localGovernment: 'Yabo',
-    address: 'Bakale Community Association, Kuchi Ward',
-    description: 'The major farm evacuation link between Bakale village and Kuchi weekly grain market experiences severe erosion during rainy seasons, impeding over 3,000 farmers from transporting onions, maize, and livestock.',
-    expectedImpact: 'Direct access to market for 3,000+ smallholder farmers, preventing post-harvest spoilage and reducing motorcycle transit accidents.',
-    signatoriesCount: 148,
-    supportingDocName: 'Bakale_Erosion_Survey_Report.pdf',
-    status: 'Under Review',
-    submittedDate: '2026-09-28',
-    reviewNotes: 'Assigned to Constituency Works Liaison Officer Engr. Bello for field topographical inspection.',
-    updatedAt: '2026-10-12'
-  },
-  {
-    id: 'pet-2',
-    referenceNumber: 'PET-YS-2026-0038',
-    title: 'Petition for Expansion of Motorized Solar Water Scheme to Lambo Quarters',
-    category: 'Water & Boreholes',
-    petitionerName: 'Hajia Safiya Lambo',
-    petitionerEmail: 'safiya.lambo@yahoo.com',
-    petitionerPhone: '+234 802 777 9876',
-    ward: 'Shagari South Ward',
-    localGovernment: 'Shagari',
-    address: 'Lambo Women Cooperative, Shagari South',
-    description: 'Request for installation of an auxiliary distribution pipe network and 4-tap dispensing station connecting the existing solar borehole to Lambo quarters, easing water collection for nursing mothers and children.',
-    expectedImpact: 'Will eliminate 3-kilometer daily water fetch trek for more than 400 households in Lambo settlement.',
-    signatoriesCount: 215,
-    supportingDocName: 'Lambo_Household_Signatures.pdf',
-    status: 'Approved',
-    submittedDate: '2026-08-14',
-    reviewNotes: 'Technical feasibility verified by Constituency Water Team. Approved for inclusion in Phase 3 Constituency Water Scheme.',
-    updatedAt: '2026-09-02',
-    decisionMessage: {
-      id: 'dec-msg-1',
-      petitionId: 'pet-2',
-      status: 'Approved',
-      recipientName: 'Hajia Safiya Lambo',
-      recipientEmail: 'safiya.lambo@yahoo.com',
-      recipientPhone: '+234 802 777 9876',
-      subject: 'OFFICIAL NOTICE OF PETITION APPROVAL: Expansion of Solar Water Scheme to Lambo Quarters (Ref: PET-YS-2026-0038)',
-      officialGreeting: 'Dear Hajia Safiya Lambo and the Respected Signatories of Lambo Quarters,',
-      decisionSummary: 'On behalf of the Office of Hon. Umar Yusuf (Danmaje Yabo), Member representing Yabo/Shagari Federal Constituency at the House of Representatives, we write with immense pleasure to formally inform you that your community petition regarding the Expansion of the Motorized Solar Water Scheme to Lambo Quarters has been comprehensively reviewed and officially APPROVED.',
-      detailedRationale: 'Our engineering assessment team conducted a verified on-site inspection in Shagari South Ward and confirmed that the existing borehole pressure has ample capacity to support a dedicated auxiliary pipeline reticulation and a four-point fetching stand at Lambo center. Hon. Umar Yusuf has prioritized this intervention under the 2026 Constituency Priority Water Intervention Budget.',
-      communityEncouragement: 'We commend you, Hajia Safiya, and all community leaders for demonstrating exemplary civic leadership and articulating your community needs through this peaceful, democratic petition channel. Constructive constituent engagement is the heartbeat of genuine grassroots democracy and accelerated development in Yabo and Shagari.',
-      nextStepsOrAlternatives: 'The Constituency Engineering Works Unit will mobilize to Lambo Quarters within the next 21 business days to flag off trenching and piping works. We encourage you to liaise with the Ward Liaison Officer to facilitate unhindered community support during execution.',
-      signatory: 'Secretariat, Office of Hon. Umar Yusuf (Danmaje Yabo), House of Representatives, Abuja',
-      sentAt: '2026-09-02 11:30 WAT',
-      sentBy: 'Chief Administrator',
-      deliveryChannels: ['Email', 'SMS', 'Constituency Portal']
-    }
-  },
-  {
-    id: 'pet-3',
-    referenceNumber: 'PET-YS-2026-0029',
-    title: 'Petition for Permanent Commercial Toll Barrier at Yabo Central Roundabout',
-    category: 'Infrastructure & Roads',
-    petitionerName: 'Malam Kabir Yabo',
-    petitionerEmail: 'kabir.yabo@outlook.com',
-    petitionerPhone: '+234 805 444 8899',
-    ward: 'Yabo Central Ward',
-    localGovernment: 'Yabo',
-    address: 'Near Central Motor Park, Yabo Metropolis',
-    description: 'Proposal to erect private commercial parking revenue gates and toll barriers across the federal intersection to generate revenue for transport operators.',
-    expectedImpact: 'Private revenue collection for local transport union members.',
-    signatoriesCount: 32,
-    status: 'Rejected',
-    submittedDate: '2026-07-10',
-    reviewNotes: 'Reviewed by Parliamentary Legal & Transport Advisory Desk. Violates Federal Highway regulations and impedes public right of way.',
-    updatedAt: '2026-07-22',
-    decisionMessage: {
-      id: 'dec-msg-2',
-      petitionId: 'pet-3',
-      status: 'Rejected',
-      recipientName: 'Malam Kabir Yabo',
-      recipientEmail: 'kabir.yabo@outlook.com',
-      recipientPhone: '+234 805 444 8899',
-      subject: 'OFFICIAL COMMUNICATION: Outcome of Community Petition (Ref: PET-YS-2026-0029)',
-      officialGreeting: 'Dear Malam Kabir Yabo,',
-      decisionSummary: 'The Office of Hon. Umar Yusuf (Danmaje Yabo), Member representing Yabo/Shagari Federal Constituency, presents its highest compliments and thanks you profoundly for your active engagement and for bringing your petition regarding the Yabo Roundabout to our attention.',
-      detailedRationale: 'Following statutory evaluation by our Parliamentary Legal Desk and consultation with the Federal Ministry of Works & Transportation, we regret to inform you that your petition to erect private commercial barriers at the Yabo Central Roundabout cannot be approved. Federal highways and strategic roundabouts are gazetted public transit corridors subject to nationwide free-flow safety standards, and erection of non-statutory barriers is prohibited by national transport regulations.',
-      communityEncouragement: 'Although this specific proposal cannot be accommodated within the regulatory framework, Hon. Umar Yusuf strongly encourages you, your union colleagues, and youth associates to continue your commendable interest in community progress. Your willingness to organize and seek economic opportunities for our people is deeply appreciated.',
-      nextStepsOrAlternatives: 'To sustainably support transport operators and micro-businesses in Yabo Central, our office has enrolled transport union members into the upcoming Federal Small Business Micro-Grant Scheme and is rehabilitating the designated off-highway municipal motor park where safe, orderly commercial activity can thrive without compromising road safety.',
-      signatory: 'Office of the Chief Administrator, Constituency Directorate of Public Petitions & Grievance Redress',
-      sentAt: '2026-07-22 15:45 WAT',
-      sentBy: 'Chief Administrator',
-      deliveryChannels: ['Email', 'SMS', 'Constituency Portal']
-    }
-  }
-];
-
-export const INITIAL_OFFICES: ConstituencyOffice[] = [
-  {
-    id: 'off-liaison',
-    code: 'OFF-LIAISON',
-    name: 'Constituency Liaison & Grievance Redress Bureau',
-    location: 'Danmaje Civic Liaison Secretariat, Main Sokoto-Jega Highway, Yabo Metropolis',
-    description: 'Frontline citizen engagement bureau handling public petitions, constituent enquiries, Town Hall hearings, and grassroots grievance resolution.',
-    headOfOffice: 'Alhaji Bello Dan-Yabo',
-    contactEmail: 'liaison.admin@danmayeyabo.gov.ng',
-    contactPhone: '+234 803 111 2233',
-    status: 'Active',
-    authorizedTabs: ['overview', 'petitions', 'enquiries', 'townhall'],
-    assignedAdminEmails: ['liaison.admin@danmayeyabo.gov.ng'],
-    createdAt: '2025-01-15'
-  },
-  {
-    id: 'off-projects',
-    code: 'OFF-PROJECTS',
-    name: 'Constituency Projects, Works & Infrastructure Bureau',
-    location: 'Projects Monitoring Division, Works Compound, Yabo',
-    description: 'Technical oversight, GIS site verification, contractor auditing, and progress photo reporting for all federal and constituency infrastructure works.',
-    headOfOffice: 'Engr. Faruq Shagari',
-    contactEmail: 'projects.admin@danmayeyabo.gov.ng',
-    contactPhone: '+234 803 222 3344',
-    status: 'Active',
-    authorizedTabs: ['overview', 'projects', 'analytics'],
-    assignedAdminEmails: ['projects.admin@danmayeyabo.gov.ng'],
-    createdAt: '2025-01-15'
-  },
-  {
-    id: 'off-media',
-    code: 'OFF-MEDIA',
-    name: 'Directorate of Media, Public Relations & Press Affairs',
-    location: 'Danmaje Media & Communications Suite, Yabo',
-    description: 'Official press releases, parliamentary news, documentary production, social media engagement, and high-definition photo/video gallery archives.',
-    headOfOffice: 'Hon. Aminu Kuchi',
-    contactEmail: 'media.admin@danmayeyabo.gov.ng',
-    contactPhone: '+234 803 333 4455',
-    status: 'Active',
-    authorizedTabs: ['overview', 'news', 'gallery', 'analytics'],
-    assignedAdminEmails: ['media.admin@danmayeyabo.gov.ng'],
-    createdAt: '2025-01-15'
-  },
-  {
-    id: 'off-legislative',
-    code: 'OFF-LEGIS',
-    name: 'Parliamentary Legislative & Policy Advisory Bureau',
-    location: 'Suite 3.24, House of Representatives Wing, National Assembly Complex, Abuja',
-    description: 'Drafting constituency bills, sponsoring motions, conducting federal committee oversight, and analyzing federal budget appropriations for Yabo/Shagari.',
-    headOfOffice: 'Barrister Mustapha Dan-Yabo',
-    contactEmail: 'legislative.admin@danmayeyabo.gov.ng',
-    contactPhone: '+234 803 444 5566',
-    status: 'Active',
-    authorizedTabs: ['overview', 'legislative', 'petitions', 'townhall'],
-    assignedAdminEmails: ['legislative.admin@danmayeyabo.gov.ng'],
-    createdAt: '2025-01-15'
-  },
-  {
-    id: 'off-empowerment',
-    code: 'OFF-EMPOWER',
-    name: 'Empowerment, Skills Acquisition & Social Welfare Directorate',
-    location: 'Danmaje Vocational & Youth Training Center, Shagari LGA',
-    description: 'Management of youth and women empowerment schemes, vocational training, business grant applications, and educational bursary disbursements.',
-    headOfOffice: 'Hajia Fatima Shagari',
-    contactEmail: 'empowerment.admin@danmayeyabo.gov.ng',
-    contactPhone: '+234 803 555 6677',
-    status: 'Active',
-    authorizedTabs: ['overview', 'empowerment', 'applications'],
-    assignedAdminEmails: ['empowerment.admin@danmayeyabo.gov.ng'],
-    createdAt: '2025-01-15'
-  },
-  {
-    id: 'off-electoral',
-    code: 'OFF-ELECTORAL',
-    name: 'Constituency Electoral Operations & Field Polling Desk',
-    location: 'Civic Collation & Polling Coordination Unit, Yabo',
-    description: 'Grassroots polling unit agent deployment, ward-by-ward field reporting, and election day results verification across all 22 wards.',
-    headOfOffice: 'Comrade Usman Torankawa',
-    contactEmail: 'electoral.admin@danmayeyabo.gov.ng',
-    contactPhone: '+234 803 666 7788',
-    status: 'Active',
-    authorizedTabs: ['overview', 'election'],
-    assignedAdminEmails: ['electoral.admin@danmayeyabo.gov.ng'],
-    createdAt: '2025-01-15'
-  }
-];
-
-export const INITIAL_ADMIN_USERS: AdminUser[] = [
-  {
-    id: 'usr-super',
-    email: 'admin@danmayeyabo.gov.ng',
-    name: 'Hon. Chief Administrator',
-    role: 'Super Administrator',
-    officeId: undefined,
-    officeName: 'Executive Master Control (All Offices)',
-    isActive: true,
-    createdAt: '2025-01-01'
-  },
-  {
-    id: 'usr-liaison',
-    email: 'liaison.admin@danmayeyabo.gov.ng',
-    name: 'Alhaji Bello Dan-Yabo',
-    role: 'Office Administrator',
-    officeId: 'off-liaison',
-    officeName: 'Constituency Liaison & Grievance Redress Bureau',
-    isActive: true,
-    createdAt: '2025-01-15'
-  },
-  {
-    id: 'usr-projects',
-    email: 'projects.admin@danmayeyabo.gov.ng',
-    name: 'Engr. Faruq Shagari',
-    role: 'Office Administrator',
-    officeId: 'off-projects',
-    officeName: 'Constituency Projects, Works & Infrastructure Bureau',
-    isActive: true,
-    createdAt: '2025-01-15'
-  },
-  {
-    id: 'usr-media',
-    email: 'media.admin@danmayeyabo.gov.ng',
-    name: 'Hon. Aminu Kuchi',
-    role: 'Office Administrator',
-    officeId: 'off-media',
-    officeName: 'Directorate of Media, Public Relations & Press Affairs',
-    isActive: true,
-    createdAt: '2025-01-15'
-  },
-  {
-    id: 'usr-legis',
-    email: 'legislative.admin@danmayeyabo.gov.ng',
-    name: 'Barrister Mustapha Dan-Yabo',
-    role: 'Office Administrator',
-    officeId: 'off-legislative',
-    officeName: 'Parliamentary Legislative & Policy Advisory Bureau',
-    isActive: true,
-    createdAt: '2025-01-15'
-  },
-  {
-    id: 'usr-empower',
-    email: 'empowerment.admin@danmayeyabo.gov.ng',
-    name: 'Hajia Fatima Shagari',
-    role: 'Office Administrator',
-    officeId: 'off-empowerment',
-    officeName: 'Empowerment, Skills Acquisition & Social Welfare Directorate',
-    isActive: true,
-    createdAt: '2025-01-15'
-  },
-  {
-    id: 'usr-electoral',
-    email: 'electoral.admin@danmayeyabo.gov.ng',
-    name: 'Comrade Usman Torankawa',
-    role: 'Office Administrator',
-    officeId: 'off-electoral',
-    officeName: 'Constituency Electoral Operations & Field Polling Desk',
-    isActive: true,
-    createdAt: '2025-01-15'
   }
 ];

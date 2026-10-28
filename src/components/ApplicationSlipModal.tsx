@@ -321,67 +321,30 @@ export const ApplicationSlipModal: React.FC<Props> = ({ application, onClose, on
             </div>
           </div>
 
-          {/* Special Status Resolution Banners */}
-          {isPetition ? (
-            <>
-              {application.status === 'APPROVED' && (
-                <div className="no-print bg-gradient-to-r from-[#103C2E] via-[#09291F] to-[#103C2E] border-2 border-[#D4AF37] p-4 sm:p-5 rounded-2xl flex flex-col sm:flex-row items-center justify-between gap-4 text-white shadow-xl">
-                  <div className="flex items-center gap-3.5">
-                    <div className="w-11 h-11 rounded-full bg-[#D4AF37]/20 border border-[#D4AF37] flex items-center justify-center text-[#D4AF37] shrink-0">
-                      <ShieldCheck className="w-6 h-6" />
-                    </div>
-                    <div>
-                      <h4 className="font-['Manrope'] font-extrabold text-sm sm:text-base text-[#D4AF37] uppercase tracking-wide">
-                        ★ PETITION FORMALLY UPHELD & EXECUTIVE RELIEF ACTION DIRECTED ★
-                      </h4>
-                      <p className="text-xs text-emerald-100">
-                        The Office of Hon. (Dr.) Umar Yusuf Yabo highly commends your proactive civic engagement and constructive proposal toward community development. Following committee review, this petition has been officially validated and assigned to the constituency execution team.
-                      </p>
-                    </div>
-                  </div>
+          {/* Special Congratulatory Offer Notification Banner for Approved Beneficiaries */}
+          {application.status === 'APPROVED' && (
+            <div className="no-print bg-gradient-to-r from-[#103C2E] via-[#09291F] to-[#103C2E] border-2 border-[#D4AF37] p-4 sm:p-5 rounded-2xl flex flex-col sm:flex-row items-center justify-between gap-4 text-white shadow-xl">
+              <div className="flex items-center gap-3.5">
+                <div className="w-11 h-11 rounded-full bg-[#D4AF37]/20 border border-[#D4AF37] flex items-center justify-center text-[#D4AF37] shrink-0">
+                  <Award className="w-6 h-6" />
                 </div>
-              )}
-              {application.status === 'REJECTED' && (
-                <div className="no-print bg-stone-100 border-2 border-stone-300 p-4 sm:p-5 rounded-2xl flex items-center gap-3.5 text-stone-800 shadow-sm">
-                  <div className="w-11 h-11 rounded-full bg-stone-200 border border-stone-400 flex items-center justify-center text-stone-700 shrink-0">
-                    <FileText className="w-6 h-6" />
-                  </div>
-                  <div>
-                    <h4 className="font-['Manrope'] font-bold text-sm sm:text-base text-[#103C2E] uppercase tracking-wide">
-                      CIVIC NOTICE: PETITION REVIEW CONCLUDED & ADVISORY RECORDED
-                    </h4>
-                    <p className="text-xs text-stone-600 leading-relaxed">
-                      We sincerely appreciate your civic awareness and active initiative in bringing this matter forward for community development. Following thorough committee review, this matter has been resolved or noted in constituency archives.
-                    </p>
-                  </div>
+                <div>
+                  <h4 className="font-['Manrope'] font-extrabold text-sm sm:text-base text-[#D4AF37] uppercase tracking-wide">
+                    ★ CONGRATULATIONS! SELECTION & AWARD APPROVED ★
+                  </h4>
+                  <p className="text-xs text-emerald-100">
+                    Hon. (Dr.) Umar Yusuf Yabo has approved this dossier. You can now view and print your Official Congratulation Offer & Award Letter.
+                  </p>
                 </div>
-              )}
-            </>
-          ) : (
-            application.status === 'APPROVED' && (
-              <div className="no-print bg-gradient-to-r from-[#103C2E] via-[#09291F] to-[#103C2E] border-2 border-[#D4AF37] p-4 sm:p-5 rounded-2xl flex flex-col sm:flex-row items-center justify-between gap-4 text-white shadow-xl">
-                <div className="flex items-center gap-3.5">
-                  <div className="w-11 h-11 rounded-full bg-[#D4AF37]/20 border border-[#D4AF37] flex items-center justify-center text-[#D4AF37] shrink-0">
-                    <Award className="w-6 h-6" />
-                  </div>
-                  <div>
-                    <h4 className="font-['Manrope'] font-extrabold text-sm sm:text-base text-[#D4AF37] uppercase tracking-wide">
-                      ★ CONGRATULATIONS! SELECTION & AWARD APPROVED ★
-                    </h4>
-                    <p className="text-xs text-emerald-100">
-                      Hon. (Dr.) Umar Yusuf Yabo has approved this dossier. You can now view and print your Official Congratulation Offer & Award Letter.
-                    </p>
-                  </div>
-                </div>
-                <button
-                  onClick={() => setShowCongratOffer(true)}
-                  className="bg-gradient-to-r from-[#D4AF37] to-[#C6A15B] hover:brightness-110 active:scale-95 text-[#09291F] px-5 py-2.5 rounded-xl font-black text-xs uppercase shadow-lg flex items-center gap-2 transition cursor-pointer shrink-0"
-                >
-                  <Award className="w-4 h-4" />
-                  <span>VIEW CONGRATULATION OFFER</span>
-                </button>
               </div>
-            )
+              <button
+                onClick={() => setShowCongratOffer(true)}
+                className="bg-gradient-to-r from-[#D4AF37] to-[#C6A15B] hover:brightness-110 active:scale-95 text-[#09291F] px-5 py-2.5 rounded-xl font-black text-xs uppercase shadow-lg flex items-center gap-2 transition cursor-pointer shrink-0"
+              >
+                <Award className="w-4 h-4" />
+                <span>VIEW CONGRATULATION OFFER</span>
+              </button>
+            </div>
           )}
 
           {/* Section 1: Programme Details */}
@@ -460,103 +423,50 @@ export const ApplicationSlipModal: React.FC<Props> = ({ application, onClose, on
             </div>
           </div>
 
-          {/* Section 3: Educational or Petition Details */}
+          {/* Section 3: Educational & Socio-economic */}
           <div className="space-y-2">
             <h4 className="text-xs font-black uppercase tracking-wider text-[#103C2E] border-b border-stone-200 pb-1 flex items-center gap-1.5">
               <span className="w-2 h-2 rounded-full bg-[#C6A15B]"></span>
-              {isPetition ? '3. COMMUNITY PETITION & LOCATION DETAILS' : '3. EDUCATIONAL & SOCIO-ECONOMIC BACKGROUND'}
+              3. EDUCATIONAL & SOCIO-ECONOMIC BACKGROUND
             </h4>
-            {isPetition ? (
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs bg-stone-50 p-3.5 rounded-xl border border-stone-200/80">
-                <div>
-                  <span className="text-stone-500 block text-[10px] uppercase font-bold">Category:</span>
-                  <span className="font-bold text-[#103C2E]">{application.programCategory || 'Constituency Petition'}</span>
-                </div>
-                <div>
-                  <span className="text-stone-500 block text-[10px] uppercase font-bold">Community Ward:</span>
-                  <span className="font-bold text-[#103C2E]">{application.wardOrTown}</span>
-                </div>
-                <div>
-                  <span className="text-stone-500 block text-[10px] uppercase font-bold">Local Government:</span>
-                  <span className="font-bold text-[#103C2E]">{application.lga || 'Yabo / Shagari'}</span>
-                </div>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs bg-stone-50 p-3.5 rounded-xl border border-stone-200/80">
+              <div>
+                <span className="text-stone-500 block text-[10px] uppercase font-bold">Highest Qualification:</span>
+                <span className="font-bold text-[#103C2E]">{application.highestEducation || 'Verified on Screening'}</span>
               </div>
-            ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs bg-stone-50 p-3.5 rounded-xl border border-stone-200/80">
-                <div>
-                  <span className="text-stone-500 block text-[10px] uppercase font-bold">Highest Qualification:</span>
-                  <span className="font-bold text-[#103C2E]">{application.highestEducation || 'Verified on Screening'}</span>
-                </div>
-                <div>
-                  <span className="text-stone-500 block text-[10px] uppercase font-bold">Employment Status:</span>
-                  <span className="font-bold text-[#103C2E]">{application.employmentStatus || 'Artisan / Candidate'}</span>
-                </div>
-                <div>
-                  <span className="text-stone-500 block text-[10px] uppercase font-bold">Qualifications / Trade:</span>
-                  <span className="font-bold text-[#103C2E] truncate block">{application.qualifications}</span>
-                </div>
+              <div>
+                <span className="text-stone-500 block text-[10px] uppercase font-bold">Employment Status:</span>
+                <span className="font-bold text-[#103C2E]">{application.employmentStatus || 'Artisan / Candidate'}</span>
               </div>
-            )}
+              <div>
+                <span className="text-stone-500 block text-[10px] uppercase font-bold">Qualifications / Trade:</span>
+                <span className="font-bold text-[#103C2E] truncate block">{application.qualifications}</span>
+              </div>
+            </div>
           </div>
 
           {/* Section 4: Personal Statement */}
           <div className="space-y-2">
             <h4 className="text-xs font-black uppercase tracking-wider text-[#103C2E] border-b border-stone-200 pb-1 flex items-center gap-1.5">
               <span className="w-2 h-2 rounded-full bg-[#C6A15B]"></span>
-              {isPetition ? '4. CITIZEN PETITION GRIEVANCE & PROPOSAL' : '4. STATEMENT OF INTENT & COMMUNITY IMPACT'}
+              4. STATEMENT OF INTENT & COMMUNITY IMPACT
             </h4>
             <div className="bg-stone-50 p-3.5 rounded-xl border border-stone-200/80 text-xs italic text-stone-700 leading-relaxed">
               "{application.statement}"
             </div>
           </div>
 
-          {/* Section 5: Official Committee Resolution & Feedback */}
-          {(application.publicFeedback || application.awardGrantPackage) && (
-            <div className="space-y-2">
-              <h4 className="text-xs font-black uppercase tracking-wider text-[#103C2E] border-b border-stone-200 pb-1 flex items-center gap-1.5">
-                <span className="w-2 h-2 rounded-full bg-emerald-600"></span>
-                {isPetition ? '5. OFFICIAL COMMITTEE RESOLUTION & EXECUTIVE ACTION' : '5. COMMITTEE ALLOCATION & PUBLIC NOTICE'}
-              </h4>
-              <div className="bg-emerald-50/70 p-4 rounded-xl border border-emerald-300 space-y-2 text-xs">
-                {application.publicFeedback && (
-                  <div>
-                    <span className="text-[10px] uppercase font-bold text-emerald-900 block">
-                      {isPetition ? 'Official Resolution Notice:' : 'Committee Feedback:'}
-                    </span>
-                    <p className="font-medium text-[#103C2E] leading-relaxed">{application.publicFeedback}</p>
-                  </div>
-                )}
-                {application.awardGrantPackage && (
-                  <div className="pt-1.5 border-t border-emerald-200">
-                    <span className="text-[10px] uppercase font-bold text-emerald-900 block">
-                      {isPetition ? 'Committed Relief / Executive Action:' : 'Approved Award Specification:'}
-                    </span>
-                    <span className="font-black text-[#103C2E]">{application.awardGrantPackage}</span>
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
-
           {/* Verification Instructions Box */}
           <div className="bg-[#FAF9F5] border-l-4 border-[#C6A15B] p-4 rounded-r-xl space-y-1.5 text-xs text-stone-700">
             <span className="font-extrabold uppercase text-[#103C2E] block">
-              {isPetition ? 'CONSTITUENCY PETITION & CIVIC CITIZENSHIP ADVISORY' : 'VERIFICATION INSTRUCTIONS & NEXT STEPS'}
+              VERIFICATION INSTRUCTIONS & NEXT STEPS
             </span>
-            {isPetition ? (
-              <ul className="list-disc list-inside space-y-1 text-[11px] font-light">
-                <li>This petition docket is officially logged in the legislative records of Hon. (Dr.) Umar Yusuf Yabo.</li>
-                <li>We commend your active civic citizenship in advocating for community development in your ward.</li>
-                <li>Track live committee investigation and resolution at <strong>danmayeyabo.gov.ng</strong> using reference: <strong className="font-mono text-[#103C2E]">{application.referenceNumber}</strong>.</li>
-              </ul>
-            ) : (
-              <ul className="list-disc list-inside space-y-1 text-[11px] font-light">
-                <li>Keep this printed acknowledgment slip safe for official identification.</li>
-                <li>Verification desk officers will review submitted records and notify shortlisted beneficiaries via SMS and phone call.</li>
-                <li>When invited, bring this slip alongside your original NIN slip and Local Government Indigene Certificate.</li>
-                <li>Track live updates at <strong>danmayeyabo.gov.ng</strong> using reference: <strong className="font-mono text-[#103C2E]">{application.referenceNumber}</strong>.</li>
-              </ul>
-            )}
+            <ul className="list-disc list-inside space-y-1 text-[11px] font-light">
+              <li>Keep this printed acknowledgment slip safe for official identification.</li>
+              <li>Verification desk officers will review submitted records and notify shortlisted beneficiaries via SMS and phone call.</li>
+              <li>When invited, bring this slip alongside your original NIN slip and Local Government Indigene Certificate.</li>
+              <li>Track live updates at <strong>danmayeyabo.gov.ng</strong> using reference: <strong className="font-mono text-[#103C2E]">{application.referenceNumber}</strong>.</li>
+            </ul>
           </div>
 
           {/* Official Seals and Signature Line */}

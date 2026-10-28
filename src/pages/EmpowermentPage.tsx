@@ -9,8 +9,6 @@ import {
 import { Language, t, Translations } from '../utils/i18n';
 import { ApplicationSlipModal } from '../components/ApplicationSlipModal';
 import { ApplicationTracker } from '../components/ApplicationTracker';
-import { compressImageFile } from '../utils/imageCompressor';
-import { apiUploadFile } from '../utils/apiSync';
 
 interface Props {
   programs: EmpowermentProgram[];
@@ -185,35 +183,18 @@ export const EmpowermentPage: React.FC<Props> = ({
     }));
   };
 
-  const handlePassportPhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handlePassportPhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    try {
-      const compressedDataUrl = await compressImageFile(file, 600, 600, 0.82);
-      try {
-        const permanentUrl = await apiUploadFile(compressedDataUrl, file.name);
-        setFormData(prev => ({
-          ...prev,
-          passportPhoto: permanentUrl
-        }));
-      } catch {
-        setFormData(prev => ({
-          ...prev,
-          passportPhoto: compressedDataUrl
-        }));
-      }
-    } catch {
-      const reader = new FileReader();
-      reader.onload = () => {
-        setFormData(prev => ({
-          ...prev,
-          passportPhoto: reader.result as string
-        }));
-      };
-      reader.readAsDataURL(file);
-    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      setFormData(prev => ({
+        ...prev,
+        passportPhoto: reader.result as string
+      }));
+    };
+    reader.readAsDataURL(file);
   };
-
 
   const handleUseSamplePassport = () => {
     const samplePassportDataUrl = 'data:image/svg+xml;utf8,' + encodeURIComponent(`
@@ -347,33 +328,30 @@ export const EmpowermentPage: React.FC<Props> = ({
     };
 
     try {
-      try {
-        await fetch('/api/applications', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(newApplication)
-        });
-      } catch {
-        // Local fallback
-      }
-
-      try {
-        const stored = JSON.parse(localStorage.getItem('danmaje_applications') || '[]');
-        stored.unshift(newApplication);
-        localStorage.setItem('danmaje_applications', JSON.stringify(stored));
-        localStorage.removeItem('danmaje_app_draft');
-      } catch {
-        // Storage fallback
-      }
-
-      setCreatedApplication(newApplication);
-      setShowSlipModal(true);
-      setFormData(initialForm);
-      setCurrentStep(1);
-      setSelectedProgram(null);
-    } finally {
-      setSubmitting(false);
+      await fetch('/api/applications', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newApplication)
+      });
+    } catch {
+      // Local fallback
     }
+
+    try {
+      const stored = JSON.parse(localStorage.getItem('danmaje_applications') || '[]');
+      stored.unshift(newApplication);
+      localStorage.setItem('danmaje_applications', JSON.stringify(stored));
+      localStorage.removeItem('danmaje_app_draft');
+    } catch {
+      // Storage fallback
+    }
+
+    setCreatedApplication(newApplication);
+    setShowSlipModal(true);
+    setFormData(initialForm);
+    setCurrentStep(1);
+    setSelectedProgram(null);
+    setSubmitting(false);
   };
 
   const isRtl = currentLang === 'ar';
